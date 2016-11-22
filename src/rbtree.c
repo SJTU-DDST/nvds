@@ -245,14 +245,12 @@ static rbtree_node_t* rbtree_delete_fixup(rbtree_node_t* root, rbtree_node_t* x)
 #undef fix
 }
 
-/*
 rbtree_node_t* rbtree_find(rbtree_node_t* root, rbtree_key_t key) {
   while (root != rbtree_nil && key != root->key) {
     root = key < root->key ? root->left: root->right;
   }
   return root;
 }
-*/
 
 /*
  * Get the low bound of key: the smallest node that is no less than key.

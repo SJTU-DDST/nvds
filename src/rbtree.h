@@ -28,17 +28,8 @@ rbtree_node_t* rbtree_insert(rbtree_node_t* root, rbtree_node_t* z);
 rbtree_node_t* rbtree_delete(rbtree_node_t* root, rbtree_node_t* z);
 rbtree_node_t* rbtree_minimum(rbtree_node_t* root);
 rbtree_node_t* rbtree_maximum(rbtree_node_t* root);
-//rbtree_node_t* rbtree_find(rbtree_node_t* root, rbtree_key_t key);
+rbtree_node_t* rbtree_find(rbtree_node_t* root, rbtree_key_t key);
 rbtree_node_t* rbtree_lowbound(rbtree_node_t* root, rbtree_key_t key);
 void rbtree_destroy(rbtree_node_t* root);
 
-/*
-static inline rbtree_node_t* rbtree_insert_key(rbtree_node_t* root, rbtree_key_t key, rbtree_val_t val) {
-  return rbtree_insert(root, rbtree_node_new(key, val));
-}
-
-static inline rbtree_node_t* rbtree_delete_key(rbtree_node_t* root, rbtree_key_t key) {
-  return rbtree_delete(root, rbtree_find(root, key));
-}
-*/
 #endif
