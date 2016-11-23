@@ -31,7 +31,7 @@ static void nvds_set_qp_state_init(struct ibv_qp* qp, nvds_data_t* data) {
 
   int modify_flags = IBV_QP_STATE | IBV_QP_PKEY_INDEX |
                      IBV_QP_PORT | IBV_QP_ACCESS_FLAGS;
-  nvds_expect(ibv_modify_qp(qp, &attr, modify_flags),
+  nvds_expect(ibv_modify_qp(qp, &attr, modify_flags) == 0,
               "ibv_modify_qp() failed");
 }
 
