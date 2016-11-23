@@ -53,7 +53,7 @@ struct ib_connection {
 };
 
 struct app_data {
-	int									  port;
+	uint16_t						  port;
 	int									  ib_port;
 	unsigned           	  size;
 	int                		tx_depth;
@@ -144,13 +144,13 @@ int main(int argc, char *argv[])
 	print_ib_connection("Local  Connection", &data.local_connection);
 	print_ib_connection("Remote Connection", data.remote_connection);	
 
-	if(data.servername){
+	if (data.servername) {
 		qp_change_state_rtr(ctx->qp, &data);
-	}else{
+	} else {
 		qp_change_state_rts(ctx->qp, &data);
 	}	
 
-	if(!data.servername){
+	if (!data.servername) {
 		/* Server - RDMA WRITE */
 		printf("Server. Writing to Client-Buffer (RDMA-WRITE)\n");
 
@@ -160,7 +160,7 @@ int main(int argc, char *argv[])
 
 		rdma_write(ctx, &data);
 		
-	}else{
+	} else {
 		/* Client - Read local buffer */
 		printf("Client. Reading Local-Buffer (Buffer that was registered with MR)\n");
 		
@@ -309,7 +309,7 @@ static struct app_context *init_ctx(struct app_data *data)
      * The Consumer is not allowed to assign Remote Write or Remote Atomic to
      * a Memory Region that has not been assigned Local Write. 
 	 */
-
+  
 	TEST_Z(ctx->mr = ibv_reg_mr(ctx->pd, ctx->buf, ctx->size * 2, 
 				IBV_ACCESS_REMOTE_WRITE | IBV_ACCESS_LOCAL_WRITE),
 			"Could not allocate mr, ibv_reg_mr. Do you have root access?");
@@ -549,7 +549,7 @@ static int qp_change_state_rts(struct ibv_qp *qp, struct app_data *data){
  * **********************
  *	Writes 'ctx-buf' into buffer of peer
  */
-static void rdma_write(struct app_context *ctx, struct app_data *data){
+static void rdma_write(struct app_context *ctx, struct app_data *data) {
 	
 	ctx->sge_list.addr      = (uintptr_t)ctx->buf;
    	ctx->sge_list.length    = ctx->size;
