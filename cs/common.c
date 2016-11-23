@@ -173,7 +173,7 @@ static void nvds_run_client(nvds_context_t* ctx, nvds_data_t* data) {
     // Step 4: polling if RDMA read done
     nvds_poll_send(ctx);
     // Step 5: verify read data
-    printf("% th write/read completed\n");
+    printf("%d th write/read completed\n", i);
   }
 
   printf("client exited\n");
