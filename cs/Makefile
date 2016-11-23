@@ -1,4 +1,4 @@
-CC=gcc
+CC=gcc -std=c11
 CFLAGS=-Wall -g -D_GNU_SOURCE
 LDFLAGS= -libverbs
 
