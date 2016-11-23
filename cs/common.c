@@ -28,7 +28,7 @@ static void nvds_set_qp_state_init(struct ibv_qp* qp, nvds_data_t* data) {
     .port_num = data->ib_port,
     .qp_access_flags = IBV_ACCESS_LOCAL_WRITE |
                        IBV_ACCESS_REMOTE_READ |
-                       IBV_ACCESS_REMOTE_WRITE;
+                       IBV_ACCESS_REMOTE_WRITE
   };
 
   int modify_flags = IBV_QP_STATE | IBV_QP_PKEY_INDEX |
