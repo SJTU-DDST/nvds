@@ -3,6 +3,6 @@
 
 #include "nvds.h"
 
-void nvds_get_device();
+struct ibv_context* nvds_get_ib_device();
 
 #endif

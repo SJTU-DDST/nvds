@@ -19,12 +19,17 @@
 // Shared memory facility
 #include <sys/shm.h>
 
-#define nvds_error(format, ...) {           \
-  fprintf(stderr, "error: ");               \
-  fprintf(stderr, format, ## __VA_ARGS__);  \
-  fprintf(stderr, "\n");                    \
-  exit(-1);                                 \
+#define nvds_error(format, ...) {                         \
+  fprintf(stderr, "error: %s: %d: ", __FILE__, __LINE__); \
+  fprintf(stderr, format, ## __VA_ARGS__);                \
+  fprintf(stderr, "\n");                                  \
+  exit(-1);                                               \
 }
 
+#define nvds_expect(cond, err, ...) { \
+  if (!(cond)) {                      \
+    nvds_error(err, ## __VA_ARGS__);  \
+  }                                   \
+}
 
 #endif
