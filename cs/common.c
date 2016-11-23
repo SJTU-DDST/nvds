@@ -7,8 +7,8 @@ static int page_size;
 
 static void nvds_server_exch_info(nvds_data_t* data);
 static void nvds_client_exch_info(nvds_data_t* data);
-static void run_server(nvds_context_t* ctx, nvds_data_t* data);
-static void run_client(nvds_context_t* ctx, nvds_data_t* data);
+static void nvds_run_server(nvds_context_t* ctx, nvds_data_t* data);
+static void nvds_run_client(nvds_context_t* ctx, nvds_data_t* data);
 static void nvds_init_local_ib_connection(nvds_context_t* ctx,
                                           nvds_data_t* data);
 static void nvds_init_ctx(nvds_context_t* ctx, nvds_data_t* data);
@@ -117,6 +117,7 @@ int listen_fd;
 
   close(fd);
   close(listen_fd);
+  printf("information exchanged\n");
 }
 
 static void nvds_client_exch_info(nvds_data_t* data) {
@@ -141,9 +142,10 @@ static void nvds_client_exch_info(nvds_data_t* data) {
   nvds_expect(len == sizeof(data->remote_conn), "read() failed");
   
   close(fd);
+  printf("information exchanged\n");
 }
 
-static void run_server(nvds_context_t* ctx, nvds_data_t* data) {
+static void nvds_run_server(nvds_context_t* ctx, nvds_data_t* data) {
   nvds_server_exch_info(data);
 
   // Set queue pair state to RTR(Read to Receive)
@@ -153,7 +155,7 @@ static void run_server(nvds_context_t* ctx, nvds_data_t* data) {
   while (1) {}
 }
 
-static void run_client(nvds_context_t* ctx, nvds_data_t* data) {
+static void nvds_run_client(nvds_context_t* ctx, nvds_data_t* data) {
   nvds_client_exch_info(data);
 
   nvds_set_qp_state_rts(ctx->qp, data);
@@ -219,6 +221,7 @@ static void nvds_rdma_read(nvds_context_t* ctx, nvds_data_t* data) {
 static void nvds_poll_send(nvds_context_t* ctx) {
   struct ibv_wc wc;
   while (ibv_poll_cq(ctx->scq, 1, &wc) != 1) {}
+  printf("wc.status: %d\n", wc.status);
   nvds_expect(wc.status == IBV_WC_SUCCESS, "rdma write failed");
   nvds_expect(wc.wr_id == ctx->wr.wr_id, "wr id not matched");
 }
@@ -327,9 +330,9 @@ int main(int argc, const char* argv[]) {
   nvds_init_local_ib_connection(&ctx, &data);
 
   if (is_client) {
-    run_client(&ctx, &data);
+    nvds_run_client(&ctx, &data);
   } else {
-    run_server(&ctx, &data);
+    nvds_run_server(&ctx, &data);
   }
 
   return 0;
