@@ -1,5 +1,4 @@
 # My Notes
-    机器IP： 192.168.99.11 192.168.99.12
 
 ## Plan
 1. 先做2个节点之间的通信与query，一开始可先不做复制；测试单一节点的QPS；
@@ -15,3 +14,8 @@
 ## RDMA 理解
 1. Channel Adapter: 其实就是指NIC
 2. RDMA存在两种典型的semantics: memory semantic 和 channel semantic；memory semantic就是由发起方指定读写的地址，完全不需要host的cpu参与， 这称为one-sided；这对应于RDMA的READ、WRITE；channel semantic对应于RDMA的SEND、RECV
+
+## 测试
+
+### RDMA 延迟
+相同机架上两台机器之间的RDMA写延迟为1.21us，读延迟为1.20us；读写数据长度为64Byte；
