@@ -247,7 +247,7 @@ static void nvds_init_local_ib_connection(nvds_context_t* ctx,
   data->local_conn.qpn = ctx->qp->qp_num;
   data->local_conn.psn = lrand48() & 0xffffff;
   data->local_conn.rkey = ctx->mr->rkey;
-  data->local_conn.vaddr = (uintptr_t)ctx->buf + ctx->size;
+  data->local_conn.vaddr = (uintptr_t)ctx->buf;
 }
 
 static void nvds_init_ctx(nvds_context_t* ctx, nvds_data_t* data) {
