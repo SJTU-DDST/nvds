@@ -164,27 +164,31 @@ static void nvds_run_client(nvds_context_t* ctx, nvds_data_t* data) {
 
   nvds_set_qp_state_rts(ctx->qp, data);
 
-  static const int n = 1024;
+  clock_t begin = clock();
+  static const int n = 1000 * 1000;
   for (int i = 0; i < n; ++i) {
     // Step 1: RDMA write to server
     snprintf(ctx->buf, RDMA_WRITE_LEN, "hello rdma\n");
     nvds_rdma_write(ctx, data);
     // Step 2: polling if RDMA write done
     nvds_poll_send(ctx);
-    // Step 3: RDMA read to server
+    // Step 3: RDMA read from server
     nvds_rdma_read(ctx, data);
     // Step 4: polling if RDMA read done
     nvds_poll_send(ctx);
     // Step 5: verify read data
-    char* write_buf = ctx->buf;
-    char* read_buf = ctx->buf + RDMA_WRITE_LEN;
-    nvds_expect(strncmp(write_buf, read_buf, RDMA_WRITE_LEN) == 0,
-                "data read dirty");
-    printf("%s", read_buf);
-    printf("%d th write/read completed\n", i);
-    memset(ctx->buf, 0, ctx->size);
+    //char* write_buf = ctx->buf;
+    //char* read_buf = ctx->buf + RDMA_WRITE_LEN;
+    //nvds_expect(strncmp(write_buf, read_buf, RDMA_WRITE_LEN) == 0,
+    //            "data read dirty");
+    //printf("%s", read_buf);
+    //printf("%d th write/read completed\n", i);
+    //memset(ctx->buf, 0, ctx->size);
   }
 
+  double t = (clock() - begin) * 1.0 / CLOCKS_PER_SEC;
+  printf("time: %fs\n", t);
+  printf("QPS: %f\n", n / t);
   printf("client exited\n");
   exit(0);
   // Dump statistic info
