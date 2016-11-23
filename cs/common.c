@@ -218,9 +218,7 @@ static void nvds_rdma_read(nvds_context_t* ctx, nvds_data_t* data) {
 
 static void nvds_poll_send(nvds_context_t* ctx) {
   struct ibv_wc wc;
-  do {
-    int cnt = ibv_poll_cq(ctx->scq, 1, &wc);
-  } while (cnt != 1);
+  while (ibv_poll_cq(ctx->scq, 1, &wc) != 1) {}
   nvds_expect(wc.status == IBV_WC_SUCCESS, "rdma write failed");
   nvds_expect(wc.wr_id == ctx->wr.wr_id, "wr id not matched");
 }
