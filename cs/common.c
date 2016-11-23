@@ -182,6 +182,7 @@ static void nvds_run_client(nvds_context_t* ctx, nvds_data_t* data) {
                 "data read dirty");
     printf("%s", read_buf);
     printf("%d th write/read completed\n", i);
+    memset(ctx->buf, 0, ctx->size);
   }
 
   printf("client exited\n");
