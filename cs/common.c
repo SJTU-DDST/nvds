@@ -2,6 +2,8 @@
 
 #define RDMA_WRITE_ID   (3)
 #define RDMA_READ_ID    (4)
+#define RDMA_WRITE_LEN  (64)
+#define RDMA_READ_LEN   RDMA_WRITE_LEN
 
 static int page_size;
 
@@ -173,6 +175,10 @@ static void nvds_run_client(nvds_context_t* ctx, nvds_data_t* data) {
     // Step 4: polling if RDMA read done
     nvds_poll_send(ctx);
     // Step 5: verify read data
+    char* write_buf = ctx->buf;
+    char* read_buf = ctx->buf + RDMA_WRITE_LEN;
+    nvds_expect(strncmp(write_buf, read_buf, RDMA_WRITE_LEN) == 0,
+                "data read dirty");
     printf("%d th write/read completed\n", i);
   }
 
@@ -182,15 +188,15 @@ static void nvds_run_client(nvds_context_t* ctx, nvds_data_t* data) {
 }
 
 static void nvds_rdma_write(nvds_context_t* ctx, nvds_data_t* data) {
-  ctx->sge_list.addr    = (uintptr_t)ctx->buf;
-  ctx->sge_list.length  = ctx->size;
-  ctx->sge_list.lkey    = ctx->mr->lkey;
+  ctx->sge.addr    = (uintptr_t)ctx->buf;
+  ctx->sge.length  = RDMA_WRITE_LEN;
+  ctx->sge.lkey    = ctx->mr->lkey;
 
   // The address write to
   ctx->wr.wr.rdma.remote_addr = data->remote_conn.vaddr;
   ctx->wr.wr.rdma.rkey        = data->remote_conn.rkey;
   ctx->wr.wr_id               = RDMA_WRITE_ID;
-  ctx->wr.sg_list             = &ctx->sge_list;
+  ctx->wr.sg_list             = &ctx->sge;
   ctx->wr.num_sge             = 1;
   ctx->wr.opcode              = IBV_WR_RDMA_WRITE;
   ctx->wr.send_flags          = IBV_SEND_SIGNALED;
@@ -202,15 +208,15 @@ static void nvds_rdma_write(nvds_context_t* ctx, nvds_data_t* data) {
 }
 
 static void nvds_rdma_read(nvds_context_t* ctx, nvds_data_t* data) {
-  ctx->sge_list.addr    = (uintptr_t)ctx->buf;
-  ctx->sge_list.length  = ctx->size;
-  ctx->sge_list.lkey    = ctx->mr->lkey;
+  ctx->sge.addr    = (uintptr_t)ctx->buf + RDMA_WRITE_LEN;
+  ctx->sge.length  = RDMA_READ_LEN;
+  ctx->sge.lkey    = ctx->mr->lkey;
 
   // The address read from
   ctx->wr.wr.rdma.remote_addr = data->remote_conn.vaddr;
   ctx->wr.wr.rdma.rkey        = data->remote_conn.rkey;
   ctx->wr.wr_id               = RDMA_READ_ID;
-  ctx->wr.sg_list             = &ctx->sge_list;
+  ctx->wr.sg_list             = &ctx->sge;
   ctx->wr.num_sge             = 1;
   ctx->wr.opcode              = IBV_WR_RDMA_READ;
   ctx->wr.send_flags          = IBV_SEND_SIGNALED;

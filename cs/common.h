@@ -44,7 +44,7 @@ typedef struct nvds_context {
 	void*                     buf;
 	unsigned            	    size;
 	int                 	    tx_depth;
-	struct ibv_sge      	    sge_list;
+	struct ibv_sge      	    sge;
 	struct ibv_send_wr  	    wr;
 } nvds_context_t;
 
