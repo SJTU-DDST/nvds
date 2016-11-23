@@ -161,11 +161,39 @@ static void nvds_run_server(nvds_context_t* ctx, nvds_data_t* data) {
 
 static void nvds_run_client(nvds_context_t* ctx, nvds_data_t* data) {
   nvds_client_exch_info(data);
-
   nvds_set_qp_state_rts(ctx->qp, data);
 
-  clock_t begin = clock();
-  static const int n = 1000 * 1000;
+  snprintf(ctx->buf, RDMA_WRITE_LEN, "hello rdma\n");
+
+  static const int n = 1000 * 1000;  
+  clock_t begin;
+  double t;
+  
+  // Test write latency
+  begin = clock();
+  for (int i = 0; i < n; ++i) {
+    // Step 1: RDMA write to server
+    nvds_rdma_write(ctx, data);
+    // Step 2: polling if RDMA write done
+    nvds_poll_send(ctx);
+  }
+  t = (clock() - begin) * 1.0 / CLOCKS_PER_SEC;
+  printf("time: %fs\n", t);
+  printf("write latency: %fus\n", t / n * 1000 * 1000);
+
+  // Test read latency
+  begin = clock();
+  for (int i = 0; i < n; ++i) {
+    // Step 1: RDMA read from server
+    nvds_rdma_read(ctx, data);
+    // Step 2: polling if RDMA read done
+    nvds_poll_send(ctx);
+  }
+  t = (clock() - begin) * 1.0 / CLOCKS_PER_SEC;
+  printf("time: %fs\n", t);
+  printf("read latency: %fus\n", t / n * 1000 * 1000);
+
+  /*
   for (int i = 0; i < n; ++i) {
     // Step 1: RDMA write to server
     snprintf(ctx->buf, RDMA_WRITE_LEN, "hello rdma\n");
@@ -190,6 +218,7 @@ static void nvds_run_client(nvds_context_t* ctx, nvds_data_t* data) {
   printf("time: %fs\n", t);
   printf("QPS: %f\n", n / t);
   printf("client exited\n");
+  */
   exit(0);
   // Dump statistic info
 }
