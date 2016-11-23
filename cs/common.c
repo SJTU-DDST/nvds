@@ -162,7 +162,7 @@ static void nvds_run_client(nvds_context_t* ctx, nvds_data_t* data) {
 
   nvds_set_qp_state_rts(ctx->qp, data);
 
-  static const int n = 1024 * 1024;
+  static const int n = 1024;
   for (int i = 0; i < n; ++i) {
     // Step 1: RDMA write to server
     nvds_rdma_write(ctx, data);
@@ -173,6 +173,7 @@ static void nvds_run_client(nvds_context_t* ctx, nvds_data_t* data) {
     // Step 4: polling if RDMA read done
     nvds_poll_send(ctx);
     // Step 5: verify read data
+    printf("% th write/read completed\n");
   }
 
   printf("client exited\n");
@@ -223,7 +224,6 @@ static void nvds_rdma_read(nvds_context_t* ctx, nvds_data_t* data) {
 static void nvds_poll_send(nvds_context_t* ctx) {
   struct ibv_wc wc;
   while (ibv_poll_cq(ctx->scq, 1, &wc) != 1) {}
-  printf("wc.status: %d\n", wc.status);
   nvds_expect(wc.status == IBV_WC_SUCCESS, "rdma write failed");
   nvds_expect(wc.wr_id == ctx->wr.wr_id, "wr id not matched");
 }
