@@ -167,6 +167,7 @@ static void nvds_run_client(nvds_context_t* ctx, nvds_data_t* data) {
   static const int n = 1024;
   for (int i = 0; i < n; ++i) {
     // Step 1: RDMA write to server
+    snprintf(ctx->buf, RDMA_WRITE_LEN, "hello rdma\n");
     nvds_rdma_write(ctx, data);
     // Step 2: polling if RDMA write done
     nvds_poll_send(ctx);
@@ -179,6 +180,7 @@ static void nvds_run_client(nvds_context_t* ctx, nvds_data_t* data) {
     char* read_buf = ctx->buf + RDMA_WRITE_LEN;
     nvds_expect(strncmp(write_buf, read_buf, RDMA_WRITE_LEN) == 0,
                 "data read dirty");
+    printf("%s", read_buf);
     printf("%d th write/read completed\n", i);
   }
 
