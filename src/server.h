@@ -1,6 +1,7 @@
 #ifndef _NVDS_SERVER_H_
 #define _NVDS_SERVER_H_
 
+#include <cstdint>
 #include <vector>
 
 namespace nvds {
@@ -11,7 +12,7 @@ public:
 
 public:
   Server(const BackupList& backup_list)
-      : BackupList(backup_list) {}
+      : backup_list_(backup_list) {}
   ~Server() {}
   Server(const Server& other) = delete;
 

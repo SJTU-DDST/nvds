@@ -1,5 +1,5 @@
-#ifndef _NVDS_COMMON_H_
-#define _NVDS_COMMON_H_
+#ifndef _NVDS_INFINIBAND_H_
+#define _NVDS_INFINIBAND_H_
 
 #include "nvds.h"
 
@@ -51,4 +51,4 @@ void nvds_ib_init_ctx(nvds_ib_context_t* ctx, nvds_ib_data_t* data);
 
 } // namespace nvds
 
-#endif // _NVDS_COMMON_H_
+#endif // _NVDS_INFINIBAND_H_

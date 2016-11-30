@@ -38,3 +38,4 @@
 # Editor & Build
 .vscode
 build/
+.*
