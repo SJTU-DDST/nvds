@@ -1,41 +1,68 @@
-TARGET = nvds
-CC = g++ -std=c++11
+CXX = g++ -std=c++11
 LD = g++
+CXXFLAGS = -g -Wall -D_XOPEN_SOURCE -D_GNU_SOURCE -I./
+LDFLAGS = -lrt -lpthread -lssl -lcrypto
+LDLIBS = -libverbs
 
-SRCS = coordinator.cc	\
-	   index.cc			\
-	   infiniband.cc	\
-	   nvds.cc			\
-	   object.cc		\
-	   server.cc		\
+SRCS = client.cc			\
+	   coordinator.cc		\
+	   index.cc				\
+	   infiniband.cc		\
+	   object.cc			\
+	   server.cc			\
 	   tablet.cc
-
-CFLAGS = -g -Wall -D_XOPEN_SOURCE -D_GNU_SOURCE -I./
-LDFLAGS = -libverbs -lrt -lpthread -lssl -lcrypto
 
 OBJS_DIR = build/
 OBJS = $(addprefix $(OBJS_DIR), $(SRCS:.cc=.o))
+
+depend: .depend
+
+.depend: $(SRCS)
+	@rm -f ./.depend
+	@$(CXX) $(CFLAGS) -MM $^ -MF  ./.depend;
+
+include .depend
 
 default: all
 
 all:
 	@mkdir -p $(OBJS_DIR)
-	@make $(TARGET)
+	@make coordinator
+	@make server
+	@make client
 
-$(TARGET): $(OBJS)
-	g++ -o $(OBJS_DIR)$@ $^ $(LDFLAGS)
+client: $(OBJS) $(OBJS_DIR)client_main.o
+	$(LD) $(LDFLAGS) -o $(OBJS_DIR)$@ $^ $(LDLIBS)
 
-$(OBJS_DIR)%.o: %.cc %.h
-	$(CC) $(CFLAGS) -o $@ -c $<
+server: $(OBJS) $(OBJS_DIR)server_main.o
+	$(LD) $(LDFLAGS) -o $(OBJS_DIR)$@ $^ $(LDLIBS)
 
-infiniband.o: infiniband.cc infiniband.h
-test_infiniband.o: test_infiniband.cc infiniband.h
+coordinator: $(OBJS) $(OBJS_DIR)coordinator_main.o
+	$(LD) $(LDFLAGS) -o $(OBJS_DIR)$@ $^ $(LDLIBS)
 
-test_infiniband: infiniband.o test_infiniband.o
-	$(LD) -o $@ $^ $(LDFLAGS)
+$(OBJS_DIR)%.o: %.cc
+	$(CXX) $(CXXFLAGS) -o $@ -c $^
+	
+$(OBJS_DIR)coordinator_main.o: coordinator_main.cc
+	$(CXX) $(CXXFLAGS) -o $@ -c $^
+
+$(OBJS_DIR)server_main.o : server_main.cc
+	$(CXX) $(CXXFLAGS) -o $@ -c $^
+
+$(OBJS_DIR)client_main.o : client_main.cc
+	$(CXX) $(CXXFLAGS) -o $@ -c $^
+
+$(OBJS_DIR)test_infiniband.o: test_infiniband.cc infiniband.h
+	$(CXX) $(CXXFLAGS) -o $@ -c $^
+
+test_infiniband: $(OBJS_DIR)test_infiniband.o $(OBJS_DIR)infiniband.o
+	$(LD) $(LDFLAGS) -o $(OBJS_DIR)$@ $^ $(LDLIBS)
 
 .PHONY: clean
 
+clean-objs:
+	@rm -f $(OBJS_DIR)*.o
+
 clean:
 	@rm -rf $(OBJS_DIR)
-	@rm -f *.o
+	@rm -f .depend
