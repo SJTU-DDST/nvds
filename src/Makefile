@@ -1,15 +1,20 @@
 TARGET = nvds
-CC = gcc -std=c99
-LD = gcc
-SRCS = consistent_hash.c	\
-	   nvds.c rbtree.c
+CC = g++ -std=c++11
+LD = g++
+
+SRCS = coordinator.cc	\
+	   index.cc			\
+	   infiniband.cc	\
+	   nvds.cc			\
+	   object.cc		\
+	   server.cc		\
+	   tablet.cc
 
 CFLAGS = -g -Wall -D_XOPEN_SOURCE -D_GNU_SOURCE -I./
-LDFLAGS = -libverbs -lrt -lpthread
-CFLAGS_MD5 = -lssl -lcrypto
+LDFLAGS = -libverbs -lrt -lpthread -lssl -lcrypto
 
 OBJS_DIR = build/
-OBJS = $(addprefix $(OBJS_DIR), $(SRCS:.c=.o))
+OBJS = $(addprefix $(OBJS_DIR), $(SRCS:.cc=.o))
 
 default: all
 
@@ -18,16 +23,16 @@ all:
 	@make $(TARGET)
 
 $(TARGET): $(OBJS)
-	gcc -o $(OBJS_DIR)$@ $^ $(CFLAGS_MD5)
+	g++ -o $(OBJS_DIR)$@ $^ $(LDFLAGS)
 
-$(OBJS_DIR)%.o: %.c
+$(OBJS_DIR)%.o: %.cc %.h
 	$(CC) $(CFLAGS) -o $@ -c $<
 
-infiniband.o: infiniband.c infiniband.h
-test_infiniband.o: test_infiniband.c infiniband.h
+infiniband.o: infiniband.cc infiniband.h
+test_infiniband.o: test_infiniband.cc infiniband.h
 
 test_infiniband: infiniband.o test_infiniband.o
-	${LD} -o $@ $^ ${LDFLAGS}
+	$(LD) -o $@ $^ $(LDFLAGS)
 
 .PHONY: clean
 

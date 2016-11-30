@@ -11,4 +11,3 @@ common.o: common.c common.h
 
 clean:
 	rm -f common common.o
-

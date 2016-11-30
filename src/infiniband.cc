@@ -1,37 +1,29 @@
-#include "common.h"
+#include "infiniband.h"
 
 #define RDMA_WRITE_ID   (3)
 #define RDMA_READ_ID    (4)
 #define RDMA_WRITE_LEN  (64)
 #define RDMA_READ_LEN   RDMA_WRITE_LEN
 
+namespace nvds {
+
 static int page_size;
 
-static void nvds_server_exch_info(nvds_data_t* data);
-static void nvds_client_exch_info(nvds_data_t* data);
-static void nvds_run_server(nvds_context_t* ctx, nvds_data_t* data);
-static void nvds_run_client(nvds_context_t* ctx, nvds_data_t* data);
-static void nvds_init_local_ib_connection(nvds_context_t* ctx,
-                                          nvds_data_t* data);
-static void nvds_init_ctx(nvds_context_t* ctx, nvds_data_t* data);
-static void nvds_set_qp_state_init(struct ibv_qp* qp, nvds_data_t* data);
-static void nvds_set_qp_state_rtr(struct ibv_qp* qp, nvds_data_t* data);
-static void nvds_set_qp_state_rts(struct ibv_qp* qp, nvds_data_t* data);
+static void nvds_ib_init_local_connection(nvds_ib_context_t* ctx,
+                                          nvds_ib_data_t* data);
+static void nvds_ib_set_qp_state_init(struct ibv_qp* qp, nvds_ib_data_t* data);
+static void nvds_ib_set_qp_state_rtr(struct ibv_qp* qp, nvds_ib_data_t* data);
+static void nvds_ib_set_qp_state_rts(struct ibv_qp* qp, nvds_ib_data_t* data);
 
-static void nvds_rdma_write(nvds_context_t* ctx, nvds_data_t* data);
-static void nvds_rdma_read(nvds_context_t* ctx, nvds_data_t* data);
-static void nvds_poll_send(nvds_context_t* ctx);
-//static void nvds_poll_recv(nvds_context_t* ctx);
-
-static void nvds_set_qp_state_init(struct ibv_qp* qp, nvds_data_t* data) {
-  struct ibv_qp_attr attr = {
-    .qp_state = IBV_QPS_INIT,
-    .pkey_index = 0,
-    .port_num = data->ib_port,
-    .qp_access_flags = IBV_ACCESS_LOCAL_WRITE |
-                       IBV_ACCESS_REMOTE_READ |
-                       IBV_ACCESS_REMOTE_WRITE
-  };
+static void nvds_ib_set_qp_state_init(struct ibv_qp* qp, nvds_ib_data_t* data) {
+  struct ibv_qp_attr attr/* = {
+    qp_state: IBV_QPS_INIT,
+    pkey_index: 0,
+    port_num: data->ib_port,
+    qp_access_flags: IBV_ACCESS_LOCAL_WRITE |
+                     IBV_ACCESS_REMOTE_READ |
+                     IBV_ACCESS_REMOTE_WRITE
+  }*/;
 
   int modify_flags = IBV_QP_STATE | IBV_QP_PKEY_INDEX |
                      IBV_QP_PORT | IBV_QP_ACCESS_FLAGS;
@@ -39,22 +31,22 @@ static void nvds_set_qp_state_init(struct ibv_qp* qp, nvds_data_t* data) {
               "ibv_modify_qp() failed");
 }
 
-static void nvds_set_qp_state_rtr(struct ibv_qp* qp, nvds_data_t* data) {
-  struct ibv_qp_attr attr = {
-    .qp_state           = IBV_QPS_RTR,
-    .path_mtu           = IBV_MTU_2048,
-    .dest_qp_num        = data->remote_conn.qpn,
-    .rq_psn             = data->remote_conn.psn,
-    .max_dest_rd_atomic = 1,
-    .min_rnr_timer      = 12,
-    .ah_attr            = {
-      .is_global        = 0,
-      .dlid             = data->remote_conn.lid,
-      .sl               = 1,
-      .src_path_bits    = 0,
-      .port_num         = data->ib_port
+static void nvds_ib_set_qp_state_rtr(struct ibv_qp* qp, nvds_ib_data_t* data) {
+  struct ibv_qp_attr attr/* = {
+    qp_state:           IBV_QPS_RTR,
+    path_mtu:           IBV_MTU_2048,
+    dest_qp_num:        data->remote_conn.qpn,
+    rq_psn:             data->remote_conn.psn,
+    max_dest_rd_atomic: 1,
+    min_rnr_timer:      12,
+    ah_attr:            {
+      is_global:      0,
+      dlid:           data->remote_conn.lid,
+      sl:             1,
+      src_path_bits:  0,
+      port_num:       data->ib_port
     }
-  };
+  }*/;
   int modify_flags = IBV_QP_STATE               |
                      IBV_QP_AV                  |
                      IBV_QP_PATH_MTU            |
@@ -66,18 +58,18 @@ static void nvds_set_qp_state_rtr(struct ibv_qp* qp, nvds_data_t* data) {
               "ibv_modify_qp() failed");
 }
 
-static void nvds_set_qp_state_rts(struct ibv_qp* qp, nvds_data_t* data) {
+static void nvds_ib_set_qp_state_rts(struct ibv_qp* qp, nvds_ib_data_t* data) {
 	// first the qp state has to be changed to rtr
-	nvds_set_qp_state_rtr(qp, data);
+	nvds_ib_set_qp_state_rtr(qp, data);
 	
-	struct ibv_qp_attr attr = {
-	  .qp_state       = IBV_QPS_RTS,
-    .timeout        = 14,
-    .retry_cnt      = 7,
-    .rnr_retry      = 7,
-    .sq_psn         = data->local_conn.psn,
-    .max_rd_atomic  = 1
-  };
+	struct ibv_qp_attr attr/* = {
+	  qp_state:       IBV_QPS_RTS,
+    timeout:        14,
+    retry_cnt:      7,
+    rnr_retry:      7,
+    sq_psn:         data->local_conn.psn,
+    max_rd_atomic:  1
+  }*/;
   int modify_flags = IBV_QP_STATE            |
                      IBV_QP_TIMEOUT          |
                      IBV_QP_RETRY_CNT        |
@@ -88,7 +80,7 @@ static void nvds_set_qp_state_rts(struct ibv_qp* qp, nvds_data_t* data) {
               "ibv_modify_qp() failed");
 }
 
-static void nvds_server_exch_info(nvds_data_t* data) {
+void nvds_ib_server_exch_info(nvds_ib_data_t* data) {
 int listen_fd;
   struct sockaddr_in server_addr;
 
@@ -124,7 +116,7 @@ int listen_fd;
   printf("information exchanged\n");
 }
 
-static void nvds_client_exch_info(nvds_data_t* data) {
+void nvds_ib_client_exch_info(nvds_ib_data_t* data) {
   int fd = socket(AF_INET, SOCK_STREAM, 0);
   nvds_expect(fd != -1, "socket() failed");
 
@@ -149,93 +141,7 @@ static void nvds_client_exch_info(nvds_data_t* data) {
   printf("information exchanged\n");
 }
 
-static void nvds_run_server(nvds_context_t* ctx, nvds_data_t* data) {
-  nvds_server_exch_info(data);
-
-  // Set queue pair state to RTR(Read to Receive)
-  nvds_set_qp_state_rtr(ctx->qp, data);
-
-  // TODO(wgtdkp): poll request from client or do nothing
-  while (1) {}
-}
-
-/*
-static void nvds_multi_rdma_write(nvds_context_t* ctx, nvds_data_t* data) {
-
-}
-
-static void nvds_test_multi_sge(nvds_context_t* ctx, nvds_data_t* data) {
-  static const int n = 1000 * 1000;
-
-
-}
-*/
-
-static void nvds_run_client(nvds_context_t* ctx, nvds_data_t* data) {
-  nvds_client_exch_info(data);
-  nvds_set_qp_state_rts(ctx->qp, data);
-
-  snprintf(ctx->buf, RDMA_WRITE_LEN, "hello rdma\n");
-
-  static const int n = 1000 * 1000;  
-  clock_t begin;
-  double t;
-  
-  // Test write latency
-  begin = clock();
-  for (int i = 0; i < n; ++i) {
-    // Step 1: RDMA write to server
-    nvds_rdma_write(ctx, data);
-    // Step 2: polling if RDMA write done
-    nvds_poll_send(ctx);
-  }
-  t = (clock() - begin) * 1.0 / CLOCKS_PER_SEC;
-  printf("time: %fs\n", t);
-  printf("write latency: %fus\n", t / n * 1000 * 1000);
-
-  // Test read latency
-  begin = clock();
-  for (int i = 0; i < n; ++i) {
-    // Step 1: RDMA read from server
-    nvds_rdma_read(ctx, data);
-    // Step 2: polling if RDMA read done
-    nvds_poll_send(ctx);
-  }
-  t = (clock() - begin) * 1.0 / CLOCKS_PER_SEC;
-  printf("time: %fs\n", t);
-  printf("read latency: %fus\n", t / n * 1000 * 1000);
-
-  /*
-  for (int i = 0; i < n; ++i) {
-    // Step 1: RDMA write to server
-    snprintf(ctx->buf, RDMA_WRITE_LEN, "hello rdma\n");
-    nvds_rdma_write(ctx, data);
-    // Step 2: polling if RDMA write done
-    nvds_poll_send(ctx);
-    // Step 3: RDMA read from server
-    nvds_rdma_read(ctx, data);
-    // Step 4: polling if RDMA read done
-    nvds_poll_send(ctx);
-    // Step 5: verify read data
-    //char* write_buf = ctx->buf;
-    //char* read_buf = ctx->buf + RDMA_WRITE_LEN;
-    //nvds_expect(strncmp(write_buf, read_buf, RDMA_WRITE_LEN) == 0,
-    //            "data read dirty");
-    //printf("%s", read_buf);
-    //printf("%d th write/read completed\n", i);
-    //memset(ctx->buf, 0, ctx->size);
-  }
-
-  double t = (clock() - begin) * 1.0 / CLOCKS_PER_SEC;
-  printf("time: %fs\n", t);
-  printf("QPS: %f\n", n / t);
-  printf("client exited\n");
-  */
-  exit(0);
-  // Dump statistic info
-}
-
-static void nvds_rdma_write(nvds_context_t* ctx, nvds_data_t* data) {
+void nvds_ib_rdma_write(nvds_ib_context_t* ctx, nvds_ib_data_t* data) {
   ctx->sge.addr    = (uintptr_t)ctx->buf;
   ctx->sge.length  = RDMA_WRITE_LEN;
   ctx->sge.lkey    = ctx->mr->lkey;
@@ -255,7 +161,7 @@ static void nvds_rdma_write(nvds_context_t* ctx, nvds_data_t* data) {
               "ibv_post_send() failed");
 }
 
-static void nvds_rdma_read(nvds_context_t* ctx, nvds_data_t* data) {
+void nvds_ib_rdma_read(nvds_ib_context_t* ctx, nvds_ib_data_t* data) {
   ctx->sge.addr    = (uintptr_t)ctx->buf + RDMA_WRITE_LEN;
   ctx->sge.length  = RDMA_READ_LEN;
   ctx->sge.lkey    = ctx->mr->lkey;
@@ -275,25 +181,22 @@ static void nvds_rdma_read(nvds_context_t* ctx, nvds_data_t* data) {
               "ibv_post_send() failed");
 }
 
-static void nvds_poll_send(nvds_context_t* ctx) {
+void nvds_ib_poll_send(nvds_ib_context_t* ctx) {
   struct ibv_wc wc;
   while (ibv_poll_cq(ctx->scq, 1, &wc) != 1) {}
   nvds_expect(wc.status == IBV_WC_SUCCESS, "rdma write failed");
   nvds_expect(wc.wr_id == ctx->wr.wr_id, "wr id not matched");
 }
 
-/*
-static void nvds_poll_recv(nvds_context_t* ctx) {
+void nvds_ib_poll_recv(nvds_ib_context_t* ctx) {
   struct ibv_wc wc;
-  int cnt = ibv_poll_cq(ctx->rcq, 1, &wc);
-  nvds_expect(cnt == 1, "ibv_poll_cq() failed");
+  while (ibv_poll_cq(ctx->scq, 1, &wc) != 1) {}
   nvds_expect(wc.status == IBV_WC_SUCCESS, "rdma read failed");
   nvds_expect(wc.wr_id == ctx->wr.wr_id, "wr id not matched");
 }
-*/
 
-static void nvds_init_local_ib_connection(nvds_context_t* ctx,
-                                          nvds_data_t* data) {
+static void nvds_ib_init_local_connection(nvds_ib_context_t* ctx,
+                                          nvds_ib_data_t* data) {
   struct ibv_port_attr attr;
   nvds_expect(ibv_query_port(ctx->context, data->ib_port, &attr) == 0,
               "ibv_query_port() failed");
@@ -304,8 +207,8 @@ static void nvds_init_local_ib_connection(nvds_context_t* ctx,
   data->local_conn.vaddr = (uintptr_t)ctx->buf;
 }
 
-static void nvds_init_ctx(nvds_context_t* ctx, nvds_data_t* data) {
-  memset(ctx, 0, sizeof(nvds_context_t));
+void nvds_ib_init_ctx(nvds_ib_context_t* ctx, nvds_ib_data_t* data) {
+  memset(ctx, 0, sizeof(nvds_ib_context_t));
   ctx->size = data->size;
   ctx->tx_depth = data->tx_depth;
 
@@ -343,53 +246,27 @@ static void nvds_init_ctx(nvds_context_t* ctx, nvds_data_t* data) {
   ctx->scq = ibv_create_cq(ctx->context, ctx->tx_depth, ctx, ctx->ch, 0);
   nvds_expect(ctx->rcq, "ibv_create_cq() failed");  
 
-  // Create & init queue apir
-  struct ibv_qp_init_attr qp_init_attr = {
-    .send_cq = ctx->scq,
-    .recv_cq = ctx->rcq,
-    .qp_type = IBV_QPT_RC,
-    .cap = {
-      .max_send_wr = ctx->tx_depth,
-      .max_recv_wr = 1,
-      .max_send_sge = 1,
-      .max_recv_sge = 1,
-      .max_inline_data = 0
+  // Create & init queue pair
+  struct ibv_qp_init_attr qp_init_attr/* = {
+    send_cq: ctx->scq,
+    recv_cq: ctx->rcq,
+    qp_type: IBV_QPT_RC,
+    cap: {
+      max_send_wr:      ctx->tx_depth,
+      max_recv_wr:      1,
+      max_send_sge:     1,
+      max_recv_sge:     1,
+      max_inline_data:  0
     }
-  };
+  }*/;
   ctx->qp = ibv_create_qp(ctx->pd, &qp_init_attr);
   nvds_expect(ctx->qp, "ibv_create_qp() failed");
-  nvds_set_qp_state_init(ctx->qp, data);
+  nvds_ib_set_qp_state_init(ctx->qp, data);
 }
 
-int main(int argc, const char* argv[]) {
-  nvds_context_t ctx;
-  nvds_data_t data = {
-    .port         = 5500,
-    .ib_port      = 1,
-    .size         = 65536,
-    .tx_depth     = 100,
-    .server_name  = NULL,
-    .ib_dev       = NULL
-  };
+void nvds_ib_init() {
+  // TODO(wgtdkp):
 
-  nvds_expect(argc <= 2, "too many arguments");
-  int is_client = 0;
-  if (argc == 2) {
-    is_client = 1;
-    data.server_name = argv[1];
-  }
-
-  pid_t pid = getpid();
-  srand48(pid * time(NULL));
-  page_size = sysconf(_SC_PAGESIZE);
-  nvds_init_ctx(&ctx, &data);
-  nvds_init_local_ib_connection(&ctx, &data);
-
-  if (is_client) {
-    nvds_run_client(&ctx, &data);
-  } else {
-    nvds_run_server(&ctx, &data);
-  }
-
-  return 0;
 }
+
+} // namespace nvds
