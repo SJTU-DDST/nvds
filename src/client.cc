@@ -22,4 +22,4 @@ Client::Status Client::Delete(const std::string& key) {
   return Status::OK;
 }
 
-}
+} // namespace nvds

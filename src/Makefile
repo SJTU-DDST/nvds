@@ -5,23 +5,25 @@ LDFLAGS = -lrt -lpthread -lssl -lcrypto
 LDLIBS = -libverbs
 
 SRCS = client.cc			\
+	   common.cc			\
 	   coordinator.cc		\
+	   hash_table.cc		\
 	   index.cc				\
 	   infiniband.cc		\
+	   message.cc			\
 	   object.cc			\
 	   server.cc			\
-	   tablet.cc
+	   tablet.cc			\
+	   transport.cc
 
 OBJS_DIR = build/
 OBJS = $(addprefix $(OBJS_DIR), $(SRCS:.cc=.o))
 
-depend: .depend
-
-.depend: $(SRCS)
-	@rm -f ./.depend
-	@$(CXX) $(CFLAGS) -MM $^ -MF  ./.depend;
-
-include .depend
+#depend: .depend
+#.depend: $(SRCS)
+#	@rm -f ./.depend
+#	@$(CXX) $(CFLAGS) -MM $^ -MF  ./.depend;
+#include .depend
 
 default: all
 
@@ -65,4 +67,3 @@ clean-objs:
 
 clean:
 	@rm -rf $(OBJS_DIR)
-	@rm -f .depend
