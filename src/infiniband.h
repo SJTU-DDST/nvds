@@ -220,9 +220,20 @@ class Infiniband {
   void PostSendAndWait(QueuePair* qp, Buffer* b, uint32_t len,
 											 const Address* peer_addr=nullptr,
 											 uint32_t peer_qkey=0);
-  ibv_cq* CreateCQ(int min_entries);
-	ibv_srq* CreateSRQ(uint32_t max_wr, uint32_t max_sge);
-	int PollCQ(ibv_cq* cq, int entry_num, ibv_wc* ret);
+  ibv_cq* CreateCQ(int min_entries) {
+		return ibv_create_cq(dev_.ctx(), min_entries, nullptr, nullptr, 0);
+	}
+	ibv_srq* CreateSRQ(uint32_t max_wr, uint32_t max_sge) {
+		ibv_srq_init_attr sia;
+		memset(&sia, 0, sizeof(sia));
+		sia.srq_context = dev_.ctx();
+		sia.attr.max_wr = max_wr;
+		sia.attr.max_sge = max_sge;
+		return ibv_create_srq(pd_.pd(), &sia);
+	}
+	int PollCQ(ibv_cq* cq, int entry_num, ibv_wc* ret) {
+		return ibv_poll_cq(cq, entry_num, ret);
+	}
   
 	Device& dev() { return dev_; }
 	const Device& dev() const { return dev_; }

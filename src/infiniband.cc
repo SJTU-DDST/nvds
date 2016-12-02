@@ -248,6 +248,100 @@ Infiniband::Buffer* Infiniband::TryReceive(QueuePair* qp, Address* peer_addr) {
   return b;
 }
 
+// May blocking
+Infiniband::Buffer* Infiniband::Receive(QueuePair* qp, Address* peer_addr) {
+  Buffer* b = nullptr;
+  do {
+    b = TryReceive(qp, peer_addr);
+  } while (b == nullptr);
+  return b;
+}
+
+void Infiniband::PostReceive(QueuePair* qp, Buffer* b) {
+  ibv_sge sge {
+    reinterpret_cast<uint64_t>(b->buf),
+    b->size,
+    b->mr->lkey
+  };
+  ibv_recv_wr rwr;
+  memset(&rwr, 0, sizeof(rwr));
+  rwr.wr_id = reinterpret_cast<uint64_t>(b);
+  rwr.next = nullptr;
+  rwr.sg_list = &sge;
+  rwr.num_sge = 1;
+
+  ibv_recv_wr* bad_rwr;
+  auto err = ibv_post_recv(qp->qp, &rwr, &bad_rwr);
+  if (err != 0) {
+    throw TransportException(HERE, "ibv_post_recv failed", err);
+  }
+}
+
+void Infiniband::PostSRQReceive(ibv_srq* srq, Buffer* b) {
+  ibv_sge sge {
+    reinterpret_cast<uint64_t>(b->buf),
+    b->size,
+    b->mr->lkey
+  };
+  ibv_recv_wr rwr;
+  memset(&rwr, 0, sizeof(rwr));
+  rwr.wr_id = reinterpret_cast<uint64_t>(b);
+  rwr.next = nullptr;
+  rwr.sg_list = &sge;
+  rwr.num_sge = 1;
+
+  ibv_recv_wr* bad_rwr;
+  auto err = ibv_post_srq_recv(srq, &rwr, &bad_rwr);
+  if (err != 0) {
+    throw TransportException(HERE, "ibv_post_srq_recv failed", err);
+  }
+}
+
+void Infiniband::PostSend(QueuePair* qp, Buffer* b, uint32_t len,
+								          const Address* peer_addr,
+								          uint32_t peer_qkey) {
+  // We do not support UD
+  assert(peer_addr == nullptr && peer_qkey == 0);
+
+  ibv_sge sge {
+    reinterpret_cast<uint64_t>(b->buf),
+    len,
+    b->mr->lkey
+  };
+  ibv_send_wr swr;
+  memset(&swr, 0, sizeof(swr));
+  swr.wr_id = reinterpret_cast<uint64_t>(b);
+  swr.next = nullptr;
+  swr.sg_list = &sge;
+  swr.num_sge = 1;
+  swr.opcode = IBV_WR_SEND;
+  swr.send_flags = IBV_SEND_SIGNALED;
+  if (len <= kMaxInlineData) {
+    swr.send_flags |= IBV_SEND_INLINE;
+  }
+
+  ibv_send_wr* bad_swr;
+  auto err = ibv_post_send(qp->qp, &swr, &bad_swr);
+  if (err != 0) {
+    throw TransportException(HERE, "ibv_post_send failed", err);
+  }
+}
+
+void Infiniband::PostSendAndWait(QueuePair* qp, Buffer* b, uint32_t len,
+											           const Address* peer_addr,
+											           uint32_t peer_qkey) {
+  PostSend(qp, b, len, peer_addr, peer_qkey);
+
+  ibv_wc wc;
+  while (ibv_poll_cq(qp->scq, 1, &wc) < 1) {}
+  // FIXME(wgtdkp):
+  // How can we make sure that the completion element we polled is the one
+  // we have just sent?
+  if (wc.status != IBV_WC_SUCCESS) {
+    throw TransportException(HERE, "PostSendAndWiat failed", wc.status);
+  }
+}
+
 } // namespace nvds
 
 /*
