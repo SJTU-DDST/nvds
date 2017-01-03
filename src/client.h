@@ -19,8 +19,7 @@ public:
     ERROR,
   };
 
-  // Connection to the cluster 
-  // Return connection status
+  // Connection to the cluster, return connection status.
   Status Connect(const std::string& coordinator_addr);
   Status Close();
 
@@ -34,7 +33,6 @@ public:
   Status Delete(const std::string& key);
 
 private:
-
   IndexManager* index_manager_;
 };
 

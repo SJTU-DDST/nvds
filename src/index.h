@@ -1,6 +1,8 @@
 #ifndef _NVDS_INDEX_H_
 #define _NVDS_INDEX_H_
 
+#include "common.h"
+
 #include <map>
 #include <unordered_map>
 
@@ -8,7 +10,7 @@ namespace nvds {
 
 class Server;
 // Mapping from object key hash to server
-using IndexMap = std::map<uint64_t, Server*>;
+using IndexMap = std::map<KeyHash, Server*>;
 // Mapping from server id to server
 using ServerMap = std::unordered_map<uint32_t, Server*>;
 
@@ -27,8 +29,8 @@ public:
   void RemoveServer(uint32_t server_id);
   void NarrowServer(uint32_t server_id);
 
-  const Server* GetServer(uint64_t key_hash) const;
-  Server* GetServer(uint64_t key_hash) {
+  const Server* GetServer(KeyHash key_hash) const;
+  Server* GetServer(KeyHash key_hash) {
     auto ret = const_cast<const IndexManager*>(this)->GetServer(key_hash);
     return const_cast<Server*>(ret);
   }

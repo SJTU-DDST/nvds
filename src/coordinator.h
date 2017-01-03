@@ -9,7 +9,7 @@ namespace nvds {
  * Coordinator do not serve any frequent reuqests, like
  * the get/put operation. It accepts various message,
  * controls server recovery/joining/removing and failure
- * detection. It maintains the metadata of the whole cluster
+ * detection. It maintains the metadata of the whole cluster.
  *
  * At any given time, there is at most one active coordinator.
  * But several standby coordinators are preparing to take in charge.

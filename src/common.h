@@ -8,7 +8,7 @@
 
 namespace nvds {
 
-#define REPLICA_NUM (3)
+#define NUM_REPLICA (3)
 
 #ifndef DISALLOW_COPY_AND_ASSIGN
 #define DISALLOW_COPY_AND_ASSIGN(TypeName)          \
@@ -16,9 +16,10 @@ namespace nvds {
     TypeName& operator=(const TypeName&) = delete;
 #endif
 
+using KeyHash = uint64_t;
+
 std::string Format(const char* format, ...);
 std::string demangle(const char* name);
-
 
 } // namespace nvds
 

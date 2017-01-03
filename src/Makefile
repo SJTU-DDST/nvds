@@ -1,5 +1,5 @@
-CXX = g++ -std=c++11
-LD = g++
+CXX = clang++ -std=c++11
+LD = clang++
 CXXFLAGS = -g -Wall -D_XOPEN_SOURCE -D_GNU_SOURCE -I./
 LDFLAGS = -lrt -lpthread -lssl -lcrypto
 LDLIBS = -libverbs

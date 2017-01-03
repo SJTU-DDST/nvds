@@ -1,24 +1,25 @@
 #ifndef _NVDS_TABLET_H_
 #define _NVDS_TABLET_H_
 
-#include <cstdint>
+#include "common.h"
 
 namespace nvds {
 
 class Tablet {
 public:
-  Tablet(uint64_t begin, uint64_t end)
+  Tablet(KeyHash begin, KeyHash end)
       : begin_(begin), end_(end) {}
   ~Tablet() {}
+  DISALLOW_COPY_AND_ASSIGN(Tablet);
 
-  uint64_t begin() const { return begin_; }
-  uint64_t end() const { return end_; }
+  KeyHash begin() const { return begin_; }
+  KeyHash end() const { return end_; }
 
 private:
   // The hash key begin of the tablet
-  uint64_t begin_;
+  KeyHash begin_;
   // The hash key end of the tablet
-  uint64_t end_;
+  KeyHash end_;
 };
 
 } // namespace nvds

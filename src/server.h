@@ -1,20 +1,19 @@
 #ifndef _NVDS_SERVER_H_
 #define _NVDS_SERVER_H_
 
-#include <cstdint>
-#include <vector>
+#include "common.h"
 
 namespace nvds {
 
 class Server {
 public:
-  using BackupList = std::vector<Server*>;
+  using BackupList = std::vector<uint32_t>;
 
 public:
   Server(const BackupList& backup_list)
       : backup_list_(backup_list) {}
   ~Server() {}
-  Server(const Server& other) = delete;
+  DISALLOW_COPY_AND_ASSIGN(Server);
 
   uint32_t id() const { return id_; }
 
