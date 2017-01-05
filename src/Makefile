@@ -4,7 +4,8 @@ CXXFLAGS = -g -Wall -D_XOPEN_SOURCE -D_GNU_SOURCE -I./
 LDFLAGS = -lrt -lpthread -lssl -lcrypto
 LDLIBS = -libverbs
 
-SRCS = client.cc			\
+SRCS = allocator.cc         \
+       client.cc			\
 	   common.cc			\
 	   coordinator.cc		\
 	   hash_table.cc		\

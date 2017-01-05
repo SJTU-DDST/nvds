@@ -8,7 +8,7 @@
 
 namespace nvds {
 
-#define NUM_REPLICA (3)
+#define PACKED(s) s __attribute__((packed))
 
 #ifndef DISALLOW_COPY_AND_ASSIGN
 #define DISALLOW_COPY_AND_ASSIGN(TypeName)          \
@@ -17,6 +17,8 @@ namespace nvds {
 #endif
 
 using KeyHash = uint64_t;
+static const uint32_t kMaxItemSize = 1024 * 1024;
+static const uint32_t kNumReplica = 3;
 
 std::string Format(const char* format, ...);
 std::string demangle(const char* name);
