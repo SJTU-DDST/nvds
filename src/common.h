@@ -2,6 +2,7 @@
 #define _NVDS_COMMON_H_
 
 #include <cassert>
+#include <cstddef>
 #include <cstdint>
 #include <string>
 #include <vector>

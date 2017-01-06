@@ -29,11 +29,23 @@ class Allocator {
     return reinterpret_cast<T*>(base_ + offset);
   }
 
+  template<typename T>
+  void Write(uint32_t offset, T val) {
+    auto ptr = OffsetToPtr<T>(offset);
+    *ptr = val;
+    // TODO(wgtdkp): Collect
+  }
+
+  template<typename T>
+  T Read(uint32_t offset) {
+    return *OffsetToPtr<T>(offset);
+  }
+
   PACKED(
   struct BlockHeader {
     // Denoting if previous block is free.
     uint32_t free: 1;
-    // Block size, exclude block header.
+    // Block size, include block header.
     uint32_t size: 31;
     // Pointer to previous block in the same free list.
     // Relative to base_.
@@ -50,7 +62,7 @@ class Allocator {
   struct BlockFooter {
     // Denoting if current block is free.
     uint32_t free: 1;
-    // Block size, exclude block header.
+    // Block size, include block header.
     uint32_t size: 31;
 
     BlockFooter() {}
@@ -64,6 +76,7 @@ class Allocator {
 
   uint32_t AllocBlock(uint32_t size);
   void FreeBlock(uint32_t ptr);
+  uint32_t SplitBlock(uint32_t blk_offset, uint32_t needed_size);
 
  private:
   uintptr_t base_;
