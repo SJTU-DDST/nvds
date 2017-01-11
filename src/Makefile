@@ -20,11 +20,11 @@ SRCS = allocator.cc         \
 OBJS_DIR = build/
 OBJS = $(addprefix $(OBJS_DIR), $(SRCS:.cc=.o))
 
-#depend: .depend
-#.depend: $(SRCS)
-#	@rm -f ./.depend
-#	@$(CXX) $(CFLAGS) -MM $^ -MF  ./.depend;
-#include .depend
+GTEST_DIR = ../googletest/googletest
+GTEST_FLAGS = -isystem ${GTEST_DIR}/include -pthread
+$(OBJS_DIR)libgtest.a:
+	$(CXX) $(GTEST_FLAGS) -I${GTEST_DIR} -c ${GTEST_DIR}/src/gtest-all.cc -o $(OBJS_DIR)gtest-all.o
+	ar -rv $@ $(OBJS_DIR)gtest-all.o
 
 default: all
 
@@ -56,10 +56,14 @@ $(OBJS_DIR)client_main.o : client_main.cc
 	$(CXX) $(CXXFLAGS) -o $@ -c $^
 
 $(OBJS_DIR)test_infiniband.o: test_infiniband.cc infiniband.h
-	$(CXX) $(CXXFLAGS) -o $@ -c $^
+	$(CXX) $(CXXFLAGS) $(GTEST_FLAGS) -o $@ -c test_infiniband.cc
+test_infiniband: $(OBJS_DIR)test_infiniband.o $(OBJS_DIR)infiniband.o $(OBJS_DIR)libgtest.a
+	$(LD) $(LDFLAGS) $(GTEST_FLAGS) -o $(OBJS_DIR)$@ $^ $(LDLIBS)
 
-test_infiniband: $(OBJS_DIR)test_infiniband.o $(OBJS_DIR)infiniband.o
-	$(LD) $(LDFLAGS) -o $(OBJS_DIR)$@ $^ $(LDLIBS)
+$(OBJS_DIR)test_allocator.o: test_allocator.cc allocator.h
+	$(CXX) $(CXXFLAGS) $(GTEST_FLAGS) -o $@ -c test_allocator.cc
+test_allocator: $(OBJS_DIR)test_allocator.o $(OBJS_DIR)allocator.o $(OBJS_DIR)libgtest.a
+	$(LD) $(LDFLAGS) $(GTEST_FLAGS) -o $(OBJS_DIR)$@ $^ $(LDLIBS) 
 
 .PHONY: clean
 
