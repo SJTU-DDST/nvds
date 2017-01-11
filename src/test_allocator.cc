@@ -27,24 +27,21 @@ TEST (AllocatorTest, Format) {
   free(mem);
 }
 
-TEST (AllocatorTest, Free) {
+TEST (AllocatorTest, Alloc) {
   auto mem = malloc(Allocator::kSize);
 
   uintptr_t base = reinterpret_cast<uintptr_t>(mem);
   Allocator a(base);
   a.Format();
 
+  clock_t begin = clock();
   uintptr_t blk;
-  for (size_t i = 0; i < 2 * 128 * 1024; i += 2) {
-    blk = a.Alloc(12);
-    a.Free(blk);
-  }
-
   vector<uintptr_t> blks;
   while ((blk = a.Alloc(12)) != 0) {
     blks.push_back(blk);
   }
-  ASSERT_EQ((Allocator::kSize - 1024 * 1024) / 16, blks.size());
+  cout << "time: " << (clock() - begin) * 1.0 / CLOCKS_PER_SEC << endl;
+  ASSERT_EQ(4194287, blks.size());
 
   free(mem);
 }
@@ -61,7 +58,7 @@ TEST (AllocatorTest, AllocFree) {
   while ((blk = a.Alloc(12)) != 0) {
     blks.push_back(blk);
   }
-  ASSERT_EQ((Allocator::kSize - 1024 * 1024) / 16, blks.size());
+  ASSERT_EQ(4194287, blks.size());
 
   while (blks.size() > 0) {
     auto blk = blks.back();
@@ -72,7 +69,7 @@ TEST (AllocatorTest, AllocFree) {
   while ((blk = a.Alloc(12)) != 0) {
     blks.push_back(blk);
   }
-  ASSERT_EQ((Allocator::kSize - 1024 * 1024) / 16, blks.size());
+  ASSERT_EQ(4194287, blks.size());
 
   free(mem);  
 }

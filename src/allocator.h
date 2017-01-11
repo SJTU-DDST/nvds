@@ -7,7 +7,7 @@ namespace nvds {
 
 class Allocator {
  public:
-  static const uint32_t kMaxBlockSize = 1024 * 1024;
+  static const uint32_t kMaxBlockSize = 1024 + 128;
   static const uint32_t kSize = 64 * 1024 * 1024;
   Allocator(uintptr_t base) : base_(base) {
     flm_ = OffsetToPtr<FreeListManager>(0);
@@ -22,7 +22,8 @@ class Allocator {
   uintptr_t base() const { return base_; }
 
  private:
-  static const uint32_t kNumFreeList = 2 * kMaxBlockSize / 16;
+  static const uint32_t kNumFreeList = 
+      256 / 16 + (512 - 256) / 32 + (kMaxBlockSize - 512) / 64 + 1;
 
   template<typename T>
   T* OffsetToPtr(uint32_t offset) const {
@@ -47,15 +48,6 @@ class Allocator {
     return *OffsetToPtr<T>(offset);
   }
 
-  template<typename T>
-  class PMemObj {
-   public:
-    const PMemObj<T>& operator=(const T& other) {
-      static_cast<T>(*this) = other;
-      // TODO(wgtdkp): Collect
-    }
-  };
-
   PACKED(
   struct BlockHeader {
     // Denoting if previous block is free.
@@ -70,8 +62,7 @@ class Allocator {
     uint32_t next;
 
     static const uint32_t kFreeMask = static_cast<uint32_t>(1) << 31;
-    BlockHeader() {}
-    ~BlockHeader() {}
+    BlockHeader() = delete;
   });
 
   PACKED(
@@ -81,13 +72,18 @@ class Allocator {
     // Block size, include block header.
     uint32_t size: 31;
 
-    BlockFooter() {}
-    ~BlockFooter() {}
+    BlockFooter() = delete;
   });
 
   PACKED(
   struct FreeListManager {
+    // The list of these free blocks with same size.
+    // The last list is all free block greater than kMaxBlockSize.
+    // So these blocks are not necessary the same size,
+    // and not sorted(by addr or size).
     uint32_t free_lists[kNumFreeList];
+
+    FreeListManager() = delete;
   });
 
   uint32_t GetFreeListByBlockOffset(uint32_t blk) {
@@ -96,7 +92,33 @@ class Allocator {
   }
 
   uint32_t GetFreeListByBlockSize(uint32_t blk_size) {
-    return (blk_size / 16 - 1) * sizeof(uint32_t);
+    if (blk_size <= 256) {
+      return 256 / 16 * sizeof(uint32_t);
+    } else if (blk_size <= 512) {
+      return (256 / 16 + (blk_size - 256) / 32) * sizeof(uint32_t);
+    } else if (blk_size <= kMaxBlockSize) {
+      return (256/ 16 + (512 - 256) / 32 + (blk_size - 512) / 64) *
+             sizeof(uint32_t);
+    } else {
+      return GetLastFreeList();
+    }
+  }
+  
+  uint32_t RoundupBlockSize(uint32_t blk_size) {
+    if (blk_size <= 256) {
+      return (blk_size + 16 - 1) / 16 * 16;
+    } else if (blk_size <= 512) {
+      return (blk_size + 32 - 1) / 32 * 32;
+    } else if (blk_size <= kMaxBlockSize) {
+      return (blk_size + 64 - 1) / 64 * 64;
+    } else {
+      assert(false);
+      return 0;
+    }
+  }
+
+  uint32_t GetLastFreeList() {
+    return (kNumFreeList - 1) * sizeof(uint32_t);
   }
 
   void SetTheFreeTag(uint32_t blk, uint32_t blk_size) {
@@ -110,9 +132,19 @@ class Allocator {
   uint32_t ReadTheFreeTag(uint32_t blk, uint32_t blk_size) {
     return Read<uint32_t>(blk + blk_size) & BlockHeader::kFreeMask;
   }
+  void SetThePrevFreeTag(uint32_t blk) {
+    Write(blk, BlockHeader::kFreeMask | Read<uint32_t>(blk));
+  }
+  void ResetThePrevFreeTag(uint32_t blk) {
+    Write(blk, ~BlockHeader::kFreeMask & Read<uint32_t>(blk));
+  }
   uint32_t ReadThePrevFreeTag(uint32_t blk) {
     return Read<uint32_t>(blk) & BlockHeader::kFreeMask;
   }
+  uint32_t ReadTheSizeTag(uint32_t blk) {
+    return Read<uint32_t>(blk) & ~BlockHeader::kFreeMask;
+  }
+
   uint32_t AllocBlock(uint32_t size);
   void FreeBlock(uint32_t blk);
   
