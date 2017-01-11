@@ -81,14 +81,14 @@ void Allocator::FreeBlock(uint32_t blk) {
   auto next_blk      = blk + blk_size;
   auto next_blk_size = Read<uint32_t>(next_blk) & ~BlockHeader::kFreeMask;
 
-  if (blk_size + prev_blk_size <= 2 * kMaxBlockSize &&
-      ReadThePrevFreeTag(blk)) {
+  if (ReadThePrevFreeTag(blk) &&
+      blk_size + prev_blk_size <= 2 * kMaxBlockSize) {
     RemoveBlock(prev_blk, prev_blk_size);
     blk = prev_blk;
     blk_size += prev_blk_size;
   }
-  if (blk_size + next_blk_size <= 2 * kMaxBlockSize &&
-      ReadTheFreeTag(next_blk, next_blk_size)) {
+  if (ReadTheFreeTag(next_blk, next_blk_size) &&
+      blk_size + next_blk_size <= 2 * kMaxBlockSize) {
     RemoveBlock(next_blk, next_blk_size);
     blk_size += next_blk_size;
   }
