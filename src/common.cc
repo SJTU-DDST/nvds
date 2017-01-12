@@ -39,7 +39,7 @@ static std::string VFormat(const char* format, va_list ap) {
     return s;
 }
 
-std::string demangle(const char* name) {
+std::string Demangle(const char* name) {
     int status;
     char* res = abi::__cxa_demangle(name, NULL, NULL, &status);
     if (status != 0) {

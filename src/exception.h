@@ -10,7 +10,7 @@
 
 namespace nvds {
 
-std::string demangle(const char* name);;
+std::string Demangle(const char* name);
 
 class Exception : public std::exception {
  public:
@@ -25,7 +25,7 @@ class Exception : public std::exception {
   virtual ~Exception() {}
   
   std::string ToString() const {
-    auto ret = demangle(typeid(*this).name()) + ": " +
+    auto ret = Demangle(typeid(*this).name()) + ": " +
                msg_ + ", thrown at " + loc_.ToString();
     if (err_no_ != 0) {
         ret += " [errno: " + std::to_string(err_no_) + "]";

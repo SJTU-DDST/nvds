@@ -22,7 +22,7 @@ static const uint32_t kMaxItemSize = 1024 * 1024;
 static const uint32_t kNumReplica = 3;
 
 std::string Format(const char* format, ...);
-std::string demangle(const char* name);
+std::string Demangle(const char* name);
 
 } // namespace nvds
 
