@@ -16,7 +16,6 @@ TEST (AllocatorTest, Init) {
   free(mem);
 }
 
-/*
 TEST (AllocatorTest, Format) {
   auto mem = malloc(Allocator::kSize);
 
@@ -40,7 +39,7 @@ TEST (AllocatorTest, Alloc) {
   while ((blk = a.Alloc(12)) != 0) {
     blks.push_back(blk);
   }
-  ASSERT_EQ(4194295, blks.size());
+  ASSERT_EQ(4194285, blks.size());
   cout << "average cnt_writes: " << a.cnt_writes() * 1.0 / blks.size() << endl;
   free(mem);
 }
@@ -57,7 +56,7 @@ TEST (AllocatorTest, AllocFree) {
   while ((blk = a.Alloc(12)) != 0) {
     blks.push_back(blk);
   }
-  ASSERT_EQ(4194295, blks.size());
+  ASSERT_EQ(4194285, blks.size());
 
   while (blks.size() > 0) {
     auto blk = blks.back();
@@ -68,11 +67,10 @@ TEST (AllocatorTest, AllocFree) {
   while ((blk = a.Alloc(12)) != 0) {
     blks.push_back(blk);
   }
-  ASSERT_EQ(4194295, blks.size());
+  ASSERT_EQ(4194285, blks.size());
 
   free(mem);  
 }
-*/
 
 TEST (AllocatorTest, Random) {
   auto mem = malloc(Allocator::kSize);
@@ -86,7 +84,7 @@ TEST (AllocatorTest, Random) {
   auto g = default_random_engine();
   size_t cnt = 0;
   clock_t begin = clock();
-  for (size_t i = 0, j = 0, k = 0; i < 1024 * 1024 * 1024; ++i) {
+  for (size_t i = 0, j = 0, k = 0; i < 64 * 1024 * 1024; ++i) {
     int op = g() % 2;
     if (op == 0) {
       blk = a.Alloc(g() % (Allocator::kMaxBlockSize - sizeof(uint32_t)));
@@ -117,16 +115,25 @@ TEST (AllocatorTest, UsageRate) {
   a.Format();
 
   vector<uintptr_t> blks;
+  vector<uint32_t> blk_sizes;
   uintptr_t blk;
   auto g = default_random_engine();
   uint32_t total_size = 0;
-  for (size_t i = 0, j = 0; ; ++i) {
-    uint32_t item_size = g() % (Allocator::kMaxBlockSize - sizeof(uint32_t));
-    blk = a.Alloc(item_size);
-    if (blk == 0)
-      break;
-    total_size += item_size;
-    blks.push_back(blk);
+  size_t j = 0;
+  while (true) {
+    int op = g() % 3;
+    if (op != 0) {
+      uint32_t size = g() % (Allocator::kMaxBlockSize - sizeof(uint32_t));
+      blk = a.Alloc(size);
+      if (blk == 0)
+        break;
+      blks.push_back(blk);
+      blk_sizes.push_back(size);
+      total_size += size;
+    } else if (j < blks.size()) {
+      total_size -= blk_sizes[j];
+      a.Free(blks[j++]);
+    }
   }
 
   cout << "usage rate: " << total_size * 1.0 / Allocator::kSize << endl;

@@ -12,23 +12,6 @@ uintptr_t Allocator::Alloc(uint32_t size) {
   assert(blk_size <= kMaxBlockSize);
 
   auto blk = AllocBlock(blk_size);
-  if (blk == 67100004) {
-    blk = 67100004;
-  }
-
-  {
-    for (int i = 0; i < kNumFreeList; ++i) {
-      auto free_list = i * sizeof(uint32_t);
-      if (blk == Read<uint32_t>(free_list)) {
-        break;
-      }
-    }
-  }
-
-  if (ReadTheSizeTag(67100004) == 80) {
-    int t = ReadTheSizeTag(67100004);
-  }
-
   return blk == 0 ? 0 : blk + sizeof(uint32_t) + base_;
 }
 
@@ -37,18 +20,6 @@ void Allocator::Free(uintptr_t ptr) {
   // TODO(wgtdkp): checking if ptr is actually in this Allocator zone.
   assert(ptr >= base_ + sizeof(uint32_t) && ptr <= base_ + kSize);
   auto blk = ptr - sizeof(uint32_t) - base_;
-  // Debug
-  auto blk_size = ReadTheSizeTag(blk);
-  if (blk == 67100004) {
-    blk = 67100004;
-  }
-  if (ReadTheFreeTag(blk, blk_size) != 0) {
-    auto free_list = GetFreeListByBlockSize(blk_size);
-    auto head = Read<uint32_t>(free_list);
-    auto bbb = head;
-  }
-  assert(ReadTheFreeTag(blk, blk_size) == 0);
-  // Debug end
   FreeBlock(blk);
 }
 
@@ -83,9 +54,6 @@ uint32_t Allocator::AllocBlock(uint32_t blk_size) {
     auto next_blk = Read<uint32_t>(head + offsetof(BlockHeader, next));
     ResetTheFreeTag(head, head_size);
     Write(free_list, next_blk);
-    if (next_blk && GetBlockSizeByFreeList(free_list)) {
-      assert(GetBlockSizeByFreeList(free_list) == ReadTheSizeTag(next_blk));
-    }
     Write(next_blk + offsetof(BlockHeader, prev),
           static_cast<uint32_t>(0));
     return head;
@@ -100,10 +68,6 @@ void Allocator::FreeBlock(uint32_t blk) {
   auto prev_blk      = blk - prev_blk_size;
   auto next_blk      = blk + blk_size;
   auto next_blk_size = ReadTheSizeTag(next_blk);
-
-  if (ReadThePrevFreeTag(blk) && prev_blk == 67100004) {
-    int t = blk_size;
-  }
 
   if (ReadThePrevFreeTag(blk) &&
       blk_size <= kMaxBlockSize &&
@@ -129,16 +93,8 @@ void Allocator::FreeBlock(uint32_t blk) {
   auto free_list = GetFreeListByBlockSize(blk_size);
   auto head = Read<uint32_t>(free_list);
   Write(free_list, blk);
-  if (blk && GetBlockSizeByFreeList(free_list)) {
-    assert(GetBlockSizeByFreeList(free_list) == ReadTheSizeTag(blk));
-  }
   Write(blk + offsetof(BlockHeader, prev), static_cast<uint32_t>(0));
   Write(blk + offsetof(BlockHeader, next), head);
-  // Debug
-  if (blk == head) {
-    blk = head;
-  }
-  // Debug end
   if (head != 0) {
     Write(head + offsetof(BlockHeader, prev), blk);
   }
@@ -153,9 +109,6 @@ uint32_t Allocator::SplitBlock(uint32_t blk,
   auto new_size  = blk_size - needed_size;
 
   Write(free_list, next_blk);
-  if (next_blk && GetBlockSizeByFreeList(free_list)) {
-    assert(GetBlockSizeByFreeList(free_list) == ReadTheSizeTag(next_blk));
-  }
   if (next_blk != 0) {
     Write(next_blk + offsetof(BlockHeader, prev), static_cast<uint32_t>(0));
   }
@@ -169,9 +122,6 @@ uint32_t Allocator::SplitBlock(uint32_t blk,
   Write(blk + offsetof(BlockHeader, prev), static_cast<uint32_t>(0));
   Write(blk + offsetof(BlockHeader, next), head);
   Write(free_list, blk);
-  if (blk && GetBlockSizeByFreeList(free_list)) {
-    assert(GetBlockSizeByFreeList(free_list) == ReadTheSizeTag(blk));
-  }
   if (head != 0) {
     Write(head + offsetof(BlockHeader, prev), blk);
   }

@@ -32,12 +32,6 @@ class Allocator {
 
   template<typename T>
   void Write(uint32_t offset, T val) {
-    if (offset == 67100660) {
-      offset = 67100660;
-    }
-    if (offset == 67100656 && val == 656) {
-      offset = 67100656;
-    }
     auto ptr = OffsetToPtr<T>(offset);
     *ptr = val;
     // TODO(wgtdkp): Collect
@@ -94,10 +88,7 @@ class Allocator {
     }
     assert(free_list = kNumFreeList - 1);
     auto head = Read<uint32_t>(free_list * sizeof(uint32_t));
-    if (head == 0) {
-      return 0;
-    }
-    return ReadTheSizeTag(head);
+    return head == 0 ? 0 : ReadTheSizeTag(head);
   }
 
   uint32_t GetFreeListByBlockOffset(uint32_t blk) {
