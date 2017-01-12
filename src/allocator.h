@@ -9,7 +9,7 @@ class Allocator {
  public:
   static const uint32_t kMaxBlockSize = 1024 + 128;
   static const uint32_t kSize = 64 * 1024 * 1024;
-  Allocator(uintptr_t base) : base_(base) {
+  Allocator(uintptr_t base) : base_(base), cnt_writes_(0) {
     flm_ = OffsetToPtr<FreeListManager>(0);
   }
   ~Allocator() {}
@@ -20,10 +20,10 @@ class Allocator {
   void Format();
 
   uintptr_t base() const { return base_; }
+  uint64_t cnt_writes() const { return cnt_writes_; }
 
  private:
-  static const uint32_t kNumFreeList = 
-      256 / 16 + (512 - 256) / 32 + (kMaxBlockSize - 512) / 64 + 1;
+  static const uint32_t kNumFreeList = kMaxBlockSize / 16 + 1;
 
   template<typename T>
   T* OffsetToPtr(uint32_t offset) const {
@@ -32,15 +32,16 @@ class Allocator {
 
   template<typename T>
   void Write(uint32_t offset, T val) {
+    if (offset == 67100660) {
+      offset = 67100660;
+    }
+    if (offset == 67100656 && val == 656) {
+      offset = 67100656;
+    }
     auto ptr = OffsetToPtr<T>(offset);
     *ptr = val;
     // TODO(wgtdkp): Collect
-  }
-
-  template<typename T>
-  void Write(T* ptr, T val) {
-    *ptr = val;
-    // TODO(wgtdkp): Collect
+    ++cnt_writes_;
   }
 
   template<typename T>
@@ -86,35 +87,38 @@ class Allocator {
     FreeListManager() = delete;
   });
 
+  uint32_t GetBlockSizeByFreeList(uint32_t free_list) {
+    free_list /= sizeof(uint32_t);
+    if (free_list < kNumFreeList - 1) {
+      return (free_list + 1) * 16;
+    }
+    assert(free_list = kNumFreeList - 1);
+    auto head = Read<uint32_t>(free_list * sizeof(uint32_t));
+    if (head == 0) {
+      return 0;
+    }
+    return ReadTheSizeTag(head);
+  }
+
   uint32_t GetFreeListByBlockOffset(uint32_t blk) {
     auto blk_size = OffsetToPtr<const BlockHeader>(blk)->size;
     return GetFreeListByBlockSize(blk_size);
   }
 
   uint32_t GetFreeListByBlockSize(uint32_t blk_size) {
-    if (blk_size <= 256) {
-      return 256 / 16 * sizeof(uint32_t);
-    } else if (blk_size <= 512) {
-      return (256 / 16 + (blk_size - 256) / 32) * sizeof(uint32_t);
-    } else if (blk_size <= kMaxBlockSize) {
-      return (256/ 16 + (512 - 256) / 32 + (blk_size - 512) / 64) *
-             sizeof(uint32_t);
-    } else {
-      return GetLastFreeList();
+    assert(blk_size >= 16);
+    if (blk_size <= kMaxBlockSize) {
+      return (blk_size / 16 - 1) * sizeof(uint32_t);
     }
+    return GetLastFreeList();
   }
   
   uint32_t RoundupBlockSize(uint32_t blk_size) {
-    if (blk_size <= 256) {
+    if (blk_size <= kMaxBlockSize) {
       return (blk_size + 16 - 1) / 16 * 16;
-    } else if (blk_size <= 512) {
-      return (blk_size + 32 - 1) / 32 * 32;
-    } else if (blk_size <= kMaxBlockSize) {
-      return (blk_size + 64 - 1) / 64 * 64;
-    } else {
-      assert(false);
-      return 0;
     }
+    assert(false);
+    return 0;
   }
 
   uint32_t GetLastFreeList() {
@@ -170,6 +174,7 @@ class Allocator {
  private:
   uintptr_t base_;
   FreeListManager* flm_;
+  uint64_t cnt_writes_;
 };
 
 } // namespace nvds
