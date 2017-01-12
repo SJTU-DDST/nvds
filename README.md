@@ -1,6 +1,6 @@
 # nvds
 
-Non-volatile Memory Based Distribute Storage
+Non-volatile Memory Based Distributed Storage
 
 ## BUILD
 
