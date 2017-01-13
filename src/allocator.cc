@@ -5,10 +5,9 @@
 namespace nvds {
 
 uintptr_t Allocator::Alloc(uint32_t size) {
-  // The client side should refuse too big kv item.
-  // TODO(wgtdkp): round up.
   auto blk_size = RoundupBlockSize(size + sizeof(uint32_t));
   assert(blk_size % 16 == 0);
+  // The client side should refuse too big kv item.  
   assert(blk_size <= kMaxBlockSize);
 
   auto blk = AllocBlock(blk_size);
