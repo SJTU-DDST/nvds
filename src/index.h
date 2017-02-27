@@ -20,7 +20,7 @@ using ServerMap = std::unordered_map<uint32_t, Server*>;
  * These updates will make cache of mapping in client side invalid.
  */
 class IndexManager {
-public:
+ public:
   IndexManager() {}
   ~IndexManager() {}
   IndexManager(const IndexManager& other) = delete;
@@ -36,7 +36,7 @@ public:
   }
 
 
-private:
+ private:
   IndexMap index_map_;
   ServerMap server_map_;
 };

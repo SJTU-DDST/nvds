@@ -6,10 +6,8 @@
 namespace nvds {
 
 class Server {
-public:
+ public:
   using BackupList = std::vector<uint32_t>;
-
-public:
   Server(const BackupList& backup_list)
       : backup_list_(backup_list) {}
   ~Server() {}
@@ -23,7 +21,7 @@ public:
     return const_cast<Server*>(this)->GetRandomBackup();
   }
 
-private:
+ private:
   uint32_t id_;
   BackupList backup_list_;
 };

@@ -6,7 +6,7 @@
 namespace nvds {
 
 class Tablet {
-public:
+ public:
   Tablet(KeyHash begin, KeyHash end)
       : begin_(begin), end_(end) {}
   ~Tablet() {}
@@ -15,7 +15,7 @@ public:
   KeyHash begin() const { return begin_; }
   KeyHash end() const { return end_; }
 
-private:
+ private:
   // The hash key begin of the tablet
   KeyHash begin_;
   // The hash key end of the tablet

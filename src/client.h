@@ -9,7 +9,7 @@
 namespace nvds {
 
 class Client {
-public:
+ public:
   Client(): index_manager_(nullptr) {}
   ~Client() { delete index_manager_; }
   Client(const Client& other) = delete;
@@ -32,7 +32,7 @@ public:
   // Delete item indexed by the key
   Status Delete(const std::string& key);
 
-private:
+ private:
   IndexManager* index_manager_;
 };
 

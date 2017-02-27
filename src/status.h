@@ -40,7 +40,6 @@ class Status {
 
   Code code_;
   std::string msg_;
-
 };
 
 } // namespace nvds

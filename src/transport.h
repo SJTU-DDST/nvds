@@ -25,7 +25,6 @@ class Transport {
   class ServerRPC {
 
   };
-
 };
 
 } // namespace nvds

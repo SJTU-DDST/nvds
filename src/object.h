@@ -8,7 +8,7 @@ namespace nvds {
 KeyHash Hash(const std::string& key);
 
 class Object {
-public:
+ public:
   Object(const std::string& key, const std::string& value)
       : key_hash_(Hash(key)), key_(key), value_(value) {}
   ~Object() {}
@@ -19,7 +19,7 @@ public:
   std::string& value() { return value_; }
   const std::string& value() const { return value_; }
 
-private:
+ private:
   KeyHash key_hash_;
   std::string key_;
   std::string value_;

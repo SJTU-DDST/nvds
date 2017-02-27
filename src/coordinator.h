@@ -15,7 +15,7 @@ namespace nvds {
  * But several standby coordinators are preparing to take in charge.
  */
 class Coordinator {
-public:
+ public:
   Coordinator() {}
   ~Coordinator() {}
 
@@ -24,7 +24,7 @@ public:
   IndexManager& index_manager() { return index_manager_; }
   const IndexManager& index_manager() const { return index_manager_; }
 
-private:
+ private:
   IndexManager index_manager_;
 };
 
