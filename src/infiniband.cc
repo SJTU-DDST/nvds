@@ -8,6 +8,23 @@ Infiniband::Infiniband(const char* device_name)
     : dev_(device_name), pd_(dev_) {
 }
 
+Infiniband::DeviceList::DeviceList()
+    : dev_list_(ibv_get_device_list(nullptr)) {
+  if (dev_list_ == nullptr) {
+    throw TransportException(HERE, "Opening infiniband device failed", errno);
+  }
+}
+
+ibv_device* Infiniband::DeviceList::Lookup(const char* name) {
+    if (name == nullptr)
+      return dev_list_[0];
+    for (int i = 0; dev_list_[i] != nullptr; ++i) {
+      if (strcmp(dev_list_[i]->name, name) == 0)
+        return dev_list_[i];
+    }
+    return nullptr;
+}
+
 Infiniband::Device::Device(const char* name) {
   DeviceList dev_list;
   auto dev = dev_list.Lookup(name);

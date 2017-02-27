@@ -5,6 +5,21 @@
 
 namespace nvds {
 
+PACKED(
+struct NVMTablet {
+  // Tablet id, unique in scope of node.
+  // There could be same tablet id on different node.
+  uint32_t id;
+  PACKED(
+  struct Backup {
+    uint32_t server_id;
+    uint32_t tablet_id;
+  });
+  // The backups of this tablet.
+  Backup backups[kNumReplica];
+  
+});
+
 class Tablet {
  public:
   Tablet(KeyHash begin, KeyHash end)

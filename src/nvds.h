@@ -35,6 +35,6 @@ namespace nvds {
   }                                   \
 }
 
-}
+} // namespace nvds
 
 #endif // _NVDS_NVDS_H_

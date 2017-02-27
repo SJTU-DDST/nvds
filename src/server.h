@@ -2,8 +2,32 @@
 #define _NVDS_SERVER_H_
 
 #include "common.h"
+#include "object.h"
+#include "tablet.h"
 
 namespace nvds {
+
+/*
+ * The abstraction of NVM device. No instantiation is allowed.
+ * For each server, there is only one NVMDevice object which is
+ * mapped to the address passed when the server is started.
+ */
+PACKED(
+struct NVMDevice {
+  // The server id of the machine.
+  // 0 means this NVMDevice is not used yet, all information are invalid.
+  uint32_t server_id;
+  // The size in byte of the NVM device
+  uint64_t size;
+  // The key hash range
+  KeyHash key_begin;
+  KeyHash key_end;
+  // The number of tablets
+  uint32_t tablet_num;
+  // The begin of tablets
+  Tablet tablets[0];
+  NVMDevice() = delete;
+});
 
 class Server {
  public:
@@ -23,6 +47,7 @@ class Server {
 
  private:
   uint32_t id_;
+
   BackupList backup_list_;
 };
 

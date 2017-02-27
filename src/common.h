@@ -1,6 +1,8 @@
 #ifndef _NVDS_COMMON_H_
 #define _NVDS_COMMON_H_
 
+#include "nvm.h"
+
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
@@ -19,7 +21,7 @@ namespace nvds {
 
 using KeyHash = uint64_t;
 static const uint32_t kMaxItemSize = 1024 * 1024;
-static const uint32_t kNumReplica = 3;
+static const uint32_t kNumReplica = 2;
 
 std::string Format(const char* format, ...);
 std::string Demangle(const char* name);

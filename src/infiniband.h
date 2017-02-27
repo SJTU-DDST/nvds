@@ -29,21 +29,10 @@ class Infiniband {
 
 	class DeviceList {
 	 public:
-		DeviceList(): dev_list_(nullptr) {}
-		~DeviceList() { }
+		DeviceList();
+		~DeviceList() { ibv_free_device_list(dev_list_); }
 		DISALLOW_COPY_AND_ASSIGN(DeviceList);
-
-		ibv_device* Lookup(const char* name) {
-			if (dev_list_ == nullptr)
-				return nullptr;
-			if (name == nullptr)
-				return dev_list_[0];
-			for (int i = 0; dev_list_[i] != nullptr; ++i) {
-				if (strcmp(dev_list_[i]->name, name) == 0)
-					return dev_list_[i];
-			}
-			return nullptr;
-		}
+		ibv_device* Lookup(const char* name);
 
 	 private:
 		ibv_device** const dev_list_;
