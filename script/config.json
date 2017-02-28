@@ -1,0 +1,10 @@
+{
+    "coordinator": {
+        "tcp_port": 9090,
+        "max_nodes": 1024
+    },
+
+    "node": {
+        "tcp_port": 7070
+    }
+}

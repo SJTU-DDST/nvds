@@ -3,9 +3,13 @@
 
 #include "nvm.h"
 
+#include <unistd.h>
+
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
+#include <cstdio>
+#include <iostream>
 #include <string>
 #include <vector>
 
@@ -18,6 +22,16 @@ namespace nvds {
     TypeName(const TypeName&) = delete;             \
     TypeName& operator=(const TypeName&) = delete;
 #endif
+
+#define NVDS_ERR(format, args...) {           \
+  std::cerr << "error: "                      \
+            << Format(format, args)           \
+            << std::endl;                     \
+}
+
+#define NVDS_LOG(format, args...) {               \
+  std::clog << Format(format, args) << std::endl; \
+}
 
 using KeyHash = uint64_t;
 static const uint32_t kMaxItemSize = 1024 * 1024;

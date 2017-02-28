@@ -1,12 +1,14 @@
 CXX = clang++ -std=c++11 -O2
 LD = clang++
-CXXFLAGS = -g -Wall -D_XOPEN_SOURCE -D_GNU_SOURCE -I./
+CXXINC = -I./ -I../json/src/
+CXXFLAGS = -g -Wall -D_XOPEN_SOURCE -D_GNU_SOURCE $(CXXINC)
 LDFLAGS = -lrt -lpthread -lssl -lcrypto
 LDLIBS = -libverbs
 
 SRCS = allocator.cc         \
        client.cc			\
 	   common.cc			\
+	   config.cc			\
 	   coordinator.cc		\
 	   hash_table.cc		\
 	   index.cc				\

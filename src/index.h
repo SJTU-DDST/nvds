@@ -35,7 +35,6 @@ class IndexManager {
     return const_cast<Server*>(ret);
   }
 
-
  private:
   IndexMap index_map_;
   ServerMap server_map_;
