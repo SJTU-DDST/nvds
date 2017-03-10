@@ -99,6 +99,23 @@ void Allocator::FreeBlock(uint32_t blk) {
   }
 }
 
+void Allocator::RemoveBlock(uint32_t blk, uint32_t blk_size) {
+  assert(ReadTheFreeTag(blk, blk_size) != 0);
+  auto prev_blk = Read<uint32_t>(blk + offsetof(BlockHeader, prev));
+  auto next_blk = Read<uint32_t>(blk + offsetof(BlockHeader, next));
+  if (prev_blk != 0) {
+    Write(prev_blk + offsetof(BlockHeader, next),
+          Read<uint32_t>(blk + offsetof(BlockHeader, next)));
+  } else {
+    auto free_list = GetFreeListByBlockSize(blk_size);
+    Write(free_list, Read<uint32_t>(blk + offsetof(BlockHeader, next)));
+  }
+  if (next_blk != 0) {
+    Write(next_blk + offsetof(BlockHeader, prev),
+          Read<uint32_t>(blk + offsetof(BlockHeader, prev)));
+  }
+}
+
 uint32_t Allocator::SplitBlock(uint32_t blk,
                                uint32_t blk_size,
                                uint32_t needed_size) {

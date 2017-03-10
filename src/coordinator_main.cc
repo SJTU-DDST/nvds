@@ -28,7 +28,6 @@ int main(int argc, const char* argv[]) {
 
   // 1. Self initialization
 
-
   // 2. Listening for joining request from nodes and request from clients
   
 

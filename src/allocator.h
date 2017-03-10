@@ -1,3 +1,8 @@
+/*
+ * This allocator is a simplified version of _Doug Lea's Malloc_.
+ * Reference: http://g.oswego.edu/dl/html/malloc.html
+ */
+
 #ifndef _NVDS_ALLOCATOR_H_
 #define _NVDS_ALLOCATOR_H_
 
@@ -144,22 +149,7 @@ class Allocator {
   void FreeBlock(uint32_t blk);
   
   // Remove the block from the free list, and it keeps free.
-  void RemoveBlock(uint32_t blk, uint32_t blk_size) {
-    assert(ReadTheFreeTag(blk, blk_size) != 0);
-    auto prev_blk = Read<uint32_t>(blk + offsetof(BlockHeader, prev));
-    auto next_blk = Read<uint32_t>(blk + offsetof(BlockHeader, next));
-    if (prev_blk != 0) {
-      Write(prev_blk + offsetof(BlockHeader, next),
-            Read<uint32_t>(blk + offsetof(BlockHeader, next)));
-    } else {
-      auto free_list = GetFreeListByBlockSize(blk_size);
-      Write(free_list, Read<uint32_t>(blk + offsetof(BlockHeader, next)));
-    }
-    if (next_blk != 0) {
-      Write(next_blk + offsetof(BlockHeader, prev),
-            Read<uint32_t>(blk + offsetof(BlockHeader, prev)));
-    }
-  }
+  void RemoveBlock(uint32_t blk, uint32_t blk_size);
   uint32_t SplitBlock(uint32_t blk, uint32_t blk_size, uint32_t needed_size);
 
  private:
