@@ -13,6 +13,9 @@ class Config {
   }
 
   void Load(const char* cfg_file);
+  static const std::string& coord_addr() {
+    return GetInst()->coord_addr_;
+  }
   static uint16_t coord_port() {
     return GetInst()->coord_port_;
   }
@@ -26,6 +29,7 @@ class Config {
  private:
   Config() {}
   ~Config() {}
+  std::string coord_addr_;
   uint16_t coord_port_ {0};
   uint32_t max_nodes_ {0};
 

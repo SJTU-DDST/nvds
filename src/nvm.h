@@ -1,6 +1,8 @@
 #ifndef _NVDS_NVM_H_
 #define _NVDS_NVM_H_
 
+#include <cstddef>
+
 namespace nvds {
 
 /*
@@ -20,6 +22,18 @@ class NVMPtr {
   const T* operator->() const { return ptr_; }
   T& operator*() { return *ptr_; }
   const T& operator*() const { return *ptr_; }
+  bool operator==(const NVMPtr& other) const {
+    return ptr_ == other.ptr_;
+  }
+  bool operator!=(const NVMPtr& other) const {
+    return !(*this == other);
+  }
+  bool operator==(const std::nullptr_t& null) const {
+    return ptr_ == nullptr;
+  }
+  bool operator!=(const std::nullptr_t& null) const {
+    return !(*this == nullptr);
+  }
 
  private:
   T* ptr_;

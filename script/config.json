@@ -1,5 +1,6 @@
 {
     "coordinator": {
+        "address": "127.0.0.1",
         "tcp_port": 9090,
         "max_nodes": 1024
     },

@@ -91,7 +91,7 @@ class Allocator {
     if (free_list < kNumFreeList - 1) {
       return (free_list + 1) * 16;
     }
-    assert(free_list = kNumFreeList - 1);
+    assert(free_list == kNumFreeList - 1);
     auto head = Read<uint32_t>(free_list * sizeof(uint32_t));
     return head == 0 ? 0 : ReadTheSizeTag(head);
   }

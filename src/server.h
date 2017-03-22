@@ -32,8 +32,10 @@ struct NVMDevice {
 class Server {
  public:
   using BackupList = std::vector<uint32_t>;
-  Server(const BackupList& backup_list)
-      : backup_list_(backup_list) {}
+  //Server(const BackupList& backup_list)
+  //    : backup_list_(backup_list) {}
+  Server(NVMPtr<NVMDevice> nvm, uint64_t nvm_size)
+      : nvm_size_(nvm_size), nvm_(nvm) {}
   ~Server() {}
   DISALLOW_COPY_AND_ASSIGN(Server);
 
@@ -45,9 +47,15 @@ class Server {
     return const_cast<Server*>(this)->GetRandomBackup();
   }
 
+  bool Join();
+  void Leave();
+  void Listening();
+
+
  private:
   uint32_t id_;
-
+  uint64_t nvm_size_;  
+  NVMPtr<NVMDevice> nvm_;
   BackupList backup_list_;
 };
 

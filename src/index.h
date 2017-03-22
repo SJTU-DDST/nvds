@@ -27,7 +27,7 @@ class IndexManager {
 
   void AddServer(uint32_t server_id);
   void RemoveServer(uint32_t server_id);
-  void NarrowServer(uint32_t server_id);
+  void ShrinkServer(uint32_t server_id);
 
   const Server* GetServer(KeyHash key_hash) const;
   Server* GetServer(KeyHash key_hash) {
