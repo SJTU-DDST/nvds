@@ -4,6 +4,3 @@
 [submodule "json"]
 	path = json
 	url = https://github.com/nlohmann/json
-[submodule "libevent"]
-	path = Libevent
-	url = https://github.com/nmathewson/Libevent
