@@ -1,5 +1,8 @@
-#include "server.h"
+/*
+ * Startup module of server.
+ */
 
+#include "server.h"
 #include "config.h"
 
 using namespace nvds;
@@ -23,7 +26,7 @@ int main(int argc, const char* argv[]) {
 
   // Step 0, self initialization, including formatting nvm storage.
   // DRAM emulated NVM.
-  NVMPtr<NVMDevice> nvm(static_cast<NVMDevice*>(malloc(kNVMSize)));
+  auto nvm = AcquireNVM<NVMDevice>(kNVMSize);
   if (nvm == nullptr) {
     NVDS_ERR("acquire nvm failed: size = %PRIu64\n", kNVMSize);
     return -1;

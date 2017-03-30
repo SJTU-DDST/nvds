@@ -1,9 +1,9 @@
-CXX = clang++ -std=c++11 -O2
+CXX = clang++ -std=c++11 -O0
 LD = clang++
 CXXINC = -I./ -I../json/src/
 CXXFLAGS = -g -Wall -D_XOPEN_SOURCE -D_GNU_SOURCE $(CXXINC)
 LDFLAGS = -lrt -lpthread -lssl -lcrypto
-LDLIBS = -libverbs
+LDLIBS = -libverbs -lboost_system
 
 SRCS = allocator.cc         \
        client.cc			\

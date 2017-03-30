@@ -1,6 +1,7 @@
 #ifndef _NVDS_NVM_H_
 #define _NVDS_NVM_H_
 
+#include <cstdlib>
 #include <cstddef>
 
 namespace nvds {
@@ -14,7 +15,7 @@ namespace nvds {
 template<typename T>
 class NVMPtr {
  public:
-  NVMPtr(T* ptr) : ptr_(ptr) {}
+  explicit NVMPtr(T* ptr) : ptr_(ptr) {}
   ~NVMPtr() {}
   T* ptr() { return ptr_; }
   const T* ptr() const { return ptr_; }
@@ -38,6 +39,14 @@ class NVMPtr {
  private:
   T* ptr_;
 };
+
+/*
+ * Get nvm with specified size
+ */
+template <typename T>
+NVMPtr<T> AcquireNVM(size_t size) {
+  return NVMPtr<T>(static_cast<T*>(malloc(size)));
+}
 
 } // namespace nvds
 

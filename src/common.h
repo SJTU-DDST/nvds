@@ -18,19 +18,19 @@ namespace nvds {
 #define PACKED(s) s __attribute__((packed))
 
 #ifndef DISALLOW_COPY_AND_ASSIGN
-#define DISALLOW_COPY_AND_ASSIGN(TypeName)          \
-    TypeName(const TypeName&) = delete;             \
-    TypeName& operator=(const TypeName&) = delete;
+#define DISALLOW_COPY_AND_ASSIGN(TypeName)        \
+  TypeName(const TypeName&) = delete;             \
+  TypeName& operator=(const TypeName&) = delete;
 #endif
 
-#define NVDS_ERR(format, args...) {           \
-  std::cerr << "error: "                      \
-            << Format(format, args)           \
-            << std::endl;                     \
+#define NVDS_ERR(format, args...) {     \
+  std::cerr << "error: "                \
+            << Format(format, ##args)   \
+            << std::endl;               \
 }
 
-#define NVDS_LOG(format, args...) {               \
-  std::clog << Format(format, args) << std::endl; \
+#define NVDS_LOG(format, args...) {                 \
+  std::clog << Format(format, ##args) << std::endl; \
 }
 
 using KeyHash = uint64_t;
