@@ -41,9 +41,10 @@ class Message {
   static const size_t kHeaderLen = sizeof(Header);
 
   SenderType sender_type() const { return msg_->header.sender_type; }
-  void set_sender_type(const SenderType& sender_type) {
-    msg_->header.sender_type = sender_type;
-  }
+  //void set_sender_type(const SenderType& sender_type) {
+  //  msg_->header.sender_type = sender_type;
+  //}
+  Type type() const { return msg_->header.type; }
   uint32_t body_len() const { return msg_->header.length; }
  private:
   Format* msg_;

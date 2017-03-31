@@ -16,58 +16,112 @@ Coordinator::Coordinator()
   
 }
 
-void Coordinator::Accept() {
-  tcp_acceptor_.async_accept(conn_sock_,
-      [this](boost::system::error_code err) {
-        if (!err) {
-          std::make_shared<Session>(std::move(conn_sock_))->Start();
-        }
-        Accept();
-      });
-}
-
 void Coordinator::Run() {
   Accept();
   tcp_service_.run();
 }
 
-void Coordinator::Session::Start() {
-  ReadRequest();
+void Coordinator::HandleMessage(Session& session) {
+  switch (session.msg().sender_type()) {
+  case Message::SenderType::SERVER:
+    HandleMessageFromServer(session);
+    break;
+  case Message::SenderType::CLIENT:
+    HandleMessageFromClient(session);
+    break;
+  case Message::SenderType::COORDINATOR:
+    assert(false);
+  }
 }
 
-void Coordinator::Session::ReadRequest() {
+void Coordinator::HandleMessageFromServer(Session& session) {
+  const auto& msg = session.msg();
+  switch (msg.type()) {
+  case Message::Type::REQ_JOIN:
+    break;
+  case Message::Type::REQ_LEAVE:
+    break;
+  case Message::Type::ACK_REJECT:
+    break;
+  case Message::Type::ACK_ERROR:
+    break;
+  case Message::Type::ACK_OK:
+    break;
+  default:
+    assert(false);
+  }
+}
+
+void Coordinator::HandleMessageFromClient(Session& session) {
+  const auto& msg = session.msg();
+  switch (msg.type()) {
+  case Message::Type::REQ_JOIN:
+    break;
+  case Message::Type::REQ_LEAVE:
+    break;
+  case Message::Type::ACK_REJECT:
+    break;
+  case Message::Type::ACK_ERROR:
+    break;
+  case Message::Type::ACK_OK:
+    break;
+  default:
+    assert(false);
+  }
+}
+
+void Coordinator::Accept() {
+  tcp_acceptor_.async_accept(conn_sock_,
+      [this](boost::system::error_code err) {
+        if (!err) {
+          std::make_shared<Session>(
+              std::move(conn_sock_),
+              std::bind(&Coordinator::HandleMessage,
+                        this, std::placeholders::_1))->Start();
+        }
+        Accept();
+      });
+}
+
+void Coordinator::Session::Start() {
+  RecvMessage();
+}
+
+void Coordinator::Session::RecvMessage() {
   auto self = shared_from_this(); // Avoid out-of-range of this session
   auto body_handler = [this, self](
-      const boost::system::error_code& error,
+      const boost::system::error_code& err,
       size_t bytes_transferred) {
-    if (!error) {
-      
+    if (!err) {
+      // TODO(wgtdkp): handle this message
+      msg_handler_(*this);
     } else {
-      NVDS_ERR(error.message().c_str());
+      NVDS_ERR(err.message().c_str());
     }
   };
   auto header_handler = [this, self, body_handler](
-      const boost::system::error_code& error,
+      const boost::system::error_code& err,
       size_t bytes_transferred) {
-    if (!error) {
-      msg = reinterpret_cast<Message::Format*>(raw_data_);
-      
-      size_t len = msg.body_len();
+    if (!err) {
+      msg_ = reinterpret_cast<Message::Format*>(raw_data_);
+      // Read message body
+      size_t len = msg_.body_len();
       assert(len + Message::kHeaderLen <= kRawDataSize);
       boost::asio::async_read(conn_sock_,
           boost::asio::buffer(raw_data_, len), body_handler);    
     } else {
-      NVDS_ERR(error.message().c_str());
+      NVDS_ERR(err.message().c_str());
     }
   };
   
+  // Read message header
   size_t len = Message::kHeaderLen;
   assert(len <= kRawDataSize);
   boost::asio::async_read(conn_sock_,
       boost::asio::buffer(raw_data_, len), header_handler);
 }
 
-void Coordinator::Session::WriteResponse() {
+void Coordinator::Session::SendMessage() {
 
 }
 

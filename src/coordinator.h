@@ -5,6 +5,7 @@
 #include "message.h"
 
 #include <boost/asio.hpp>
+#include <boost/function.hpp>
 
 namespace nvds {
 
@@ -20,8 +21,9 @@ namespace nvds {
  */
 class Coordinator {
  public:
+  class Session;
   using RawData = uint8_t;
-
+  using MessageHandler = boost::function<void(Session&)>;
   Coordinator();
   ~Coordinator() {}
 
@@ -35,13 +37,18 @@ class Coordinator {
 
   class Session : public std::enable_shared_from_this<Session> {
    public:
-    Session(boost::asio::ip::tcp::socket conn_sock)
-        : conn_sock_(std::move(conn_sock)) {}
+    Session(boost::asio::ip::tcp::socket conn_sock,
+            MessageHandler msg_handler)
+        : conn_sock_(std::move(conn_sock)),
+          msg_handler_(std::move(msg_handler)) {}
     ~Session() {}
 
     void Start();
-    void ReadRequest();
-    void WriteResponse();
+    void RecvMessage();
+    void SendMessage();
+
+    Message& msg() { return msg_; }
+    const Message& msg() const { return msg_; }
 
    private:
     int32_t Read(RawData* raw_data, uint32_t len);
@@ -49,13 +56,17 @@ class Coordinator {
 
    private:
     boost::asio::ip::tcp::socket conn_sock_;
+    MessageHandler msg_handler_;
     static const uint32_t kRawDataSize = 1024 * 16;
     RawData raw_data_[kRawDataSize];
-    Message msg;
+    Message msg_;
   };
 
  private:
   void Accept();
+  void HandleMessage(Session& session);
+  void HandleMessageFromServer(Session& session);
+  void HandleMessageFromClient(Session& session);
 
  private:
   uint32_t server_num_;
