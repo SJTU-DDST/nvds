@@ -6,6 +6,7 @@ LDFLAGS = -lrt -lpthread -lssl -lcrypto
 LDLIBS = -libverbs -lboost_system
 
 SRCS = allocator.cc         \
+	   basic_server.cc		\
        client.cc			\
 	   common.cc			\
 	   config.cc			\
@@ -16,6 +17,7 @@ SRCS = allocator.cc         \
 	   message.cc			\
 	   object.cc			\
 	   server.cc			\
+	   session.cc			\
 	   tablet.cc			\
 	   transport.cc
 

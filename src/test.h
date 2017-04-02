@@ -3,8 +3,6 @@
 
 namespace nvds {
 
-
-
 } // namespace nvds
 
 #endif // _NVDS_TEST_H_
