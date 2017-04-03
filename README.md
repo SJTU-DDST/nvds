@@ -14,5 +14,6 @@ Non-volatile Memory Based Distributed Storage
 ## BUILD
 
 ```shell
-$git clone https://github.com/wgtdkp/nvds --recursive
+$ git clone https://github.com/wgtdkp/nvds --recursive
+$ cd src && make all
 ```
