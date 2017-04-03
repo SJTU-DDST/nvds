@@ -13,8 +13,6 @@ Non-volatile Memory Based Distributed Storage
 
 ## BUILD
 
-Install libevent-2.1 first.
-
 ```shell
 $git clone https://github.com/wgtdkp/nvds --recursive
 ```
