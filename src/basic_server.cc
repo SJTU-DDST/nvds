@@ -7,10 +7,9 @@ using boost::asio::ip::tcp;
 
 namespace nvds {
 
-BasicServer::BasicServer()
+BasicServer::BasicServer(uint16_t port)
     : tcp_acceptor_(tcp_service_,
-                    tcp::endpoint(tcp::v4(),
-                    Config::coord_port())),
+                    tcp::endpoint(tcp::v4(), port)),
       conn_sock_(tcp_service_) {
 }
 

@@ -28,13 +28,17 @@ int main(int argc, const char* argv[]) {
   // DRAM emulated NVM.
   auto nvm = AcquireNVM<NVMDevice>(kNVMSize);
   if (nvm == nullptr) {
-    NVDS_ERR("acquire nvm failed: size = %PRIu64\n", kNVMSize);
+    NVDS_ERR("acquire nvm failed: size = %PRIu64", kNVMSize);
     return -1;
   }
 
   Server s(nvm, kNVMSize);
 
   // Step 1: request to the coordinator for joining in.
+  if (!s.Join()) {
+    NVDS_ERR("join cluster failed");
+    return -1;
+  }
 
   // Step 2: get the arrangement from coordinator, contacting servers
   //         that will be affected, performing data migration.
@@ -42,6 +46,11 @@ int main(int argc, const char* argv[]) {
   // Step 3: acknowledge the coordinator of complemention
 
   // Step 4: serving request
+  NVDS_LOG("Server startup");
+  NVDS_LOG("Listening at: %u", Config::server_port());
+  NVDS_LOG("......");
+  
+  s.Run();
   
   return 0;
 }

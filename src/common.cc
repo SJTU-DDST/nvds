@@ -1,5 +1,6 @@
 #include "common.h"
 
+#include <boost/asio.hpp>
 #include <cstdarg>
 #include <cxxabi.h>
 
@@ -49,7 +50,5 @@ std::string Demangle(const char* name) {
   free(res);
   return ret;
 }
-
-
 
 } // namespace nvds

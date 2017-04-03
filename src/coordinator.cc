@@ -6,7 +6,8 @@
 
 namespace nvds {
 
-Coordinator::Coordinator() {
+Coordinator::Coordinator()
+    : BasicServer(Config::coord_port()) {
 
 }
 

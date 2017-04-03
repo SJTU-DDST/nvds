@@ -20,10 +20,10 @@ void Config::Load(const char* cfg_file) {
   auto& cfg_coord = cfg["coordinator"];
   coord_addr_ = cfg_coord["address"];
   coord_port_ = cfg_coord["tcp_port"];
-  max_nodes_ = cfg_coord["max_nodes"];
+  max_servers_ = cfg_coord["max_servers"];
 
   auto& cfg_node = cfg["node"];
-  node_port_ = cfg_node["tcp_port"];
+  server_port_ = cfg_node["tcp_port"];
 }
 
 } // namespace nvds

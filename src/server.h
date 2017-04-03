@@ -37,8 +37,7 @@ class Server : public BasicServer {
  public:
   using BackupList = std::vector<uint32_t>;
 
-  Server(NVMPtr<NVMDevice> nvm, uint64_t nvm_size)
-      : nvm_size_(nvm_size), nvm_(nvm) {}
+  Server(NVMPtr<NVMDevice> nvm, uint64_t nvm_size);
   ~Server() {}
   DISALLOW_COPY_AND_ASSIGN(Server);
 
