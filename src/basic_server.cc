@@ -22,11 +22,11 @@ virtual void BasicServer::Run() {
 
 void BasicServer::Accept(MessageHandler msg_handler) {
   tcp_acceptor_.async_accept(conn_sock_,
-    [this, &msg_handler](boost::system::error_code err) {
+    [this, msg_handler](boost::system::error_code err) {
       if (!err) {
         std::make_shared<Session>(std::move(conn_sock_), msg_handler)->Start();
       } else {
-        NVDS_ERR("accept connection failed");
+        NVDS_ERR(err.message().c_str());
       }
       Accept(msg_handler);
     });
