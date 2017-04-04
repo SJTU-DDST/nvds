@@ -23,19 +23,22 @@ void Session::RecvMessage() {
       const boost::system::error_code& err,
       size_t bytes_transferred) {
     if (!err) {
-      msg_ = reinterpret_cast<Message::Format*>(raw_data_);
+      assert(bytes_transferred >= Message::kHeaderSize);
+      
+      auto header = *reinterpret_cast<Message::Header*>(raw_data_);
       // Read message body
-      size_t len = msg_.body_len();
-      assert(len + Message::kHeaderLen <= kRawDataSize);
+      size_t len = Message::kHeaderSize + header.body_len - bytes_transferred;
+      assert(len + bytes_transferred <= kRawDataSize);
       boost::asio::async_read(conn_sock_,
-          boost::asio::buffer(raw_data_, len), body_handler);    
+          boost::asio::buffer(raw_data_ + bytes_transferred, len),
+          body_handler);
     } else {
       NVDS_ERR(err.message().c_str());
     }
   };
   
   // Read message header
-  size_t len = Message::kHeaderLen;
+  size_t len = Message::kHeaderSize;
   assert(len <= kRawDataSize);
   boost::asio::async_read(conn_sock_,
       boost::asio::buffer(raw_data_, len), header_handler);

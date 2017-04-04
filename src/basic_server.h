@@ -20,7 +20,6 @@ class BasicServer {
     tcp_service_.run();
   }
 
- private:
   boost::asio::io_service tcp_service_;
   boost::asio::ip::tcp::acceptor tcp_acceptor_;
   boost::asio::ip::tcp::socket conn_sock_;
