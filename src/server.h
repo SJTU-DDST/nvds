@@ -55,7 +55,8 @@ class Server : public BasicServer {
   void Listening();
 
  private:
-  void HandleMessage(Session& session);
+  void HandleRecvMessage(Session& session, std::shared_ptr<Message> msg);
+  void HandleSendMessage(Session& session, std::shared_ptr<Message> msg);
 
   uint32_t id_;
   uint64_t nvm_size_;  

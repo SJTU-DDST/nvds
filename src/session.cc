@@ -3,34 +3,33 @@
 namespace nvds {
 
 void Session::Start() {
-  RecvMessage();
+  AsyncRecvMessage(std::make_shared<Message>());
 }
 
-void Session::RecvMessage() {
+void Session::AsyncRecvMessage(std::shared_ptr<Message> msg) {
   // Avoid out-of-range of this session
   auto self = shared_from_this();
-  auto body_handler = [this, self](
+  auto body_handler = [this, self, msg](
       const boost::system::error_code& err,
       size_t bytes_transferred) {
     if (!err) {
       // TODO(wgtdkp): handle this message
-      msg_handler_(*this);
+      recv_msg_handler_(*this, msg);
     } else {
       NVDS_ERR(err.message().c_str());
     }
   };
-  auto header_handler = [this, self, body_handler](
+  auto header_handler = [this, self, msg, body_handler](
       const boost::system::error_code& err,
       size_t bytes_transferred) {
     if (!err) {
       assert(bytes_transferred >= Message::kHeaderSize);
-      
-      auto header = *reinterpret_cast<Message::Header*>(raw_data_);
+
       // Read message body
-      size_t len = Message::kHeaderSize + header.body_len - bytes_transferred;
-      assert(len + bytes_transferred <= kRawDataSize);
+      size_t len = Message::kHeaderSize + msg->body_len() - bytes_transferred;
+      msg->body().resize(len);
       boost::asio::async_read(conn_sock_,
-          boost::asio::buffer(raw_data_ + bytes_transferred, len),
+          boost::asio::buffer(&msg->body()[0], msg->body_len()),
           body_handler);
     } else {
       NVDS_ERR(err.message().c_str());
@@ -38,14 +37,29 @@ void Session::RecvMessage() {
   };
   
   // Read message header
-  size_t len = Message::kHeaderSize;
-  assert(len <= kRawDataSize);
   boost::asio::async_read(conn_sock_,
-      boost::asio::buffer(raw_data_, len), header_handler);
+      boost::asio::buffer(&msg->header(), Message::kHeaderSize),
+      header_handler);
 }
 
-void Session::SendMessage() {
+void Session::AsyncSendMessage(std::shared_ptr<Message> msg) {
 
+}
+
+void Session::SendMessage(const Message& msg) {
+  boost::asio::write(conn_sock_,
+      boost::asio::buffer(&msg.header(), Message::kHeaderSize));
+  boost::asio::write(conn_sock_, boost::asio::buffer(msg.body()));
+}
+
+Message Session::RecvMessage() {
+  Message msg;
+  boost::asio::read(conn_sock_,
+      boost::asio::buffer(&msg.header(), Message::kHeaderSize));
+  msg.body().resize(msg.body_len());
+  boost::asio::read(conn_sock_,
+      boost::asio::buffer(&msg.body()[0], msg.body_len()));
+  return msg;
 }
 
 } // namespace nvds

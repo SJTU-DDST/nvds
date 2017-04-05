@@ -20,16 +20,18 @@ virtual void BasicServer::Run() {
 }
 */
 
-void BasicServer::Accept(MessageHandler msg_handler) {
+void BasicServer::Accept(MessageHandler recv_msg_handler,
+                         MessageHandler send_msg_handler) {
   tcp_acceptor_.async_accept(conn_sock_,
-    [this, msg_handler](boost::system::error_code err) {
-      if (!err) {
-        std::make_shared<Session>(std::move(conn_sock_), msg_handler)->Start();
-      } else {
-        NVDS_ERR(err.message().c_str());
-      }
-      Accept(msg_handler);
-    });
+      [=](boost::system::error_code err) {
+        if (!err) {
+          std::make_shared<Session>(std::move(conn_sock_),
+              recv_msg_handler, send_msg_handler)->Start();
+        } else {
+          NVDS_ERR(err.message().c_str());
+        }
+        Accept(recv_msg_handler, send_msg_handler);
+      });
 }
 
 } // namespace nvds

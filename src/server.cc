@@ -14,7 +14,10 @@ Server::Server(NVMPtr<NVMDevice> nvm, uint64_t nvm_size)
 void Server::Run() {
   // TODO(wgtdkp): initializations
 
-  //Accept(std::bind(&Server::HandleMessage, this, std::placeholders::_1));
+  Accept(std::bind(&Server::HandleRecvMessage, this,
+                   std::placeholders::_1, std::placeholders::_2),
+         std::bind(&Server::HandleSendMessage, this,
+                   std::placeholders::_1, std::placeholders::_2));
   RunService();
 }
 
@@ -26,16 +29,21 @@ bool Server::Join() {
   auto ep = resolver.resolve(query);
   try {
     boost::asio::connect(conn_sock_, ep);
-    //NVDS_LOG("connected to coordinator: %s: %" PRIu16,
-    //         Config::coord_addr().c_str(), Config::coord_port());
-    // TODO(wgtdkp): construct message of join request
+    Session session_join(std::move(conn_sock_));
     Message::Header header {Message::SenderType::SERVER,
                             Message::Type::REQ_JOIN, 0};
     Message msg(header, json({{"size", nvm_size_}}).dump());
     
+    try {
+      session_join.SendMessage(msg);
+    } catch (boost::system::system_error& err) {
+      NVDS_ERR("send message to coordinator failed: %s", err.what());
+      return false;
+    }
+
   } catch (boost::system::system_error& err) {
-    NVDS_ERR("connect to coordinator: %s: %" PRIu16 "failed",
-             Config::coord_addr().c_str(), Config::coord_port());
+    NVDS_ERR("connect to coordinator: %s: %" PRIu16 "failed: %s",
+             Config::coord_addr().c_str(), Config::coord_port(), err.what());
     return false;
   }
   return true;
@@ -49,8 +57,14 @@ void Server::Listening() {
 
 }
 
-void Server::HandleMessage(Session& session) {
+void Server::HandleRecvMessage(Session& session, std::shared_ptr<Message> msg) {
+  // TODO(wgtdkp): implement
+  assert(false);
+}
 
+void Server::HandleSendMessage(Session& session, std::shared_ptr<Message> msg) {
+  // TODO(wgtdkp): implement
+  assert(false);
 }
 
 } // namespace nvds

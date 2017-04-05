@@ -2,6 +2,7 @@
 
 namespace nvds {
 
+/*
 Message::Message(const char* raw) {
   if (raw == nullptr)
     return;
@@ -9,5 +10,6 @@ Message::Message(const char* raw) {
   raw += kHeaderSize;
   body_ = std::string(raw, body_len());
 }
+*/
 
 } // namespace nvds

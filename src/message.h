@@ -42,24 +42,25 @@ class Message {
     uint32_t body_len;
   });
 
-  Message(const Header& header, const std::string& body="")
-      : header_(header), body_(body) {
+  Message() {}
+  Message(Header header, std::string body)
+      : header_(std::move(header)), body_(std::move(body)) {
     header_.body_len = body_.size();
   }
-  explicit Message(const char* raw=nullptr);
+  //explicit Message(const char* raw=nullptr);
   ~Message() {}
 
   static const size_t kHeaderSize = sizeof(Header);
 
+  const Header& header() const { return header_; }
+  Header& header() { return header_; }
+  const std::string& body() const { return body_; }
+  std::string& body() { return body_; }
+  
   SenderType sender_type() const { return header_.sender_type; }
   Type type() const { return header_.type; }
   uint32_t body_len() const { return header_.body_len; }
-  const std::string& body() const { return body_; }
-  void AppendBody(const std::string& body) {
-    header_.body_len += body.size();    
-    body_ += body;
-  }
-
+  
  private:
   Header header_;
   std::string body_;

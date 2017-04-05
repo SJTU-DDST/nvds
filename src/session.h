@@ -9,35 +9,33 @@
 namespace nvds {
 
 class Session;
-using MessageHandler = boost::function<void(Session&)>;
+using MessageHandler = boost::function<void(Session&, std::shared_ptr<Message>)>;
+using boost::asio::ip::tcp;
 
 class Session : public std::enable_shared_from_this<Session> {
  public:
-  using RawData = uint8_t;
 
-  Session(boost::asio::ip::tcp::socket conn_sock,
-          MessageHandler msg_handler)
+  explicit Session(tcp::socket conn_sock,
+                   MessageHandler recv_msg_handler=0,
+                   MessageHandler send_msg_handler=0)
       : conn_sock_(std::move(conn_sock)),
-        msg_handler_(std::move(msg_handler)) {}
+        recv_msg_handler_(recv_msg_handler),
+        send_msg_handler_(send_msg_handler) {}
   ~Session() {}
 
+  // Start async message send/recv
   void Start();
-  void RecvMessage();
-  void SendMessage();
+  void AsyncRecvMessage(std::shared_ptr<Message> msg);
+  void AsyncSendMessage(std::shared_ptr<Message> msg);
+  // Throw exception `boost::system::system_error` on failure
+  Message RecvMessage();
+  // Throw exception `boost::system::system_error` on failure
+  void SendMessage(const Message& msg);
 
-  Message& msg() { return msg_; }
-  const Message& msg() const { return msg_; }
-
-  //private:
-  // int32_t Read(RawData* raw_data, uint32_t len);
-  // int32_t Write(RawData* raw_data, uint32_t len);
-
-  private:
-  boost::asio::ip::tcp::socket conn_sock_;
-  MessageHandler msg_handler_;
-  static const uint32_t kRawDataSize = 1024 * 16;
-  RawData raw_data_[kRawDataSize];
-  Message msg_;
+ private:
+  tcp::socket conn_sock_;
+  MessageHandler recv_msg_handler_;
+  MessageHandler send_msg_handler_;
 };
 
 } // namespace nvds

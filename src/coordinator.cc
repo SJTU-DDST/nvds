@@ -14,26 +14,34 @@ Coordinator::Coordinator()
 void Coordinator::Run() {
   // TODO(wgtdkp): initializations
 
-  Accept(std::bind(&Coordinator::HandleMessage, this, std::placeholders::_1));
+  Accept(std::bind(&Coordinator::HandleRecvMessage, this,
+                   std::placeholders::_1, std::placeholders::_2),
+         std::bind(&Coordinator::HandleSendMessage, this,
+                   std::placeholders::_1, std::placeholders::_2));
   RunService();
 }
 
-void Coordinator::HandleMessage(Session& session) {
-  switch (session.msg().sender_type()) {
+void Coordinator::HandleRecvMessage(Session& session,
+                                    std::shared_ptr<Message> msg) {
+  switch (msg->sender_type()) {
   case Message::SenderType::SERVER:
-    HandleMessageFromServer(session);
+    HandleMessageFromServer(session, msg);
     break;
   case Message::SenderType::CLIENT:
-    HandleMessageFromClient(session);
+    HandleMessageFromClient(session, msg);
     break;
   case Message::SenderType::COORDINATOR:
     assert(false);
   }
 }
 
-void Coordinator::HandleMessageFromServer(Session& session) {
-  const auto& msg = session.msg();
-  switch (msg.type()) {
+void Coordinator::HandleSendMessage(Session& session, std::shared_ptr<Message> msg) {
+  // TODO(wgtdkp): implement
+  assert(false);
+}
+
+void Coordinator::HandleMessageFromServer(Session& session, std::shared_ptr<Message> msg) {
+  switch (msg->type()) {
   case Message::Type::REQ_JOIN:
     break;
   case Message::Type::REQ_LEAVE:
@@ -49,9 +57,8 @@ void Coordinator::HandleMessageFromServer(Session& session) {
   }
 }
 
-void Coordinator::HandleMessageFromClient(Session& session) {
-  const auto& msg = session.msg();
-  switch (msg.type()) {
+void Coordinator::HandleMessageFromClient(Session& session, std::shared_ptr<Message> msg) {
+  switch (msg->type()) {
   case Message::Type::REQ_JOIN:
     break;
   case Message::Type::REQ_LEAVE:

@@ -13,7 +13,8 @@ class BasicServer {
   virtual ~BasicServer() {}
 
   virtual void Run() = 0;
-  void Accept(MessageHandler msg_handler);
+  void Accept(MessageHandler recv_msg_handler,
+              MessageHandler send_msg_handler);
 
  protected:
   void RunService() {

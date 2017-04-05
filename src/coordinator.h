@@ -35,9 +35,10 @@ class Coordinator : public BasicServer {
   void Run() override;
 
  private:
-  void HandleMessage(Session& session);
-  void HandleMessageFromServer(Session& session);
-  void HandleMessageFromClient(Session& session);
+  void HandleRecvMessage(Session& session, std::shared_ptr<Message> msg);
+  void HandleSendMessage(Session& session, std::shared_ptr<Message> msg);
+  void HandleMessageFromServer(Session& session, std::shared_ptr<Message> msg);
+  void HandleMessageFromClient(Session& session, std::shared_ptr<Message> msg);
 
  private:
   uint32_t server_num_;
