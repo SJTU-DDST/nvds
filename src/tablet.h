@@ -2,6 +2,7 @@
 #define _NVDS_TABLET_H_
 
 #include "common.h"
+#include "hash.h"
 
 namespace nvds {
 
@@ -9,11 +10,11 @@ PACKED(
 struct NVMTablet {
   // Tablet id, unique in scope of node.
   // There could be same tablet id on different node.
-  uint32_t id;
+  TabletId id;
   PACKED(
   struct Backup {
-    uint32_t server_id;
-    uint32_t tablet_id;
+    ServerId server_id;
+    TabletId tablet_id;
   });
   // The backups of this tablet.
   Backup backups[kNumReplica];

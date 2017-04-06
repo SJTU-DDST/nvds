@@ -20,7 +20,7 @@ PACKED(
 struct NVMDevice {
   // The server id of the machine.
   // 0 means this NVMDevice is not used yet, all information are invalid.
-  uint32_t server_id;
+  ServerId server_id;
   // The size in byte of the NVM device
   uint64_t size;
   // The key hash range
@@ -35,13 +35,13 @@ struct NVMDevice {
 
 class Server : public BasicServer {
  public:
-  using BackupList = std::vector<uint32_t>;
+  //using BackupList = std::vector<ServerId>;
 
   Server(NVMPtr<NVMDevice> nvm, uint64_t nvm_size);
   ~Server() {}
   DISALLOW_COPY_AND_ASSIGN(Server);
 
-  uint32_t id() const { return id_; }
+  ServerId id() const { return id_; }
 
   // Randomly choose a server for serving
   Server* GetRandomBackup();
@@ -58,7 +58,7 @@ class Server : public BasicServer {
   void HandleRecvMessage(Session& session, std::shared_ptr<Message> msg);
   void HandleSendMessage(Session& session, std::shared_ptr<Message> msg);
 
-  uint32_t id_;
+  ServerId id_;
   uint64_t nvm_size_;  
   NVMPtr<NVMDevice> nvm_;
 };

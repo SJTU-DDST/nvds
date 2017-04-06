@@ -14,7 +14,6 @@ using boost::asio::ip::tcp;
 
 class Session : public std::enable_shared_from_this<Session> {
  public:
-
   explicit Session(tcp::socket conn_sock,
                    MessageHandler recv_msg_handler=0,
                    MessageHandler send_msg_handler=0)

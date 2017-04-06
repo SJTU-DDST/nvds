@@ -16,6 +16,12 @@ namespace nvds {
  * {
  *   "size": int
  * }
+ * 1. RES_JOIN :
+ * {
+ *   "id": int,
+ *   "backups_id": array[int],
+ *   "key_ranges": array[array[int]]
+ * }
  */
 
 class Message {

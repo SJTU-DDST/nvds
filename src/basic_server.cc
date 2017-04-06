@@ -13,13 +13,6 @@ BasicServer::BasicServer(uint16_t port)
       conn_sock_(tcp_service_) {
 }
 
-/*
-virtual void BasicServer::Run() {
-  Accept();
-  tcp_service_.run();
-}
-*/
-
 void BasicServer::Accept(MessageHandler recv_msg_handler,
                          MessageHandler send_msg_handler) {
   tcp_acceptor_.async_accept(conn_sock_,

@@ -2,6 +2,7 @@
 #define _NVDS_OBJECT_H_
 
 #include "common.h"
+#include "hash.h"
 
 namespace nvds {
 

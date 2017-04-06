@@ -34,7 +34,8 @@ namespace nvds {
   std::clog << Format(format, ##args) << std::endl; \
 }
 
-using KeyHash = uint64_t;
+using ServerId = uint32_t;
+using TabletId = uint32_t;
 static const uint32_t kMaxItemSize = 1024 * 1024;
 static const uint32_t kNumReplica = 2;
 

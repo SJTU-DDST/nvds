@@ -30,17 +30,24 @@ bool Server::Join() {
   try {
     boost::asio::connect(conn_sock_, ep);
     Session session_join(std::move(conn_sock_));
+
     Message::Header header {Message::SenderType::SERVER,
                             Message::Type::REQ_JOIN, 0};
     Message msg(header, json({{"size", nvm_size_}}).dump());
-    
+
     try {
       session_join.SendMessage(msg);
     } catch (boost::system::system_error& err) {
-      NVDS_ERR("send message to coordinator failed: %s", err.what());
+      NVDS_ERR("send join request to coordinator failed: %s", err.what());
       return false;
     }
-
+    try {
+      msg = session_join.RecvMessage();
+    } catch (boost::system::system_error& err) {
+      NVDS_ERR("receive join response from coordinator failed: %s",
+               err.what());
+      return false;
+    }
   } catch (boost::system::system_error& err) {
     NVDS_ERR("connect to coordinator: %s: %" PRIu16 "failed: %s",
              Config::coord_addr().c_str(), Config::coord_port(), err.what());
@@ -57,12 +64,14 @@ void Server::Listening() {
 
 }
 
-void Server::HandleRecvMessage(Session& session, std::shared_ptr<Message> msg) {
+void Server::HandleRecvMessage(Session& session,
+                               std::shared_ptr<Message> msg) {
   // TODO(wgtdkp): implement
   assert(false);
 }
 
-void Server::HandleSendMessage(Session& session, std::shared_ptr<Message> msg) {
+void Server::HandleSendMessage(Session& session,
+                               std::shared_ptr<Message> msg) {
   // TODO(wgtdkp): implement
   assert(false);
 }

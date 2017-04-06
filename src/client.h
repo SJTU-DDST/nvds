@@ -17,6 +17,7 @@ class Client {
   enum class Status: uint8_t {
     OK,
     ERROR,
+    REJECT,
   };
 
   // Connection to the cluster, return connection status.
