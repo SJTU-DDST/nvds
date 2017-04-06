@@ -10,8 +10,8 @@ namespace nvds {
 using nlohmann::json;
 
 Coordinator::Coordinator()
-    : BasicServer(Config::coord_port()) {
-
+    : BasicServer(Config::coord_port()),
+      index_manager_(Config::num_servers()) {
 }
 
 void Coordinator::Run() {
@@ -69,11 +69,10 @@ void Coordinator::HandleServerRequestJoin(Session& session,
                                           std::shared_ptr<Message> req) {
   auto body = json(req->body());
   uint64_t nvm_size = body["size"];
-
-  auto id = AllocServerId();
-  index_manager_.AddServer(id);
-
-
+  // TODO(wgtdkp): get peer ip address
+  std::string addr;
+  index_manager_.AddServer(addr);
+  
   // After Adding server successfully
   total_storage_ += nvm_size;
 }

@@ -2,8 +2,14 @@
 
 namespace nvds {
 
-void IndexManager::AddServer(ServerId server_id) {
+/*
+void IndexManager::AddServer(ServerId server_id, std::string addr) {
+  auto& server_info = server_info_map_[server_id];
 
+  // Generate vritual nodes
+
+  server_info.id = server_id;
+  server_info.addr = std::move(addr);
 }
 
 // Get the server that the `key_hash` will fall in.
@@ -20,6 +26,6 @@ std::vector<KeyHashRange> IndexManager::GetServerRanges(ServerId server_id) {
   std::vector<KeyHashRange> ret;
   return ret;
 }
-
+*/
 
 } // namespace nvds

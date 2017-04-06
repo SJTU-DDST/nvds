@@ -35,11 +35,6 @@ class Coordinator : public BasicServer {
   void Run() override;
 
  private:
-  static ServerId AllocServerId() {
-    static ServerId id = 0;
-    // FIXME(wgtdkp): overflow
-    return ++id;
-  }
   void HandleRecvMessage(Session& session, std::shared_ptr<Message> msg);
   void HandleSendMessage(Session& session, std::shared_ptr<Message> msg);
   void HandleMessageFromServer(Session& session, std::shared_ptr<Message> msg);

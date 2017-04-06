@@ -19,8 +19,8 @@ class Config {
   static uint16_t coord_port() {
     return GetInst()->coord_port_;
   }
-  static uint32_t max_servers() {
-    return GetInst()->max_servers_;
+  static uint32_t num_servers() {
+    return GetInst()->num_servers_;
   }
   static uint16_t server_port() {
     return GetInst()->server_port_;
@@ -31,7 +31,7 @@ class Config {
   ~Config() {}
   std::string coord_addr_;
   uint16_t coord_port_ {0};
-  uint32_t max_servers_ {0};
+  uint32_t num_servers_ {0};
 
   uint16_t server_port_ {0};
 };

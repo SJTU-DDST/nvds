@@ -2,7 +2,7 @@
     "coordinator": {
         "address": "192.168.1.67",
         "tcp_port": 9090,
-        "max_servers": 1024
+        "num_servers": 1024
     },
 
     "node": {
