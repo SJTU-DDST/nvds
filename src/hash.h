@@ -2,7 +2,9 @@
 #define _NVDS_HASH_H_
 
 namespace nvds {
+
 using KeyHash = uint64_t;
+static const KeyHash kMaxKeyHash = static_cast<KeyHash>(-1);
 
 struct KeyHashRange {
   KeyHash begin;

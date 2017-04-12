@@ -10,8 +10,7 @@ namespace nvds {
 using nlohmann::json;
 
 Coordinator::Coordinator()
-    : BasicServer(Config::coord_port()),
-      index_manager_(Config::num_servers()) {
+    : BasicServer(Config::coord_port()) {
 }
 
 void Coordinator::Run() {
@@ -69,9 +68,14 @@ void Coordinator::HandleServerRequestJoin(Session& session,
                                           std::shared_ptr<Message> req) {
   auto body = json(req->body());
   uint64_t nvm_size = body["size"];
-  // TODO(wgtdkp): get peer ip address
-  std::string addr;
-  index_manager_.AddServer(addr);
+
+  Infiniband::Address ib_addr {
+    body["infiniband"]["ib_port"],
+    body["infiniband"]["lid"],
+    body["infiniband"]["qpn"]
+  };
+
+  index_manager_.AddServer(session.GetPeerAddr(), ib_addr);
   
   // After Adding server successfully
   total_storage_ += nvm_size;

@@ -6,22 +6,27 @@
 namespace nvds {
 
 /*
- * The message body is in json format, it looks like:
- * {
- *   "name-0": value,
- *   "name-1": value
- * }
- * 
- * 0. REQ_JOIN :
- * {
- *   "size": int
- * }
- * 1. RES_JOIN :
- * {
- *   "id": int,
- *   "backups_id": array[int],
- *   "key_ranges": array[array[int]]
- * }
+ The message body is in json format, it looks like:
+ {
+   "name-0": value,
+   "name-1": value
+ }
+ 
+ 0. REQ_JOIN :
+ {
+   "size": int,
+   "infiniband": {
+     "ib_port": int,
+     "lid": int,
+     "pqn": int,
+   }
+ }
+ 1. RES_JOIN :
+ {
+   "id": int,
+   "backups_id": array[int],
+   "key_ranges": array[array[int]]
+ }
  */
 
 class Message {

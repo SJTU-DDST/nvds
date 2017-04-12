@@ -1,5 +1,5 @@
 /*
- * Mapping item to server
+ * Mapping items to servers
  */
 
 #ifndef _NVDS_INDEX_H_
@@ -7,6 +7,8 @@
 
 #include "common.h"
 #include "hash.h"
+#include "infiniband.h"
+#include "server.h"
 
 #include <map>
 #include <unordered_map>
@@ -42,32 +44,21 @@ class IndexManager {
 
 class IndexManager {
  public:
-  struct ServerInfo {
-    ServerId id;
-    std::string addr; // ip address
-    ServerId replicas[kNumReplica];
-  };
-  IndexManager(uint32_t total_server)
-      : num_servers_(0), servers_(total_server) {}
-
-  const ServerInfo& AddServer(std::string addr) {
-    auto id = AllocServerId();
-    auto& server = servers_[id];
-    server.id = id;
-    server.addr = std::move(addr);
-    for (size_t i = 0; i < kNumReplica; ++i) {
-      server.replicas[i] = (id + 1 + i) % servers_.size();
-    }
-    ++num_servers_;
-    return server;
-  }
-
+  IndexManager() : num_servers_(0) {}
+  ~IndexManager() {}
+  DISALLOW_COPY_AND_ASSIGN(IndexManager);
+  
+  const ServerInfo& AddServer(const std::string& addr,
+                              const Infiniband::Address& ib_addr);
   const ServerInfo& GetServer(KeyHash key_hash) const {
-    assert(num_servers_ != servers_.size());
-    return servers_[key_hash % servers_.size()];
+    auto id = GetServerId(key_hash);
+    const auto& ans = servers_[id];
+    assert(ans.id == id);
+    return ans;
   }
   ServerId GetServerId(KeyHash key_hash) const {
-    return GetServer(key_hash).id;
+    assert(num_servers_ == kNumServers);        
+    return key_hash / (kMaxKeyHash / kNumServers);
   }
  
  private:
@@ -77,7 +68,8 @@ class IndexManager {
   }
 
   uint32_t num_servers_;
-  std::vector<ServerInfo> servers_;
+  //std::vector<ServerInfo> servers_;
+  ServerInfo servers_[kNumServers];
 };
 
 } // namespace nvds

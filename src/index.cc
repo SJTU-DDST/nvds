@@ -28,4 +28,17 @@ std::vector<KeyHashRange> IndexManager::GetServerRanges(ServerId server_id) {
 }
 */
 
+const ServerInfo& IndexManager::AddServer(const std::string& addr,
+                                          const Infiniband::Address& ib_addr) {
+  auto id = AllocServerId();
+  auto& server = servers_[id];
+  server.id = id;
+  server.active = true;
+  server.addr = addr;
+  server.ib_addr = ib_addr;
+
+  ++num_servers_;
+  return server;
+}
+
 } // namespace nvds

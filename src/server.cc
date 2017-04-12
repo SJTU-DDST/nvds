@@ -9,7 +9,7 @@ using json = nlohmann::json;
 
 Server::Server(NVMPtr<NVMDevice> nvm, uint64_t nvm_size)
     : BasicServer(Config::server_port()),
-      nvm_size_(nvm_size), nvm_(nvm) {}
+      id_(0), active_(false), nvm_size_(nvm_size), nvm_(nvm) {}
 
 void Server::Run() {
   // TODO(wgtdkp): initializations

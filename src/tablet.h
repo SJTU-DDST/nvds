@@ -6,6 +6,7 @@
 
 namespace nvds {
 
+/*
 PACKED(
 struct NVMTablet {
   // Tablet id, unique in scope of node.
@@ -20,22 +21,36 @@ struct NVMTablet {
   Backup backups[kNumReplica];
   
 });
+*/
+
+struct Backup {
+  ServerId server_id;
+  TabletId tablet_id;
+};
+using Master = Backup;
+
+struct TabletInfo {
+  TabletId id;
+  bool is_backup;
+  union {
+    // If `is_backup_` == true,
+    // `master_` is the master tablet of this backup tablet
+    Master master;
+    // Else, `backups_` is the backups of this makster tablet
+    Backup backups[kNumReplicas];
+  };
+};
 
 class Tablet {
  public:
-  Tablet(KeyHash begin, KeyHash end)
-      : begin_(begin), end_(end) {}
+  Tablet() {}
   ~Tablet() {}
   DISALLOW_COPY_AND_ASSIGN(Tablet);
-
-  KeyHash begin() const { return begin_; }
-  KeyHash end() const { return end_; }
+  
+  const TabletInfo& info() const { return info_; }
 
  private:
-  // The hash key begin of the tablet
-  KeyHash begin_;
-  // The hash key end of the tablet
-  KeyHash end_;
+  TabletInfo info_;
 };
 
 } // namespace nvds

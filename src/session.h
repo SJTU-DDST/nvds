@@ -31,6 +31,10 @@ class Session : public std::enable_shared_from_this<Session> {
   // Throw exception `boost::system::system_error` on failure
   void SendMessage(const Message& msg);
 
+  std::string GetPeerAddr() const {
+    return conn_sock_.remote_endpoint().address().to_string();
+  }
+
  private:
   tcp::socket conn_sock_;
   MessageHandler recv_msg_handler_;

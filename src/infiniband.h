@@ -21,9 +21,9 @@ class Infiniband {
 
 	// This class includes informations for constructing a connection
 	struct QueuePairInfo {
+    uint16_t lid; // Local id
 		uint32_t qpn; // Queue pair number
 		uint32_t psn; // Packet sequence number
-		uint16_t lid; // Local id
 		uint64_t nonce;
 	};
 
@@ -74,10 +74,10 @@ class Infiniband {
 	};
 
 	struct QueuePair {
-		Infiniband& 	ib; // Infiniband this QP belongs to
-		ibv_qp_type 	type;			 // QP type
-		ibv_context* 	ctx;				 // Device context
-		int 					ib_port;		 // Physical port
+		Infiniband& 	ib;       // Infiniband this QP belongs to
+		ibv_qp_type 	type;	    // QP type
+		ibv_context* 	ctx;      // Device context
+		int 					ib_port;  // Physical port
 		ibv_pd* 			pd; 
 		ibv_srq* 			srq;
 		ibv_qp* 			qp;
@@ -101,11 +101,9 @@ class Infiniband {
 	};
 
 	struct Address {
-	 	//Infiniband& ib_;
 		int ib_port;
 		uint16_t lid;
 		uint32_t qpn;
-
 		std::string ToString() const;
 	};
 

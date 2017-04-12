@@ -3,6 +3,7 @@
 
 #include "basic_server.h"
 #include "common.h"
+#include "infiniband.h"
 #include "object.h"
 #include "tablet.h"
 
@@ -33,21 +34,26 @@ struct NVMDevice {
   NVMDevice() = delete;
 });
 
+struct ServerInfo {
+  ServerId id;
+  bool active;
+  std::string addr; // ip address
+  Infiniband::Address ib_addr; // infiniband address
+  //ServerId replicas[kNumReplica];
+  Tablet tablets[kNumTablets];
+  // Backup of all tablets
+};
+
 class Server : public BasicServer {
  public:
-  //using BackupList = std::vector<ServerId>;
-
   Server(NVMPtr<NVMDevice> nvm, uint64_t nvm_size);
   ~Server() {}
   DISALLOW_COPY_AND_ASSIGN(Server);
 
   ServerId id() const { return id_; }
-
-  // Randomly choose a server for serving
-  Server* GetRandomBackup();
-  const Server* GetRandomBackup() const {
-    return const_cast<Server*>(this)->GetRandomBackup();
-  }
+  bool active() const { return active_; }  
+  uint64_t nvm_size() const { return nvm_size_; }
+  NVMPtr<NVMDevice> nvm() const { return nvm_; }
 
   void Run() override;
   bool Join();
@@ -59,6 +65,7 @@ class Server : public BasicServer {
   void HandleSendMessage(Session& session, std::shared_ptr<Message> msg);
 
   ServerId id_;
+  bool active_;
   uint64_t nvm_size_;  
   NVMPtr<NVMDevice> nvm_;
 };

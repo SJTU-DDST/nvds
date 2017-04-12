@@ -219,7 +219,7 @@ Infiniband::RegisteredBuffers::RegisteredBuffers(
   bufs_ = new Buffer[buf_num_];
   char* p = static_cast<char*>(ptr_);
   for (uint32_t i = 0; i < buf_num; ++i) {
-    new(&bufs_[i]) Buffer(p, buf_size_, mr);
+    new (&bufs_[i]) Buffer(p, buf_size_, mr);
     p += buf_size_;
   }
 }
