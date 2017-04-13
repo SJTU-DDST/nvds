@@ -105,6 +105,14 @@ class Infiniband {
 		uint16_t lid;
 		uint32_t qpn;
 		std::string ToString() const;
+    bool operator==(const Address& other) const {
+      return ib_port == other.ib_port &&
+             lid == other.lid &&
+             qpn == other.qpn;
+    }
+    bool operator!=(const Address& other) const {
+      return !(*this == other);
+    }
 	};
 
 	struct Buffer {

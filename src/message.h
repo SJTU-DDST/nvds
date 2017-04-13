@@ -34,6 +34,13 @@ namespace nvds {
 struct Backup {
   ServerId server_id;
   TabletId tablet_id;
+  bool operator==(const Backup& other) const {
+    return server_id == other.server_id &&
+           tablet_id == other.tablet_id;
+  }
+  bool operator!=(const Backup& other) const {
+    return !(*this == other);
+  }
 };
 using Master = Backup;
 
@@ -47,6 +54,14 @@ struct TabletInfo {
     // Else, `backups_` is the backups of this makster tablet
     std::array<Backup, kNumReplicas> backups;
   };
+  bool operator==(const TabletInfo& other) const {
+    return id == other.id &&
+           is_backup == other.is_backup &&
+           backups == other.backups;
+  }
+  bool operator!=(const TabletInfo& other) const {
+    return !(*this == other);
+  }
 };
 
 /* Json representation

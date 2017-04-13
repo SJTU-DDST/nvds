@@ -67,7 +67,12 @@ test_infiniband: $(OBJS_DIR)test_infiniband.o $(OBJS_DIR)infiniband.o $(OBJS_DIR
 $(OBJS_DIR)test_allocator.o: test_allocator.cc allocator.h
 	$(CXX) $(CXXFLAGS) $(GTEST_FLAGS) -o $@ -c test_allocator.cc
 test_allocator: $(OBJS_DIR)test_allocator.o $(OBJS_DIR)allocator.o $(OBJS_DIR)libgtest.a
-	$(LD) $(LDFLAGS) $(GTEST_FLAGS) -o $(OBJS_DIR)$@ $^ $(LDLIBS) 
+	$(LD) $(LDFLAGS) $(GTEST_FLAGS) -o $(OBJS_DIR)$@ $^ $(LDLIBS)
+
+$(OBJS_DIR)test_message.o: test_message.cc message.h
+	$(CXX) $(CXXFLAGS) $(GTEST_FLAGS) -o $@ -c test_message.cc
+test_message: $(OBJS_DIR)test_message.o $(OBJS_DIR)message.o $(OBJS_DIR)libgtest.a
+	$(LD) $(LDFLAGS) $(GTEST_FLAGS) -o $(OBJS_DIR)$@ $^ $(LDLIBS)
 
 .PHONY: clean
 
