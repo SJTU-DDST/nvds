@@ -9,7 +9,8 @@
 namespace nvds {
 
 class Session;
-using MessageHandler = boost::function<void(Session&, std::shared_ptr<Message>)>;
+using MessageHandler = boost::function<void(std::shared_ptr<Session>,
+                                            std::shared_ptr<Message>)>;
 using boost::asio::ip::tcp;
 
 class Session : public std::enable_shared_from_this<Session> {

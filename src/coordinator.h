@@ -26,7 +26,6 @@ class Coordinator : public BasicServer {
   ~Coordinator() {}
   DISALLOW_COPY_AND_ASSIGN(Coordinator);
 
-  uint32_t server_num() const { return server_num_; }
   uint64_t total_storage() const { return total_storage_; }
 
   IndexManager& index_manager() { return index_manager_; }
@@ -35,17 +34,24 @@ class Coordinator : public BasicServer {
   void Run() override;
 
  private:
-  void HandleRecvMessage(Session& session, std::shared_ptr<Message> msg);
-  void HandleSendMessage(Session& session, std::shared_ptr<Message> msg);
-  void HandleMessageFromServer(Session& session, std::shared_ptr<Message> msg);
-  void HandleMessageFromClient(Session& session, std::shared_ptr<Message> msg);
-  void HandleServerRequestJoin(Session& session, std::shared_ptr<Message> req);
+  void HandleRecvMessage(std::shared_ptr<Session> session,
+                         std::shared_ptr<Message> msg);
+  void HandleSendMessage(std::shared_ptr<Session> session,
+                         std::shared_ptr<Message> msg);
+  void HandleMessageFromServer(std::shared_ptr<Session> session,
+                               std::shared_ptr<Message> msg);
+  void HandleMessageFromClient(std::shared_ptr<Session> session,
+                               std::shared_ptr<Message> msg);
+  void HandleServerRequestJoin(std::shared_ptr<Session> session,
+                               std::shared_ptr<Message> req);
+  void ResponseAllJoins();
 
  private:
-  uint32_t server_num_;
-  uint64_t total_storage_;
+  uint32_t num_servers_ = 0;
+  uint64_t total_storage_ = 0;
 
   IndexManager index_manager_;
+  std::vector<std::shared_ptr<Session>> sessions_;
 };
 
 } // namespace nvds

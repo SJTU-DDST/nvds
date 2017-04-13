@@ -60,6 +60,9 @@ class IndexManager {
     assert(num_servers_ == kNumServers);        
     return key_hash / (kMaxKeyHash / kNumServers);
   }
+  const auto& servers() const {
+    return servers_;
+  }
  
  private:
   static ServerId AllocServerId() {
@@ -68,8 +71,7 @@ class IndexManager {
   }
 
   uint32_t num_servers_;
-  //std::vector<ServerInfo> servers_;
-  ServerInfo servers_[kNumServers];
+  std::array<ServerInfo, kNumServers> servers_;
 };
 
 } // namespace nvds

@@ -14,7 +14,7 @@ void Session::AsyncRecvMessage(std::shared_ptr<Message> msg) {
       size_t bytes_transferred) {
     if (!err) {
       // TODO(wgtdkp): handle this message
-      recv_msg_handler_(*this, msg);
+      recv_msg_handler_(self, msg);
     } else {
       NVDS_ERR(err.message().c_str());
     }
@@ -43,7 +43,8 @@ void Session::AsyncRecvMessage(std::shared_ptr<Message> msg) {
 }
 
 void Session::AsyncSendMessage(std::shared_ptr<Message> msg) {
-
+  // TODO(wgtdkp): implement
+  assert(false);
 }
 
 void Session::SendMessage(const Message& msg) {

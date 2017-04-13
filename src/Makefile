@@ -1,4 +1,4 @@
-CXX = clang++ -std=c++11 -O0
+CXX = clang++ -std=c++14 -O0
 LD = clang++
 CXXINC = -I./ -I../json/src/
 CXXFLAGS = -g -Wall -D_XOPEN_SOURCE -D_GNU_SOURCE $(CXXINC)

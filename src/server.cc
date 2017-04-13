@@ -33,7 +33,8 @@ bool Server::Join() {
 
     Message::Header header {Message::SenderType::SERVER,
                             Message::Type::REQ_JOIN, 0};
-    Message msg(header, json({{"size", nvm_size_}}).dump());
+    Message msg(header,
+                json({{"size", nvm_size_}, {"ib_addr", ib_addr_}}).dump());
 
     try {
       session_join.SendMessage(msg);
@@ -64,13 +65,13 @@ void Server::Listening() {
 
 }
 
-void Server::HandleRecvMessage(Session& session,
+void Server::HandleRecvMessage(std::shared_ptr<Session> session,
                                std::shared_ptr<Message> msg) {
   // TODO(wgtdkp): implement
   assert(false);
 }
 
-void Server::HandleSendMessage(Session& session,
+void Server::HandleSendMessage(std::shared_ptr<Session> session,
                                std::shared_ptr<Message> msg) {
   // TODO(wgtdkp): implement
   assert(false);

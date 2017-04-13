@@ -98,6 +98,7 @@ class Message {
   enum class Type : uint8_t {
     REQ_JOIN,         // server/client ---> coordinator
     REQ_LEAVE,        // server/client ---> coordinator
+    RES_JOIN,         // coordinator   ---> server
     RES_CLUSTER_INFO, // coordinator   ---> client
     QP_INFO_EXCH,     // server/client ---> server
     ACK_REJECT,       // Acknowledgement: reject

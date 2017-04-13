@@ -52,13 +52,16 @@ class Server : public BasicServer {
   void Listening();
 
  private:
-  void HandleRecvMessage(Session& session, std::shared_ptr<Message> msg);
-  void HandleSendMessage(Session& session, std::shared_ptr<Message> msg);
-
+  void HandleRecvMessage(std::shared_ptr<Session> session,
+                         std::shared_ptr<Message> msg);
+  void HandleSendMessage(std::shared_ptr<Session> session,
+                         std::shared_ptr<Message> msg);
   ServerId id_;
   bool active_;
   uint64_t nvm_size_;  
   NVMPtr<NVMDevice> nvm_;
+
+  Infiniband::Address ib_addr_;
 };
 
 } // namespace nvds
