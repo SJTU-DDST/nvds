@@ -2,6 +2,8 @@
 #define _NVDS_MESSAGE_H_
 
 #include "common.h"
+#include "infiniband.h"
+#include "json.hpp"
 
 namespace nvds {
 
@@ -15,7 +17,7 @@ namespace nvds {
  0. REQ_JOIN :
  {
    "size": int,
-   "infiniband": {
+   "ib_addr": {
      "ib_port": int,
      "lid": int,
      "pqn": int,
@@ -24,10 +26,51 @@ namespace nvds {
  1. RES_JOIN :
  {
    "id": int,
-   "backups_id": array[int],
-   "key_ranges": array[array[int]]
+   "servers": array[ServerInfo]
  }
  */
+
+
+struct Backup {
+  ServerId server_id;
+  TabletId tablet_id;
+};
+using Master = Backup;
+
+struct TabletInfo {
+  TabletId id;
+  bool is_backup;
+  union {
+    // If `is_backup_` == true,
+    // `master_` is the master tablet of this backup tablet
+    Master master;
+    // Else, `backups_` is the backups of this makster tablet
+    std::array<Backup, kNumReplicas> backups;
+  };
+};
+
+/* Json representation
+{
+  "id": int,
+  "active": bool,
+  "addr": string,
+  "ib_addr": {
+    "ib_port": int,
+    "lid": int,
+    "pqn": int,
+  }
+  "tablets": array[TabletInfo],
+}
+ */
+struct ServerInfo {
+  ServerId id;
+  bool active;
+  std::string addr; // ip address
+  Infiniband::Address ib_addr; // infiniband address
+  //ServerId replicas[kNumReplica];
+  std::array<TabletInfo, kNumTablets> tablets;
+  // Backup of all tablets
+};
 
 class Message {
  public:
@@ -76,6 +119,15 @@ class Message {
   Header header_;
   std::string body_;
 };
+
+void to_json(nlohmann::json& j, const Infiniband::Address& ia);
+void from_json(const nlohmann::json& j, Infiniband::Address& ia);
+void to_json(nlohmann::json& j, const Backup& b);
+void from_json(const nlohmann::json& j, Backup& b);
+void to_json(nlohmann::json& j, const TabletInfo& ti);
+void from_json(const nlohmann::json& j, TabletInfo& ti);
+void to_json(nlohmann::json& j, const ServerInfo& si);
+void from_json(const nlohmann::json& j, ServerInfo& si);
 
 } // namespace nvds
 

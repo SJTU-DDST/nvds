@@ -69,13 +69,7 @@ void Coordinator::HandleServerRequestJoin(Session& session,
   auto body = json(req->body());
   uint64_t nvm_size = body["size"];
 
-  Infiniband::Address ib_addr {
-    body["infiniband"]["ib_port"],
-    body["infiniband"]["lid"],
-    body["infiniband"]["qpn"]
-  };
-
-  index_manager_.AddServer(session.GetPeerAddr(), ib_addr);
+  index_manager_.AddServer(session.GetPeerAddr(), body["ib_addr"]);
   
   // After Adding server successfully
   total_storage_ += nvm_size;

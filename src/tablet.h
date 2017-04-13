@@ -3,6 +3,7 @@
 
 #include "common.h"
 #include "hash.h"
+#include "message.h"
 
 namespace nvds {
 
@@ -22,24 +23,6 @@ struct NVMTablet {
   
 });
 */
-
-struct Backup {
-  ServerId server_id;
-  TabletId tablet_id;
-};
-using Master = Backup;
-
-struct TabletInfo {
-  TabletId id;
-  bool is_backup;
-  union {
-    // If `is_backup_` == true,
-    // `master_` is the master tablet of this backup tablet
-    Master master;
-    // Else, `backups_` is the backups of this makster tablet
-    Backup backups[kNumReplicas];
-  };
-};
 
 class Tablet {
  public:

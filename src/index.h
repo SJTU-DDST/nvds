@@ -47,7 +47,7 @@ class IndexManager {
   IndexManager() : num_servers_(0) {}
   ~IndexManager() {}
   DISALLOW_COPY_AND_ASSIGN(IndexManager);
-  
+
   const ServerInfo& AddServer(const std::string& addr,
                               const Infiniband::Address& ib_addr);
   const ServerInfo& GetServer(KeyHash key_hash) const {

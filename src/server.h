@@ -4,6 +4,7 @@
 #include "basic_server.h"
 #include "common.h"
 #include "infiniband.h"
+#include "message.h"
 #include "object.h"
 #include "tablet.h"
 
@@ -33,16 +34,6 @@ struct NVMDevice {
   Tablet tablets[0];
   NVMDevice() = delete;
 });
-
-struct ServerInfo {
-  ServerId id;
-  bool active;
-  std::string addr; // ip address
-  Infiniband::Address ib_addr; // infiniband address
-  //ServerId replicas[kNumReplica];
-  Tablet tablets[kNumTablets];
-  // Backup of all tablets
-};
 
 class Server : public BasicServer {
  public:
