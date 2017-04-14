@@ -37,8 +37,12 @@ const ServerInfo& IndexManager::AddServer(const std::string& addr,
   server.addr = addr;
   server.ib_addr = ib_addr;
 
-  ++num_servers_;
   return server;
+}
+
+void IndexManager::AssignBackups() {
+  // TODO(wgtdkp):
+  assert(false);
 }
 
 } // namespace nvds

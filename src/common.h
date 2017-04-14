@@ -38,7 +38,7 @@ using ServerId = uint32_t;
 using TabletId = uint32_t;
 static const uint32_t kMaxItemSize = 1024;
 static const uint32_t kNumReplicas = 2;
-static const uint32_t kNumServers = 16;
+static const uint32_t kNumServers = 1;
 static const uint32_t kNumTablets = 64;
 
 

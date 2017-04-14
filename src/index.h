@@ -44,7 +44,7 @@ class IndexManager {
 
 class IndexManager {
  public:
-  IndexManager() : num_servers_(0) {}
+  IndexManager() {}
   ~IndexManager() {}
   DISALLOW_COPY_AND_ASSIGN(IndexManager);
 
@@ -56,21 +56,20 @@ class IndexManager {
     assert(ans.id == id);
     return ans;
   }
-  ServerId GetServerId(KeyHash key_hash) const {
-    assert(num_servers_ == kNumServers);        
+  ServerId GetServerId(KeyHash key_hash) const {       
     return key_hash / (kMaxKeyHash / kNumServers);
   }
   const auto& servers() const {
     return servers_;
   }
- 
+  void AssignBackups();
+  
  private:
   static ServerId AllocServerId() {
     static ServerId id = 0;
     return id++;
   }
 
-  uint32_t num_servers_;
   std::array<ServerInfo, kNumServers> servers_;
 };
 

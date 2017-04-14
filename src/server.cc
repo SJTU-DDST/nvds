@@ -44,6 +44,12 @@ bool Server::Join() {
     }
     try {
       msg = session_join.RecvMessage();
+      assert(msg.sender_type() == Message::SenderType::COORDINATOR);
+      assert(msg.type() == Message::Type::RES_JOIN);
+      
+      auto j_body = json::parse(msg.body());
+      id_ = j_body["id"];
+      servers_ = j_body["servers"];
     } catch (boost::system::system_error& err) {
       NVDS_ERR("receive join response from coordinator failed: %s",
                err.what());

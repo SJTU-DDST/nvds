@@ -40,8 +40,8 @@ void Coordinator::HandleRecvMessage(std::shared_ptr<Session> session,
 
 void Coordinator::HandleSendMessage(std::shared_ptr<Session> session,
                                     std::shared_ptr<Message> msg) {
-  // TODO(wgtdkp): implement
-  assert(false);
+  // Start again
+  session->Start();
 }
 
 void Coordinator::HandleMessageFromServer(std::shared_ptr<Session> session,
@@ -74,10 +74,17 @@ void Coordinator::HandleServerRequestJoin(std::shared_ptr<Session> session,
 
   index_manager_.AddServer(session->GetPeerAddr(), body["ib_addr"]);
   sessions_.push_back(session);
+  ++num_servers_;
+  total_storage_ += nvm_size;
+
+  assert(num_servers_ <= kNumServers);
   if (num_servers_ == kNumServers) {
+    NVDS_LOG("all servers' join request received. [total servers = %d]",
+             kNumServers);
+    // TODO(wgtdkp): assign backups randomly
+    index_manager_.AssignBackups();
     ResponseAllJoins();
   }
-  total_storage_ += nvm_size;
 }
 
 void Coordinator::ResponseAllJoins() {
