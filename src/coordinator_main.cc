@@ -29,7 +29,7 @@ int main(int argc, const char* argv[]) {
   
   // 2. Listening for joining request from nodes and request from clients
   NVDS_LOG("Coordinator at: %s", Config::coord_addr().c_str());
-  NVDS_LOG("Listening at: %u", Config::coord_port());
+  NVDS_LOG("Listening at: %u", kCoordPort);
   NVDS_LOG("......");
 
   coordinator.Run();

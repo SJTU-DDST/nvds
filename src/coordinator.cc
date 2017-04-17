@@ -10,7 +10,7 @@ namespace nvds {
 using nlohmann::json;
 
 Coordinator::Coordinator()
-    : BasicServer(Config::coord_port()) {
+    : BasicServer(kCoordPort) {
 }
 
 void Coordinator::Run() {
@@ -70,7 +70,7 @@ void Coordinator::HandleServerRequestJoin(std::shared_ptr<Session> session,
   auto body = json::parse(req->body());
   uint64_t nvm_size = body["size"];
 
-  NVDS_LOG("join request from [%s]", session->GetPeerAddr().c_str());
+  NVDS_LOG("join request from server: [%s]", session->GetPeerAddr().c_str());
 
   index_manager_.AddServer(session->GetPeerAddr(), body["ib_addr"]);
   sessions_.push_back(session);
@@ -81,22 +81,18 @@ void Coordinator::HandleServerRequestJoin(std::shared_ptr<Session> session,
   if (num_servers_ == kNumServers) {
     NVDS_LOG("all servers' join request received. [total servers = %d]",
              kNumServers);
-    // TODO(wgtdkp): assign backups randomly
-    index_manager_.AssignBackups();
+    index_manager_.AssignTablets();
     ResponseAllJoins();
   }
 }
 
 void Coordinator::ResponseAllJoins() {
-  assert(false);
-  /*
-  const auto& servers = index_manager_.servers();
-  assert(sessions_.size() == servers.size());
+  assert(sessions_.size() == kNumServers);
 
   for (size_t i = 0; i < sessions_.size(); ++i) {
     json j_body {
-      {"id", servers[i].id},
-      {"servers", servers}
+      {"id", i},
+      {"index_manager", index_manager_}
     };
     sessions_[i]->AsyncSendMessage(std::make_shared<Message>(
         Message::Header {Message::SenderType::COORDINATOR,
@@ -104,7 +100,6 @@ void Coordinator::ResponseAllJoins() {
         j_body.dump()));
   }
   sessions_.clear();
-  */
 }
 
 void Coordinator::HandleMessageFromClient(std::shared_ptr<Session> session,
@@ -123,6 +118,14 @@ void Coordinator::HandleMessageFromClient(std::shared_ptr<Session> session,
   default:
     assert(false);
   }
+}
+
+void Coordinator::HandleClientRequestJoin(std::shared_ptr<Session> session,
+                                          std::shared_ptr<Message> msg) {
+  assert(msg->sender_type() == Message::SenderType::CLIENT);
+  assert(msg->type() == Message::Type::REQ_JOIN);
+  NVDS_LOG("join request from client: [%s]", session->GetPeerAddr().c_str());
+  assert(false);
 }
 
 } // namespace nvds

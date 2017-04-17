@@ -21,7 +21,7 @@ class Session : public std::enable_shared_from_this<Session> {
       : conn_sock_(std::move(conn_sock)),
         recv_msg_handler_(recv_msg_handler),
         send_msg_handler_(send_msg_handler) {}
-  ~Session() {}
+  ~Session() { /* Close socket automatically */ }
 
   // Start async message send/recv
   void Start();

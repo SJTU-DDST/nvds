@@ -8,8 +8,8 @@ namespace nvds {
 using json = nlohmann::json;
 
 Server::Server(NVMPtr<NVMDevice> nvm, uint64_t nvm_size)
-    : BasicServer(Config::server_port()),
-      id_(0), active_(false), nvm_size_(nvm_size), nvm_(nvm) {}
+    : BasicServer(kServerPort), id_(0),
+      active_(false), nvm_size_(nvm_size), nvm_(nvm) {}
 
 void Server::Run() {
   // TODO(wgtdkp): initializations
@@ -24,8 +24,7 @@ void Server::Run() {
 bool Server::Join() {
   using boost::asio::ip::tcp;
   tcp::resolver resolver(tcp_service_);
-  tcp::resolver::query query(Config::coord_addr(),
-                             std::to_string(Config::coord_port()));
+  tcp::resolver::query query(Config::coord_addr(), std::to_string(kCoordPort));
   auto ep = resolver.resolve(query);
   try {
     boost::asio::connect(conn_sock_, ep);
@@ -49,7 +48,7 @@ bool Server::Join() {
       
       auto j_body = json::parse(msg.body());
       id_ = j_body["id"];
-      servers_ = j_body["servers"];
+      index_manager_ = j_body["index_manager"];
     } catch (boost::system::system_error& err) {
       NVDS_ERR("receive join response from coordinator failed: %s",
                err.what());
@@ -57,7 +56,7 @@ bool Server::Join() {
     }
   } catch (boost::system::system_error& err) {
     NVDS_ERR("connect to coordinator: %s: %" PRIu16 "failed: %s",
-             Config::coord_addr().c_str(), Config::coord_port(), err.what());
+             Config::coord_addr().c_str(), kCoordPort, err.what());
     return false;
   }
   return true;

@@ -8,7 +8,8 @@
 #include "common.h"
 #include "hash.h"
 #include "infiniband.h"
-#include "server.h"
+#include "json.hpp"
+#include "message.h"
 
 #include <map>
 #include <unordered_map>
@@ -43,10 +44,12 @@ class IndexManager {
 */
 
 class IndexManager {
+  friend void to_json(nlohmann::json& j, const IndexManager& im);
+  friend void from_json(const nlohmann::json& j, IndexManager& im);
+
  public:
   IndexManager() {}
   ~IndexManager() {}
-  DISALLOW_COPY_AND_ASSIGN(IndexManager);
 
   const ServerInfo& AddServer(const std::string& addr,
                               const Infiniband::Address& ib_addr);
@@ -70,7 +73,8 @@ class IndexManager {
   TabletInfo& GetTablet(KeyHash key_hash) {
     return tablets_[GetTabletId(key_hash)];
   }
-  void AssignBackups();
+  // Assign tablets to servers
+  void AssignTablets();
 
  private:
   static ServerId AllocServerId() {

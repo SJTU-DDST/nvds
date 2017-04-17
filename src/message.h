@@ -7,6 +7,8 @@
 
 namespace nvds {
 
+class IndexManager;
+
 /*
  The message body is in json format, it looks like:
  {
@@ -26,7 +28,7 @@ namespace nvds {
  1. RES_JOIN :
  {
    "id": int,
-   "servers": array[ServerInfo]
+   "index_manager": IndexManager
  }
  */
 
@@ -138,14 +140,12 @@ class Message {
 
 void to_json(nlohmann::json& j, const Infiniband::Address& ia);
 void from_json(const nlohmann::json& j, Infiniband::Address& ia);
-/*
-void to_json(nlohmann::json& j, const Backup& b);
-void from_json(const nlohmann::json& j, Backup& b);
-*/
 void to_json(nlohmann::json& j, const TabletInfo& ti);
 void from_json(const nlohmann::json& j, TabletInfo& ti);
 void to_json(nlohmann::json& j, const ServerInfo& si);
 void from_json(const nlohmann::json& j, ServerInfo& si);
+void to_json(nlohmann::json& j, const IndexManager& im);
+void from_json(const nlohmann::json& j, IndexManager& im);
 
 } // namespace nvds
 

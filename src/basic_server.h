@@ -17,10 +17,7 @@ class BasicServer {
               MessageHandler send_msg_handler);
 
  protected:
-  void RunService() {
-    tcp_service_.run();
-  }
-
+  void RunService() { tcp_service_.run(); }
   boost::asio::io_service tcp_service_;
   boost::asio::ip::tcp::acceptor tcp_acceptor_;
   boost::asio::ip::tcp::socket conn_sock_;

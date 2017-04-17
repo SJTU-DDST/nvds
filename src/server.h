@@ -3,6 +3,7 @@
 
 #include "basic_server.h"
 #include "common.h"
+#include "index.h"
 #include "infiniband.h"
 #include "message.h"
 #include "object.h"
@@ -62,7 +63,8 @@ class Server : public BasicServer {
   NVMPtr<NVMDevice> nvm_;
 
   Infiniband::Address ib_addr_;
-  std::array<ServerInfo, kNumServers> servers_;
+  //std::array<ServerInfo, kNumServers> servers_;
+  IndexManager index_manager_;
 };
 
 } // namespace nvds

@@ -40,11 +40,13 @@ class Coordinator : public BasicServer {
                          std::shared_ptr<Message> msg);
   void HandleMessageFromServer(std::shared_ptr<Session> session,
                                std::shared_ptr<Message> msg);
-  void HandleMessageFromClient(std::shared_ptr<Session> session,
-                               std::shared_ptr<Message> msg);
   void HandleServerRequestJoin(std::shared_ptr<Session> session,
                                std::shared_ptr<Message> req);
   void ResponseAllJoins();
+  void HandleMessageFromClient(std::shared_ptr<Session> session,
+                               std::shared_ptr<Message> msg);
+  void HandleClientRequestJoin(std::shared_ptr<Session> session,
+                               std::shared_ptr<Message> msg);
 
  private:
   uint32_t num_servers_ = 0;

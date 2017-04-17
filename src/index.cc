@@ -31,18 +31,31 @@ std::vector<KeyHashRange> IndexManager::GetServerRanges(ServerId server_id) {
 const ServerInfo& IndexManager::AddServer(const std::string& addr,
                                           const Infiniband::Address& ib_addr) {
   auto id = AllocServerId();
-  auto& server = servers_[id];
-  server.id = id;
-  server.active = true;
-  server.addr = addr;
-  server.ib_addr = ib_addr;
+  servers_[id] = {id, true, addr, ib_addr};
 
-  return server;
+  return servers_[id];
 }
 
-void IndexManager::AssignBackups() {
-  // TODO(wgtdkp):
-  assert(false);
+void IndexManager::AssignTablets() {
+  for (size_t k = 0; k < kNumReplicas + 1; ++k) {
+    for (ServerId i = 0; i < kNumServers; ++i) {
+      for (TabletId j = 0; j < kNumTabletsPerServer; ++j) {
+        auto tablet_id = AllocTabletId();
+        tablets_[tablet_id] = {tablet_id, i, k > 0};
+        if (k > 0) {
+          TabletId master_id = i * kNumTabletsPerServer + j;
+          // Backup tablets locate on different servers!
+          TabletId backup_id = k * kNumTablets +
+              ((i + k) % kNumServers) * kNumTabletsPerServer + j;
+          tablets_[master_id].backups[k - 1] = backup_id;
+          tablets_[backup_id].master = master_id;
+        } else {
+          key_tablet_map_[tablet_id] = tablet_id;
+          servers_[i].tablets[j] = tablet_id;
+        }
+      }
+    }
+  }
 }
 
 } // namespace nvds

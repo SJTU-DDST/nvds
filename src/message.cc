@@ -1,5 +1,7 @@
 #include "message.h"
 
+#include "index.h"
+
 namespace nvds {
 
 void to_json(nlohmann::json& j, const Infiniband::Address& ia) {
@@ -17,16 +19,6 @@ void from_json(const nlohmann::json& j, Infiniband::Address& ia) {
     j["qpn"],
   };
 }
-
-/*
-void to_json(nlohmann::json& j, const Backup& b) {
-  j = nlohmann::json::array({b.server_id, b.tablet_id});
-}
-
-void from_json(const nlohmann::json& j, Backup& b) {
-  b = {j[0], j[1]};
-}
-*/
 
 void to_json(nlohmann::json& j, const TabletInfo& ti) {
   j["id"] = ti.id;
@@ -66,6 +58,20 @@ void from_json(const nlohmann::json& j, ServerInfo& si) {
     j["ib_addr"],
     j["tablets"]
   };
+}
+
+void to_json(nlohmann::json& j, const IndexManager& im) {
+  j = {
+    {"key_tablet_map", im.key_tablet_map_},
+    {"tablets", im.tablets_},
+    {"servers", im.servers_}
+  };
+}
+
+void from_json(const nlohmann::json& j, IndexManager& im) {
+  im.key_tablet_map_ = j["key_tablet_map"];
+  im.tablets_ = j["tablets"];
+  im.servers_ = j["servers"];
 }
 
 } // namespace nvds

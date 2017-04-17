@@ -16,6 +16,7 @@ class Config {
   static const std::string& coord_addr() {
     return GetInst()->coord_addr_;
   }
+  /*
   static uint16_t coord_port() {
     return GetInst()->coord_port_;
   }
@@ -25,15 +26,17 @@ class Config {
   static uint16_t server_port() {
     return GetInst()->server_port_;
   }
-
+  */
  private:
   Config() {}
   ~Config() {}
   std::string coord_addr_;
+  /*
   uint16_t coord_port_ {0};
   uint32_t num_servers_ {0};
 
   uint16_t server_port_ {0};
+  */
 };
 
 } // namepsace nvds

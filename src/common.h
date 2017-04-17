@@ -36,6 +36,8 @@ namespace nvds {
 
 using ServerId = uint32_t;
 using TabletId = uint32_t;
+static const uint16_t kCoordPort = 9090;
+static const uint16_t kServerPort = 7070;
 static const uint32_t kMaxItemSize = 1024;
 static const uint32_t kNumReplicas = 2;
 static const uint32_t kNumServers = 1;

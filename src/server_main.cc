@@ -47,7 +47,7 @@ int main(int argc, const char* argv[]) {
 
   // Step 4: serving request
   NVDS_LOG("Server startup");
-  NVDS_LOG("Listening at: %u", Config::server_port());
+  NVDS_LOG("Listening at: %u", kServerPort);
   NVDS_LOG("......");
   
   s.Run();

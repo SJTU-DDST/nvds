@@ -5,8 +5,7 @@
 using namespace nvds;
 
 int main() {
-  Client c;
-  c.Connect("192.168.99.11");
+  Client c {"192.168.99.11"};
   c.Put("AUTHOR", "SJTU-DDST");
   c.Put("VERSION", "0.0.1");
 
@@ -16,6 +15,5 @@ int main() {
   std::cout << "AUTHOR: " << a << std::endl;
   std::cout << "VERSION: " << v << std::endl;
 
-  c.Close();
   return 0;
 }
