@@ -88,6 +88,8 @@ void Coordinator::HandleServerRequestJoin(std::shared_ptr<Session> session,
 }
 
 void Coordinator::ResponseAllJoins() {
+  assert(false);
+  /*
   const auto& servers = index_manager_.servers();
   assert(sessions_.size() == servers.size());
 
@@ -102,6 +104,7 @@ void Coordinator::ResponseAllJoins() {
         j_body.dump()));
   }
   sessions_.clear();
+  */
 }
 
 void Coordinator::HandleMessageFromClient(std::shared_ptr<Session> session,

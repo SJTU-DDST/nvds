@@ -18,6 +18,7 @@ void from_json(const nlohmann::json& j, Infiniband::Address& ia) {
   };
 }
 
+/*
 void to_json(nlohmann::json& j, const Backup& b) {
   j = nlohmann::json::array({b.server_id, b.tablet_id});
 }
@@ -25,6 +26,7 @@ void to_json(nlohmann::json& j, const Backup& b) {
 void from_json(const nlohmann::json& j, Backup& b) {
   b = {j[0], j[1]};
 }
+*/
 
 void to_json(nlohmann::json& j, const TabletInfo& ti) {
   j["id"] = ti.id;

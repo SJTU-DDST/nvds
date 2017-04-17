@@ -57,19 +57,33 @@ class IndexManager {
     return ans;
   }
   ServerId GetServerId(KeyHash key_hash) const {       
-    return key_hash / (kMaxKeyHash / kNumServers);
+    return GetTablet(key_hash).server_id;
   }
-  const auto& servers() const {
-    return servers_;
+  // Get the id of the tablet that this key hash locates in.
+  TabletId GetTabletId(KeyHash key_hash) const {
+    uint32_t idx = key_hash / ((1.0 + kMaxKeyHash) / kNumTablets);
+    return key_tablet_map_[idx];
+  }
+  const TabletInfo& GetTablet(KeyHash key_hash) const {
+    return tablets_[GetTabletId(key_hash)];
+  }
+  TabletInfo& GetTablet(KeyHash key_hash) {
+    return tablets_[GetTabletId(key_hash)];
   }
   void AssignBackups();
-  
+
  private:
   static ServerId AllocServerId() {
     static ServerId id = 0;
     return id++;
   }
+  static TabletId AllocTabletId() {
+    static TabletId id = 0;
+    return id++;
+  }
 
+  std::array<TabletId, kNumTablets> key_tablet_map_;
+  std::array<TabletInfo, kNumTablets * (kNumReplicas + 1)> tablets_;
   std::array<ServerInfo, kNumServers> servers_;
 };
 

@@ -30,7 +30,7 @@ namespace nvds {
  }
  */
 
-
+/*
 struct Backup {
   ServerId server_id;
   TabletId tablet_id;
@@ -43,16 +43,18 @@ struct Backup {
   }
 };
 using Master = Backup;
+*/
 
 struct TabletInfo {
   TabletId id;
+  ServerId server_id;
   bool is_backup;
   union {
     // If `is_backup_` == true,
     // `master_` is the master tablet of this backup tablet
-    Master master;
+    TabletId master;
     // Else, `backups_` is the backups of this makster tablet
-    std::array<Backup, kNumReplicas> backups;
+    std::array<TabletId, kNumReplicas> backups;
   };
   bool operator==(const TabletInfo& other) const {
     return id == other.id &&
@@ -80,11 +82,9 @@ struct TabletInfo {
 struct ServerInfo {
   ServerId id;
   bool active;
-  std::string addr; // ip address
-  Infiniband::Address ib_addr; // infiniband address
-  //ServerId replicas[kNumReplica];
-  std::array<TabletInfo, kNumTablets> tablets;
-  // Backup of all tablets
+  std::string addr; // Ip address
+  Infiniband::Address ib_addr; // Infiniband address
+  std::array<TabletId, kNumTabletsPerServer> tablets;
 };
 
 class Message {
@@ -96,14 +96,14 @@ class Message {
   };
 
   enum class Type : uint8_t {
-    REQ_JOIN,         // server/client ---> coordinator
+    REQ_JOIN,         // erver/client ---> coordinator
     REQ_LEAVE,        // server/client ---> coordinator
     RES_JOIN,         // coordinator   ---> server
     RES_CLUSTER_INFO, // coordinator   ---> client
     QP_INFO_EXCH,     // server/client ---> server
-    ACK_REJECT,       // Acknowledgement: reject
-    ACK_ERROR,        // Acknowledgement: error
-    ACK_OK,           // Acknowledgement: ok
+    ACK_REJECT,       // acknowledgement: reject
+    ACK_ERROR,        // aknowledgement: error
+    ACK_OK,           // acknowledgement: ok
   };
   
   PACKED(struct Header {
@@ -130,7 +130,7 @@ class Message {
   SenderType sender_type() const { return header_.sender_type; }
   Type type() const { return header_.type; }
   uint32_t body_len() const { return header_.body_len; }
-  
+
  private:
   Header header_;
   std::string body_;
@@ -138,8 +138,10 @@ class Message {
 
 void to_json(nlohmann::json& j, const Infiniband::Address& ia);
 void from_json(const nlohmann::json& j, Infiniband::Address& ia);
+/*
 void to_json(nlohmann::json& j, const Backup& b);
 void from_json(const nlohmann::json& j, Backup& b);
+*/
 void to_json(nlohmann::json& j, const TabletInfo& ti);
 void from_json(const nlohmann::json& j, TabletInfo& ti);
 void to_json(nlohmann::json& j, const ServerInfo& si);

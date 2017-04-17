@@ -40,7 +40,9 @@ static const uint32_t kMaxItemSize = 1024;
 static const uint32_t kNumReplicas = 2;
 static const uint32_t kNumServers = 1;
 static const uint32_t kNumTablets = 64;
-
+static_assert(kNumTablets % kNumServers == 0,
+              "`kNumTablets` cannot be divisible by `kNumServers`");
+static const uint32_t kNumTabletsPerServer = kNumTablets / kNumServers;
 
 std::string Format(const char* format, ...);
 std::string Demangle(const char* name);
