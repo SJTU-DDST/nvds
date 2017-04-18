@@ -1,12 +1,35 @@
 #include "client.h"
 
+#include "request.h"
+
 namespace nvds {
 
 using json = nlohmann::json;
 
 Client::Client(const std::string& coord_addr)
-    : session_(Connect(coord_addr)) {
+    : session_(Connect(coord_addr)),
+      send_bufs_(ib_.pd(), Infiniband::kSendBufSize, kNumServers),
+      recv_bufs_(ib_.pd(), Infiniband::kRecvBufSize, kNumServers, true) {
+  InitIB();
   Join();
+}
+
+Client::~Client() {
+  Close();
+  ib_.DestroyCQ(scq_);
+  ib_.DestroyCQ(rcq_);
+  for (size_t i = 0; i < kNumServers; ++i) {
+    delete qps_[i];
+  }
+}
+
+void Client::InitIB() {
+  scq_ = ib_.CreateCQ(1);
+  rcq_ = ib_.CreateCQ(1);
+  for (size_t i = 0; i < kNumServers; ++i) {
+    qps_[i] = new Infiniband::QueuePair(ib_, IBV_QPT_RC, i,
+                                        nullptr, scq_, rcq_, 128, 128);
+  }
 }
 
 void Client::Join() {
@@ -18,6 +41,7 @@ void Client::Join() {
   msg = session_.RecvMessage();
   assert(msg.sender_type() == Message::SenderType::COORDINATOR);
   assert(msg.type() == Message::Type::RES_JOIN);
+
   auto j_body = json::parse(msg.body());
   index_manager_ = j_body["index_manager"];
 }
@@ -36,12 +60,21 @@ std::string Client::Get(const std::string& key) {
   return "";
 }
 
-Client::Status Client::Put(const std::string& key, const std::string& value) {
-  return Status::OK;
+bool Client::Put(const std::string& key, const std::string& value) {
+  // 0. compute key hash
+  auto hash = Hash(key);
+  
+  // 1. get tablet and server info
+  auto& tablet = index_manager_.GetTablet(hash);
+  auto& server = index_manager_.GetServer(hash);
+
+  // 2. post ib send and recv
+
+  return false;
 }
 
-Client::Status Client::Delete(const std::string& key) {
-  return Status::OK;
+ bool Client::Delete(const std::string& key) {
+  return false;
 }
 
 } // namespace nvds

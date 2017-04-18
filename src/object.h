@@ -6,8 +6,6 @@
 
 namespace nvds {
 
-KeyHash Hash(const std::string& key);
-
 class Object {
  public:
   Object(const std::string& key, const std::string& value)

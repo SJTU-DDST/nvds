@@ -63,7 +63,6 @@ class Server : public BasicServer {
   NVMPtr<NVMDevice> nvm_;
 
   Infiniband::Address ib_addr_;
-  //std::array<ServerInfo, kNumServers> servers_;
   IndexManager index_manager_;
 };
 

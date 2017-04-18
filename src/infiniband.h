@@ -13,9 +13,10 @@ namespace nvds {
 // Derived from RAMCloud Infiniband.h
 class Infiniband {
  public:
+  static const uint32_t kSendBufSize = 1024 * 2 + 128;
+  static const uint32_t kRecvBufSize = 1024 * 2 + 128;
  	static const uint32_t kMaxInlineData = 400;
-	// If the device name is not specified,
-	// choose the first one in device list
+	// If the device name is not specified, choose the first one in device list
 	explicit Infiniband(const char* device_name=nullptr);
 	~Infiniband() {}
 
@@ -56,11 +57,8 @@ class Infiniband {
 	 	explicit ProtectionDomain(Device& device)
 		 		: pd_(ibv_alloc_pd(device.ctx())) {
 		  if (pd_ == nullptr) {
-				throw TransportException(
-					HERE,
-					"failed to allocate infiniband protection domain",
-					errno);
-				
+				throw TransportException(HERE,
+					  "failed to allocate infiniband protection domain", errno);
 			}
 		}
 		~ProtectionDomain() { ibv_dealloc_pd(pd_); }
@@ -74,7 +72,7 @@ class Infiniband {
 	};
 
 	struct QueuePair {
-		Infiniband& 	ib;       // Infiniband this QP belongs to
+		Infiniband& 	ib;       // this QP belongs to
 		ibv_qp_type 	type;	    // QP type
 		ibv_context* 	ctx;      // Device context
 		int 					ib_port;  // Physical port
@@ -96,7 +94,8 @@ class Infiniband {
 		uint32_t GetLocalQPNum() const { return qp->qp_num; }
 		uint32_t GetPeerQPNum() const;
 		int GetState() const;
-		void Plumb(QueuePairInfo* qpi);
+    // Bring a queue pair into RTS state
+    void Plumb(QueuePairInfo* qpi);
 		void Activate();
 	};
 
@@ -117,31 +116,33 @@ class Infiniband {
 
 	struct Buffer {
 		char* 		buf;				
-		uint32_t 	size;				 // Buffer size
-		uint32_t 	msg_len;     // message length
-		ibv_mr*		mr;					 // IBV memory region
-		uint16_t  peer_lid;    // Peer lid
-		bool 			is_response; // Is this a response buffer
+		uint32_t 	size;		    // Buffer size
+		uint32_t 	msg_len;    // message length
+		ibv_mr*		mr;         // IBV memory region
+		uint16_t  peer_lid;   // Peer lid
+		bool 			is_recv;    // Is this a recv buffer
 
-		Buffer(char* b, uint32_t size, ibv_mr* mr)
-				: buf(b), size(size), mr(mr) {}
-		Buffer()
-				: buf(nullptr), size(0), msg_len(0), mr(nullptr),
-				  peer_lid(0), is_response(false) {}
+		Buffer(char* b, uint32_t size, ibv_mr* mr, bool is_recv=false)
+				: buf(b), size(size), mr(mr), is_recv(is_recv) {}
+		Buffer() : buf(nullptr), size(0), msg_len(0),
+        mr(nullptr), peer_lid(0), is_recv(false) {}
 		DISALLOW_COPY_AND_ASSIGN(Buffer);
 	};
 
 	class RegisteredBuffers {
 	 public:
-	  RegisteredBuffers(ProtectionDomain& pd, 
-											uint32_t buf_size, uint32_t buf_num);
-		~RegisteredBuffers() { free(ptr_); }
+	  RegisteredBuffers(ProtectionDomain& pd,
+		    uint32_t buf_size, uint32_t buf_num, bool is_recv=false);
+		~RegisteredBuffers() {
+      free(ptr_);
+      delete[] bufs_;
+    }
 		DISALLOW_COPY_AND_ASSIGN(RegisteredBuffers);
 
 		Buffer& GetBuffer(const void* pos) {
-			auto idx = (static_cast<const char*>(pos) -
-									static_cast<const char*>(ptr_)) /
-								 buf_size_;
+			auto idx =
+          (static_cast<const char*>(pos) - static_cast<const char*>(ptr_)) /
+					buf_size_;
 			return bufs_[idx];
 		}
 		Buffer* begin() { return bufs_; }
@@ -172,6 +173,9 @@ class Infiniband {
   ibv_cq* CreateCQ(int min_entries) {
 		return ibv_create_cq(dev_.ctx(), min_entries, nullptr, nullptr, 0);
 	}
+  void DestroyCQ(ibv_cq* cq) {
+    ibv_destroy_cq(cq);
+  }
 	ibv_srq* CreateSRQ(uint32_t max_wr, uint32_t max_sge) {
 		ibv_srq_init_attr sia;
 		memset(&sia, 0, sizeof(sia));
@@ -180,6 +184,9 @@ class Infiniband {
 		sia.attr.max_sge = max_sge;
 		return ibv_create_srq(pd_.pd(), &sia);
 	}
+  void DestroySRQ(ibv_srq* srq) {
+    ibv_destroy_srq(srq);
+  }
 	int PollCQ(ibv_cq* cq, int num_entries, ibv_wc* ret) {
 		return ibv_poll_cq(cq, num_entries, ret);
 	}

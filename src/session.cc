@@ -60,8 +60,8 @@ void Session::AsyncSendMessage(std::shared_ptr<Message> msg) {
       assert(bytes_transferred >= Message::kHeaderSize);
 
       // Send message body
-      boost::asio::async_write(conn_sock_, boost::asio::buffer(msg->body()),
-          body_handler);
+      boost::asio::async_write(conn_sock_,
+          boost::asio::buffer(msg->body()), body_handler);
     } else {
       NVDS_ERR(err.message().c_str());
     }

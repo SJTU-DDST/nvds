@@ -30,22 +30,20 @@ Infiniband::Device::Device(const char* name) {
   auto dev = dev_list.Lookup(name);
   if (dev == nullptr) {
     throw TransportException(HERE,
-                             Format("failed to find infiniband devide: %s",
-                                    name ? name: "any"));
+        Format("failed to find infiniband devide: %s", name ? name: "any"));
   }
   
   ctx_ = ibv_open_device(dev);
   if (ctx_ == nullptr) {
     throw TransportException(HERE, 
-                             Format("failed to find infiniband devide: %s",
-                                    name ? name: "any"), errno);
+        Format("failed to find infiniband devide: %s", name ? name: "any"),
+        errno);
   }
 }
 
 Infiniband::QueuePair::QueuePair(Infiniband& ib, ibv_qp_type type,
-                                 int ib_port, ibv_srq* srq, ibv_cq* scq,
-							                   ibv_cq* rcq, uint32_t max_send,
-							                   uint32_t max_recv, uint32_t qkey)
+    int ib_port, ibv_srq* srq, ibv_cq* scq, ibv_cq* rcq,
+    uint32_t max_send, uint32_t max_recv, uint32_t qkey)
     : ib(ib), type(type), ctx(ib.dev().ctx()),
       ib_port(ib_port), pd(ib.pd().pd()), srq(srq),
       qp(nullptr), scq(scq), rcq(rcq), psn(0), peer_lid(0), sin() {
@@ -119,9 +117,6 @@ int Infiniband::QueuePair::GetState() const {
   return qpa.qp_state;
 }
 
-/*
- * Bring a queue pair into RTS state
- */
 void Infiniband::QueuePair::Plumb(QueuePairInfo* qpi) {
   assert(type == IBV_QPT_RC);
   assert(GetState() == IBV_QPS_INIT);
@@ -141,13 +136,9 @@ void Infiniband::QueuePair::Plumb(QueuePairInfo* qpi) {
   qpa.ah_attr.src_path_bits = 0;
   qpa.ah_attr.port_num = static_cast<uint8_t>(ib_port);
 
-  auto err = ibv_modify_qp(qp, &qpa, IBV_QP_STATE |
-                                    IBV_QP_AV |
-                                    IBV_QP_PATH_MTU |
-                                    IBV_QP_DEST_QPN |
-                                    IBV_QP_RQ_PSN |
-                                    IBV_QP_MIN_RNR_TIMER |
-                                    IBV_QP_MAX_DEST_RD_ATOMIC);
+  auto err = ibv_modify_qp(qp, &qpa,
+      IBV_QP_STATE | IBV_QP_AV | IBV_QP_PATH_MTU | IBV_QP_DEST_QPN |
+      IBV_QP_RQ_PSN | IBV_QP_MIN_RNR_TIMER | IBV_QP_MAX_DEST_RD_ATOMIC);
   if (err != 0) {
     throw TransportException(HERE, err);
   }
@@ -170,12 +161,9 @@ void Infiniband::QueuePair::Plumb(QueuePairInfo* qpi) {
   qpa.sq_psn = psn;
   qpa.max_rd_atomic = 1;
 
-  err = ibv_modify_qp(qp, &qpa, IBV_QP_STATE |
-                                IBV_QP_TIMEOUT |
-                                IBV_QP_RETRY_CNT |
-                                IBV_QP_RNR_RETRY |
-                                IBV_QP_SQ_PSN |
-                                IBV_QP_MAX_QP_RD_ATOMIC);
+  err = ibv_modify_qp(qp, &qpa,
+      IBV_QP_STATE |  IBV_QP_TIMEOUT | IBV_QP_RETRY_CNT |
+      IBV_QP_RNR_RETRY | IBV_QP_SQ_PSN | IBV_QP_MAX_QP_RD_ATOMIC);
   if (err != 0) {
     throw TransportException(HERE, err);
   }
@@ -206,8 +194,8 @@ std::string Infiniband::Address::ToString() const {
   return Format("%u:%u", lid, qpn);
 }
 
-Infiniband::RegisteredBuffers::RegisteredBuffers(
-    ProtectionDomain& pd, uint32_t buf_size, uint32_t buf_num)
+Infiniband::RegisteredBuffers::RegisteredBuffers(ProtectionDomain& pd,
+    uint32_t buf_size, uint32_t buf_num, bool is_recv)
     : buf_size_(buf_size), buf_num_(buf_num), ptr_(nullptr), bufs_(nullptr) {
   const size_t bytes = buf_size * buf_num;
   ptr_ = memalign(4096, bytes);
@@ -223,19 +211,14 @@ Infiniband::RegisteredBuffers::RegisteredBuffers(
     p += buf_size_;
   }
 }
-
-Infiniband::QueuePair* Infiniband::CreateQP(ibv_qp_type type,
-                                            int ib_port,
-											                      ibv_srq* srq,
-                                            ibv_cq* scq,
-											                      ibv_cq* rcq,
-                                            uint32_t max_send,
-											                      uint32_t max_recv,
-                                            uint32_t qkey) {
+/*
+Infiniband::QueuePair* Infiniband::CreateQP(ibv_qp_type type, int ib_port,
+    ibv_srq* srq, ibv_cq* scq, ibv_cq* rcq, uint32_t max_send,
+    uint32_t max_recv, uint32_t qkey) {
   return new QueuePair(*this, type, ib_port, srq, scq, rcq,
                        max_send, max_recv, qkey);
 }
-
+*/
 int Infiniband::GetLid(int port) {
   ibv_port_attr port_attr;
   int ret = ibv_query_port(dev_.ctx(), static_cast<uint8_t>(port), &port_attr);
@@ -314,9 +297,8 @@ void Infiniband::PostSRQReceive(ibv_srq* srq, Buffer* b) {
   }
 }
 
-void Infiniband::PostSend(QueuePair* qp, Buffer* b, uint32_t len,
-								          const Address* peer_addr,
-								          uint32_t peer_qkey) {
+void Infiniband::PostSend(QueuePair* qp, Buffer* b,
+    uint32_t len, const Address* peer_addr, uint32_t peer_qkey) {
   // We do not support UD
   assert(peer_addr == nullptr && peer_qkey == 0);
 
@@ -344,9 +326,8 @@ void Infiniband::PostSend(QueuePair* qp, Buffer* b, uint32_t len,
   }
 }
 
-void Infiniband::PostSendAndWait(QueuePair* qp, Buffer* b, uint32_t len,
-											           const Address* peer_addr,
-											           uint32_t peer_qkey) {
+void Infiniband::PostSendAndWait(QueuePair* qp, Buffer* b,
+    uint32_t len, const Address* peer_addr, uint32_t peer_qkey) {
   PostSend(qp, b, len, peer_addr, peer_qkey);
 
   ibv_wc wc;

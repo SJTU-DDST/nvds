@@ -106,6 +106,7 @@ void Coordinator::HandleMessageFromClient(std::shared_ptr<Session> session,
                                           std::shared_ptr<Message> msg) {
   switch (msg->type()) {
   case Message::Type::REQ_JOIN:
+    HandleClientRequestJoin(session, msg);
     break;
   case Message::Type::REQ_LEAVE:
     break;
@@ -122,10 +123,19 @@ void Coordinator::HandleMessageFromClient(std::shared_ptr<Session> session,
 
 void Coordinator::HandleClientRequestJoin(std::shared_ptr<Session> session,
                                           std::shared_ptr<Message> msg) {
+  // TODO(wgtdkp): handle this error!
+  assert(num_servers_ == kNumServers);
   assert(msg->sender_type() == Message::SenderType::CLIENT);
   assert(msg->type() == Message::Type::REQ_JOIN);
   NVDS_LOG("join request from client: [%s]", session->GetPeerAddr().c_str());
-  assert(false);
+  
+  json j_body {
+    {"index_manager", index_manager_}
+  };
+  session->AsyncSendMessage(std::make_shared<Message>(
+      Message::Header {Message::SenderType::COORDINATOR,
+                        Message::Type::RES_JOIN},
+      j_body.dump()));
 }
 
 } // namespace nvds

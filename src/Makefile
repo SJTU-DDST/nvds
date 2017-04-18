@@ -19,7 +19,8 @@ SRCS = allocator.cc         \
 	   server.cc			\
 	   session.cc			\
 	   tablet.cc			\
-	   transport.cc
+	   transport.cc			\
+	   MurmurHash2.cc
 
 OBJS_DIR = build/
 OBJS = $(addprefix $(OBJS_DIR), $(SRCS:.cc=.o))
