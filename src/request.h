@@ -12,25 +12,28 @@ struct Request {
   Type type;
   uint16_t key_len;
   uint16_t val_len;
+  KeyHash key_hash;
   // Key data followed by value data
   char data[0];
  
-  static Request* New(Type type, const std::string& key,
-                      const std::string& val) {
-    auto buf = new char[sizeof(Request) + key.size() + val.size()];
-    return new (buf) Request(type, key, val);
+  static Request* New(void* ptr, Type type, const std::string& key,
+                      const std::string& val, KeyHash key_hash) {
+    //auto buf = new char[sizeof(Request) + key.size() + val.size()];
+    return new (ptr) Request(type, key, val, key_hash);
   }
   static void Del(const Request* r) {
     // Explicitly call destructor(only when pairing with placement new)
     r->~Request();
-    auto buf = reinterpret_cast<const char*>(r);
-    delete[] buf;
+    //auto buf = reinterpret_cast<const char*>(r);
+    //delete[] buf;
   }
   size_t Len() const { return sizeof(Request) + key_len + val_len; }
 
  private:
-  Request(Type type, const std::string& key, const std::string& val)
-      : type(type), key_len(key.size()), val_len(val.size()) {
+  Request(Type type, const std::string& key,
+      const std::string& val, KeyHash key_hash)
+      : type(type), key_len(key.size()),
+        val_len(val.size()), key_hash(key_hash) {
     memcpy(data, key.c_str(), key_len);
     memcpy(data + key_len, val.c_str(), val_len);
   }

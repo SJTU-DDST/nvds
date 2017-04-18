@@ -60,17 +60,23 @@ std::string Client::Get(const std::string& key) {
   return "";
 }
 
-bool Client::Put(const std::string& key, const std::string& value) {
+bool Client::Put(const std::string& key, const std::string& val) {
   // 0. compute key hash
   auto hash = Hash(key);
   
   // 1. get tablet and server info
-  auto& tablet = index_manager_.GetTablet(hash);
+  //auto& tablet = index_manager_.GetTablet(hash);
   auto& server = index_manager_.GetServer(hash);
 
   // 2. post ib send and recv
-
-  return false;
+  auto qp = GetQP(server);
+  auto sb = GetBuffer(send_bufs_, server);
+  auto r = Request::New(sb->buf, Request::Type::PUT, key, val, hash);
+  auto rb = GetBuffer(recv_bufs_, server);
+  ib_.PostReceive(qp, rb);
+  ib_.PostSendAndWait(qp, sb, r->Len(), &server.ib_addr);
+  auto b = ib_.Receive(qp, nullptr);
+  return b == rb;
 }
 
  bool Client::Delete(const std::string& key) {

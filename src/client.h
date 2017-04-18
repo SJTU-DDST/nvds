@@ -30,7 +30,13 @@ class Client {
   void Join();
   // Init infiniband devices
   void InitIB();
-
+  Infiniband::QueuePair* GetQP(const ServerInfo& server) {
+    return qps_[server.id];
+  }
+  Infiniband::Buffer* GetBuffer(Infiniband::RegisteredBuffers& bufs,
+                                const ServerInfo& server) {
+    return &bufs[server.id];
+  }
   Session session_;
   IndexManager index_manager_;
 

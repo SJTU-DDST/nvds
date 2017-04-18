@@ -145,6 +145,10 @@ class Infiniband {
 					buf_size_;
 			return bufs_[idx];
 		}
+    Buffer& operator[](size_t idx) { return bufs_[idx]; }
+    const Buffer& operator[](size_t idx) const {
+      return const_cast<RegisteredBuffers*>(this)->operator[](idx);
+    }
 		Buffer* begin() { return bufs_; }
 		Buffer* end() { return bufs_ + buf_num_; }
 
