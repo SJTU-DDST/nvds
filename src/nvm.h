@@ -30,10 +30,24 @@ class NVMPtr {
     return !(*this == other);
   }
   bool operator==(const std::nullptr_t& null) const {
-    return ptr_ == nullptr;
+    return ptr_ == null;
   }
   bool operator!=(const std::nullptr_t& null) const {
     return !(*this == nullptr);
+  }
+  NVMPtr<T> operator+(std::ptrdiff_t d) const {
+    return NVMPtr<T>(ptr_ + d);
+  }
+  NVMPtr<T> operator-(std::ptrdiff_t d) const {
+    return NVMPtr<T>(ptr_ - d);
+  }
+  std::ptrdiff_t operator-(NVMPtr<T> other) const {
+    return ptr_ - other.ptr_;
+  }
+  template<typename RT>
+  const NVMPtr<T>& operator=(NVMPtr<RT> rhs) {
+    ptr_ = rhs.ptr_;
+    return *this;
   }
 
  private:

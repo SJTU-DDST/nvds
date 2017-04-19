@@ -13,8 +13,6 @@ namespace nvds {
 // Derived from RAMCloud Infiniband.h
 class Infiniband {
  public:
-  static const uint32_t kSendBufSize = 1024 * 2 + 128;
-  static const uint32_t kRecvBufSize = 1024 * 2 + 128;
  	static const uint32_t kMaxInlineData = 400;
 	// If the device name is not specified, choose the first one in device list
 	explicit Infiniband(const char* device_name=nullptr);
@@ -76,7 +74,7 @@ class Infiniband {
 		ibv_qp_type 	type;	    // QP type
 		ibv_context* 	ctx;      // Device context
 		int 					ib_port;  // Physical port
-		ibv_pd* 			pd; 
+		ibv_pd* 			pd;
 		ibv_srq* 			srq;
 		ibv_qp* 			qp;
 		ibv_cq* 			scq;
@@ -100,7 +98,7 @@ class Infiniband {
 	};
 
 	struct Address {
-		int ib_port;
+		int32_t ib_port;
 		uint16_t lid;
 		uint32_t qpn;
 		std::string ToString() const;
@@ -159,11 +157,11 @@ class Infiniband {
 		Buffer* bufs_;
 	};
 
+  uint16_t GetLid(int32_t port);
 	QueuePair* CreateQP(ibv_qp_type type, int ib_port,
 											ibv_srq* srq, ibv_cq* scq,
 											ibv_cq* rcq, uint32_t max_send,
 											uint32_t max_recv, uint32_t qkey=0);
-	int GetLid(int port);
 	Buffer* TryReceive(QueuePair* qp, Address* peer_addr=nullptr);
 	Buffer* Receive(QueuePair* qp, Address* peer_addr=nullptr);
 	void PostReceive(QueuePair* qp, Buffer* b);

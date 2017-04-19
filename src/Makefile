@@ -15,7 +15,6 @@ SRCS = allocator.cc         \
 	   index.cc				\
 	   infiniband.cc		\
 	   message.cc			\
-	   object.cc			\
 	   server.cc			\
 	   session.cc			\
 	   tablet.cc			\

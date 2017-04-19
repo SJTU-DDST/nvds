@@ -19,7 +19,7 @@ int main() {
     NVDS_ERR(e.what());
   } catch (TransportException& e) {
     NVDS_ERR(e.msg().c_str());
-    NVDS_LOG("infiniband devices are needed");
+    NVDS_LOG("initialize infiniband devices failed");
   }
   return 0;
 }

@@ -1,39 +1,41 @@
 #ifndef _NVDS_TABLET_H_
 #define _NVDS_TABLET_H_
 
+#include "allocator.h"
 #include "common.h"
 #include "hash.h"
 #include "message.h"
 
 namespace nvds {
 
-/*
-PACKED(
+static const uint32_t kHashTableSize = 1;
+
+struct NVMObject {
+  NVMPtr<NVMObject> next;
+  uint16_t key_len;
+  uint16_t val_len;
+  KeyHash key_hash;
+  char data[0];
+};
+
 struct NVMTablet {
-  // Tablet id, unique in scope of node.
-  // There could be same tablet id on different node.
-  TabletId id;
-  PACKED(
-  struct Backup {
-    ServerId server_id;
-    TabletId tablet_id;
-  });
-  // The backups of this tablet.
-  Backup backups[kNumReplica];
-  
-});
-*/
+  TabletInfo info;
+  std::array<NVMPtr<NVMObject>, kHashTableSize> hash_table;
+  char data[0];
+};
 
 class Tablet {
  public:
-  Tablet() {}
+  Tablet(const TabletInfo& info, NVMPtr<NVMTablet> nvm_tablet)
+      : nvm_tablet_(nvm_tablet), allocator_(&nvm_tablet->data) {}
   ~Tablet() {}
   DISALLOW_COPY_AND_ASSIGN(Tablet);
   
-  const TabletInfo& info() const { return info_; }
+  const TabletInfo& info() const { return nvm_tablet_->info; }
 
  private:
-  TabletInfo info_;
+  NVMPtr<NVMTablet> nvm_tablet_;
+  Allocator allocator_;
 };
 
 } // namespace nvds

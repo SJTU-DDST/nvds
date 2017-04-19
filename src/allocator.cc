@@ -39,7 +39,7 @@ void Allocator::Format() {
 uint32_t Allocator::AllocBlock(uint32_t blk_size) {
   auto free_list = GetFreeListByBlockSize(blk_size);
   uint32_t head;
-  while (free_list < kNumFreeList * sizeof(uint32_t) &&
+  while (free_list < kNumFreeLists * sizeof(uint32_t) &&
          (head = Read<uint32_t>(free_list)) == 0) {
     free_list += sizeof(uint32_t);
   }

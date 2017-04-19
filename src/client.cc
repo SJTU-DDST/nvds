@@ -8,8 +8,8 @@ using json = nlohmann::json;
 
 Client::Client(const std::string& coord_addr)
     : session_(Connect(coord_addr)),
-      send_bufs_(ib_.pd(), Infiniband::kSendBufSize, kNumServers),
-      recv_bufs_(ib_.pd(), Infiniband::kRecvBufSize, kNumServers, true) {
+      send_bufs_(ib_.pd(), kSendBufSize, kNumServers),
+      recv_bufs_(ib_.pd(), kRecvBufSize, kNumServers, true) {
   InitIB();
   Join();
 }

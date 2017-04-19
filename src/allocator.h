@@ -14,6 +14,7 @@ class Allocator {
  public:
   static const uint32_t kMaxBlockSize = 1024 + 128;
   static const uint32_t kSize = 64 * 1024 * 1024;
+  Allocator(void* base) : Allocator(reinterpret_cast<uintptr_t>(base)) {}
   Allocator(uintptr_t base) : base_(base), cnt_writes_(0) {
     flm_ = OffsetToPtr<FreeListManager>(0);
   }
@@ -28,7 +29,7 @@ class Allocator {
   uint64_t cnt_writes() const { return cnt_writes_; }
 
  private:
-  static const uint32_t kNumFreeList = kMaxBlockSize / 16 + 1;
+  static const uint32_t kNumFreeLists = kMaxBlockSize / 16 + 1;
 
   template<typename T>
   T* OffsetToPtr(uint32_t offset) const {
@@ -81,17 +82,17 @@ class Allocator {
     // The last list is all free block greater than kMaxBlockSize.
     // So these blocks are not necessary the same size,
     // and not sorted(by addr or size).
-    uint32_t free_lists[kNumFreeList];
+    uint32_t free_lists[kNumFreeLists];
 
     FreeListManager() = delete;
   });
 
   uint32_t GetBlockSizeByFreeList(uint32_t free_list) {
     free_list /= sizeof(uint32_t);
-    if (free_list < kNumFreeList - 1) {
+    if (free_list < kNumFreeLists - 1) {
       return (free_list + 1) * 16;
     }
-    assert(free_list == kNumFreeList - 1);
+    assert(free_list == kNumFreeLists - 1);
     auto head = Read<uint32_t>(free_list * sizeof(uint32_t));
     return head == 0 ? 0 : ReadTheSizeTag(head);
   }
@@ -118,7 +119,7 @@ class Allocator {
   }
 
   uint32_t GetLastFreeList() {
-    return (kNumFreeList - 1) * sizeof(uint32_t);
+    return (kNumFreeLists - 1) * sizeof(uint32_t);
   }
 
   void SetTheFreeTag(uint32_t blk, uint32_t blk_size) {

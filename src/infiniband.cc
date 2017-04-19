@@ -219,9 +219,9 @@ Infiniband::QueuePair* Infiniband::CreateQP(ibv_qp_type type, int ib_port,
                        max_send, max_recv, qkey);
 }
 */
-int Infiniband::GetLid(int port) {
+uint16_t Infiniband::GetLid(int32_t port) {
   ibv_port_attr port_attr;
-  int ret = ibv_query_port(dev_.ctx(), static_cast<uint8_t>(port), &port_attr);
+  auto ret = ibv_query_port(dev_.ctx(), static_cast<uint8_t>(port), &port_attr);
   if (ret != 0) {
     throw TransportException(HERE, ret);
   }

@@ -6,7 +6,6 @@
 #include "index.h"
 #include "infiniband.h"
 #include "message.h"
-#include "object.h"
 #include "tablet.h"
 
 #include <boost/asio.hpp>
@@ -39,7 +38,11 @@ struct NVMDevice {
 class Server : public BasicServer {
  public:
   Server(NVMPtr<NVMDevice> nvm, uint64_t nvm_size);
-  ~Server() {}
+  ~Server() {
+    delete qp_;
+    ib_.DestroyCQ(scq_);
+    ib_.DestroyCQ(rcq_);
+  }
   DISALLOW_COPY_AND_ASSIGN(Server);
 
   ServerId id() const { return id_; }
@@ -53,6 +56,8 @@ class Server : public BasicServer {
   void Listening();
 
  private:
+  static const uint32_t kSendBufSize = 1024 + 128;
+  static const uint32_t kRecvBufSize = 1024 * 2 + 128;
   void HandleRecvMessage(std::shared_ptr<Session> session,
                          std::shared_ptr<Message> msg);
   void HandleSendMessage(std::shared_ptr<Session> session,
@@ -62,8 +67,16 @@ class Server : public BasicServer {
   uint64_t nvm_size_;  
   NVMPtr<NVMDevice> nvm_;
 
-  Infiniband::Address ib_addr_;
   IndexManager index_manager_;
+
+  // Infiniband
+  Infiniband ib_;
+  Infiniband::Address ib_addr_;
+  Infiniband::RegisteredBuffers send_bufs_;
+  Infiniband::RegisteredBuffers recv_bufs_;
+  Infiniband::QueuePair* qp_;
+  ibv_cq* rcq_;
+  ibv_cq* scq_;
 };
 
 } // namespace nvds

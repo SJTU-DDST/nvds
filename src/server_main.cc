@@ -31,26 +31,31 @@ int main(int argc, const char* argv[]) {
     NVDS_ERR("acquire nvm failed: size = %PRIu64", kNVMSize);
     return -1;
   }
+  try {
+    Server s(nvm, kNVMSize);
 
-  Server s(nvm, kNVMSize);
+    // Step 1: request to the coordinator for joining in.
+    if (!s.Join()) {
+      NVDS_ERR("join cluster failed");
+      return -1;
+    }
 
-  // Step 1: request to the coordinator for joining in.
-  if (!s.Join()) {
-    NVDS_ERR("join cluster failed");
-    return -1;
+    // Step 2: get the arrangement from coordinator, contacting servers
+    //         that will be affected, performing data migration.
+
+    // Step 3: acknowledge the coordinator of complemention
+
+    // Step 4: serving request
+    NVDS_LOG("Server startup");
+    NVDS_LOG("Listening at: %u", kServerPort);
+    NVDS_LOG("......");
+    
+    s.Run();
+  } catch (boost::system::system_error& e) {
+    NVDS_ERR(e.what());
+  } catch (TransportException& e) {
+    NVDS_ERR(e.msg().c_str());
+    NVDS_LOG("initialize infiniband devices failed");
   }
-
-  // Step 2: get the arrangement from coordinator, contacting servers
-  //         that will be affected, performing data migration.
-
-  // Step 3: acknowledge the coordinator of complemention
-
-  // Step 4: serving request
-  NVDS_LOG("Server startup");
-  NVDS_LOG("Listening at: %u", kServerPort);
-  NVDS_LOG("......");
-  
-  s.Run();
-  
   return 0;
 }
