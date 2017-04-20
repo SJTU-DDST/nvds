@@ -3,24 +3,29 @@
 #include <cstring>
 
 namespace nvds {
-
-uintptr_t Allocator::Alloc(uint32_t size) {
+/*
+NVMPtr<char> Allocator::Alloc(uint32_t size) {
   auto blk_size = RoundupBlockSize(size + sizeof(uint32_t));
   assert(blk_size % 16 == 0);
   // The client side should refuse too big kv item.  
   assert(blk_size <= kMaxBlockSize);
 
   auto blk = AllocBlock(blk_size);
-  return blk == 0 ? 0 : blk + sizeof(uint32_t) + base_;
+  auto ret = blk == 0 ? 0 : blk + sizeof(uint32_t) + base_;
+  return NVMPtr<char>(reinterpret_cast<char*>(ret));
 }
+*/
 
+/*
 // A nullptr(0) is not going to be accepted.
-void Allocator::Free(uintptr_t ptr) {
+void Allocator::Free(NVMPtr<char> ptr) {
   // TODO(wgtdkp): checking if ptr is actually in this Allocator zone.
-  assert(ptr >= base_ + sizeof(uint32_t) && ptr <= base_ + kSize);
-  auto blk = ptr - sizeof(uint32_t) - base_;
+  auto p = reinterpret_cast<uintptr_t>(ptr.ptr());
+  assert(p >= base_ + sizeof(uint32_t) && p <= base_ + kSize);
+  auto blk = p - sizeof(uint32_t) - base_;
   FreeBlock(blk);
 }
+*/
 
 void Allocator::Format() {
   memset(flm_, 0, sizeof(FreeListManager));

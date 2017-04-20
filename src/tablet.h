@@ -12,9 +12,9 @@ static const uint32_t kHashTableSize = 1;
 
 struct NVMObject {
   NVMPtr<NVMObject> next;
+  KeyHash key_hash;
   uint16_t key_len;
   uint16_t val_len;
-  KeyHash key_hash;
   char data[0];
 };
 
@@ -32,10 +32,19 @@ class Tablet {
   DISALLOW_COPY_AND_ASSIGN(Tablet);
   
   const TabletInfo& info() const { return nvm_tablet_->info; }
-
+  // Find the key and copy the value into `val`.
+  // Return: -1, not found; else, the length of the `val`.
+  int32_t Get(char* val, KeyHash hash, uint16_t key_len, const char* key);
+  void    Del(KeyHash hash, uint16_t key_len, const char* key);
+  // Return: -1, error(no enough space);
+  int32_t Put(KeyHash hash, uint16_t key_len, const char* key,
+              uint16_t val_len, const char* val);
+  
  private:
   NVMPtr<NVMTablet> nvm_tablet_;
   Allocator allocator_;
+
+  // TODO(wgtdkp): Locks
 };
 
 } // namespace nvds

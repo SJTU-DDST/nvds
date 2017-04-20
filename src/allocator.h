@@ -21,8 +21,28 @@ class Allocator {
   ~Allocator() {}
   DISALLOW_COPY_AND_ASSIGN(Allocator);
 
-  uintptr_t Alloc(uint32_t size);
-  void Free(uintptr_t ptr);
+  //uintptr_t Alloc(uint32_t size);
+  //void Free(uintptr_t ptr);
+  template<typename T>
+  NVMPtr<T> Alloc(uint32_t size) {
+    auto blk_size = RoundupBlockSize(size + sizeof(uint32_t));
+    assert(blk_size % 16 == 0);
+    // The client side should refuse too big kv item.  
+    assert(blk_size <= kMaxBlockSize);
+
+    auto blk = AllocBlock(blk_size);
+    auto ret = blk == 0 ? 0 : blk + sizeof(uint32_t) + base_;
+    return NVMPtr<T>(reinterpret_cast<T*>(ret));
+  }
+
+  template<typename T>
+  void Free(NVMPtr<T> ptr) {
+    // TODO(wgtdkp): checking if ptr is actually in this Allocator zone.
+    auto p = reinterpret_cast<uintptr_t>(ptr.ptr());
+    assert(p >= base_ + sizeof(uint32_t) && p <= base_ + kSize);
+    auto blk = p - sizeof(uint32_t) - base_;
+    FreeBlock(blk);
+  }
   void Format();
 
   uintptr_t base() const { return base_; }
