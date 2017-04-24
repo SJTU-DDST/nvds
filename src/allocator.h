@@ -13,7 +13,7 @@ namespace nvds {
 class Allocator {
  public:
   static const uint32_t kMaxBlockSize = 1024 + 128;
-  static const uint32_t kSize = 64 * 1024 * 1024;
+  static const uint32_t kSize = 16 * 1024 * 1024;
   Allocator(void* base) : Allocator(reinterpret_cast<uintptr_t>(base)) {}
   Allocator(uintptr_t base) : base_(base), cnt_writes_(0) {
     flm_ = OffsetToPtr<FreeListManager>(0);

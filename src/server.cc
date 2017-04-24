@@ -3,6 +3,8 @@
 #include "config.h"
 #include "json.hpp"
 
+#include <thread>
+
 namespace nvds {
 
 using json = nlohmann::json;
@@ -21,11 +23,15 @@ Server::Server(NVMPtr<NVMDevice> nvm, uint64_t nvm_size)
 }
 
 void Server::Run() {
+  std::thread poller(&Server::Poll, this);
+  
   Accept(std::bind(&Server::HandleRecvMessage, this,
                    std::placeholders::_1, std::placeholders::_2),
          std::bind(&Server::HandleSendMessage, this,
                    std::placeholders::_1, std::placeholders::_2));
   RunService();
+  
+  poller.join();
 }
 
 bool Server::Join() {
@@ -86,6 +92,23 @@ void Server::HandleRecvMessage(std::shared_ptr<Session> session,
 void Server::HandleSendMessage(std::shared_ptr<Session> session,
                                std::shared_ptr<Message> msg) {
   assert(false);
+}
+
+void Server::Poll() {
+  // Post 3 extra Receives
+  for (size_t i = 0; i < 3; ++i) {
+    ib_.PostReceive(qp_, recv_bufs_.Alloc());
+  }
+  while (true) {
+    Infiniband::Address peer_addr;
+    auto b = ib_.Receive(qp_, &peer_addr);
+    
+    // Dispatch(b, peer_addr);
+    
+    if ((b = recv_bufs_.Alloc()) != nullptr) {
+      ib_.PostReceive(qp_, recv_bufs_.Alloc());
+    }
+  }
 }
 
 } // namespace nvds

@@ -196,7 +196,8 @@ std::string Infiniband::Address::ToString() const {
 
 Infiniband::RegisteredBuffers::RegisteredBuffers(ProtectionDomain& pd,
     uint32_t buf_size, uint32_t buf_num, bool is_recv)
-    : buf_size_(buf_size), buf_num_(buf_num), ptr_(nullptr), bufs_(nullptr) {
+    : buf_size_(buf_size), buf_num_(buf_num),
+      ptr_(nullptr), bufs_(nullptr), root_(nullptr) {
   const size_t bytes = buf_size * buf_num;
   ptr_ = memalign(4096, bytes);
   auto mr = ibv_reg_mr(pd.pd(), ptr_, bytes,
@@ -208,8 +209,10 @@ Infiniband::RegisteredBuffers::RegisteredBuffers(ProtectionDomain& pd,
   char* p = static_cast<char*>(ptr_);
   for (uint32_t i = 0; i < buf_num; ++i) {
     new (&bufs_[i]) Buffer(p, buf_size_, mr);
+    bufs_[i].next = i + 1 < buf_num ? &bufs_[i+1] : nullptr;
     p += buf_size_;
   }
+  root_ = bufs_;
 }
 /*
 Infiniband::QueuePair* Infiniband::CreateQP(ibv_qp_type type, int ib_port,

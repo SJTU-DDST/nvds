@@ -48,11 +48,11 @@ static void nvds_set_qp_state_rtr(struct ibv_qp* qp, nvds_data_t* data) {
     .max_dest_rd_atomic = 1,
     .min_rnr_timer      = 12,
     .ah_attr            = {
-      .is_global        = 0,
-      .dlid             = data->remote_conn.lid,
-      .sl               = 1,
-      .src_path_bits    = 0,
-      .port_num         = data->ib_port
+      .is_global      = 0,
+      .dlid           = data->remote_conn.lid,
+      .sl             = 1,
+      .src_path_bits  = 0,
+      .port_num       = data->ib_port
     }
   };
   int modify_flags = IBV_QP_STATE               |
@@ -69,7 +69,7 @@ static void nvds_set_qp_state_rtr(struct ibv_qp* qp, nvds_data_t* data) {
 static void nvds_set_qp_state_rts(struct ibv_qp* qp, nvds_data_t* data) {
 	// first the qp state has to be changed to rtr
 	nvds_set_qp_state_rtr(qp, data);
-	
+
 	struct ibv_qp_attr attr = {
 	  .qp_state       = IBV_QPS_RTS,
     .timeout        = 14,

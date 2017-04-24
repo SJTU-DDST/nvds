@@ -7,8 +7,6 @@
 
 using namespace nvds;
 
-static uint64_t kNVMSize = 512 * 1024 * 1024;
-
 static void Usage(int argc, const char* argv[]) {
     std::cout << "Usage:" << std::endl
               << "    " << argv[0] << " config_file" << std::endl;
@@ -26,13 +24,13 @@ int main(int argc, const char* argv[]) {
 
   // Step 0, self initialization, including formatting nvm storage.
   // DRAM emulated NVM.
-  auto nvm = AcquireNVM<NVMDevice>(kNVMSize);
+  auto nvm = AcquireNVM<NVMDevice>(kNVMDeviceSize);
   if (nvm == nullptr) {
-    NVDS_ERR("acquire nvm failed: size = %PRIu64", kNVMSize);
+    NVDS_ERR("acquire nvm failed: size = %PRIu64", kNVMDeviceSize);
     return -1;
   }
   try {
-    Server s(nvm, kNVMSize);
+    Server s(nvm, kNVMDeviceSize);
 
     // Step 1: request to the coordinator for joining in.
     if (!s.Join()) {

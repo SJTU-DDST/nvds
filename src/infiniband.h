@@ -113,6 +113,7 @@ class Infiniband {
 	};
 
 	struct Buffer {
+    Buffer*   next;
 		char* 		buf;				
 		uint32_t 	size;		    // Buffer size
 		uint32_t 	msg_len;    // message length
@@ -121,12 +122,13 @@ class Infiniband {
 		bool 			is_recv;    // Is this a recv buffer
 
 		Buffer(char* b, uint32_t size, ibv_mr* mr, bool is_recv=false)
-				: buf(b), size(size), mr(mr), is_recv(is_recv) {}
-		Buffer() : buf(nullptr), size(0), msg_len(0),
-        mr(nullptr), peer_lid(0), is_recv(false) {}
+				: next(nullptr), buf(b), size(size), mr(mr), is_recv(is_recv) {}
+		Buffer() : next(nullptr), buf(nullptr), size(0), msg_len(0),
+               mr(nullptr), peer_lid(0), is_recv(false) {}
 		DISALLOW_COPY_AND_ASSIGN(Buffer);
 	};
 
+  // A registered buffer pool
 	class RegisteredBuffers {
 	 public:
 	  RegisteredBuffers(ProtectionDomain& pd,
@@ -136,7 +138,19 @@ class Infiniband {
       delete[] bufs_;
     }
 		DISALLOW_COPY_AND_ASSIGN(RegisteredBuffers);
-
+    // Used as buffer pool
+    Buffer* Alloc() {
+      // TODO(wgtdkp): make it thread safe
+      auto ret = root_;
+      if (root_ != nullptr)
+        root_ = root_->next;
+      return ret;
+    }
+    void Free(Buffer* b) {
+      // TODO(wgtdkp): make it thread safe
+      b->next = root_;
+      root_ = b;
+    }
 		Buffer& GetBuffer(const void* pos) {
 			auto idx =
           (static_cast<const char*>(pos) - static_cast<const char*>(ptr_)) /
@@ -155,13 +169,14 @@ class Infiniband {
 		uint32_t buf_num_;
 		void* ptr_;
 		Buffer* bufs_;
+    Buffer* root_;
 	};
 
   uint16_t GetLid(int32_t port);
-	QueuePair* CreateQP(ibv_qp_type type, int ib_port,
-											ibv_srq* srq, ibv_cq* scq,
-											ibv_cq* rcq, uint32_t max_send,
-											uint32_t max_recv, uint32_t qkey=0);
+	//QueuePair* CreateQP(ibv_qp_type type, int ib_port,
+	//										ibv_srq* srq, ibv_cq* scq,
+	//										ibv_cq* rcq, uint32_t max_send,
+	//										uint32_t max_recv, uint32_t qkey=0);
 	Buffer* TryReceive(QueuePair* qp, Address* peer_addr=nullptr);
 	Buffer* Receive(QueuePair* qp, Address* peer_addr=nullptr);
 	void PostReceive(QueuePair* qp, Buffer* b);

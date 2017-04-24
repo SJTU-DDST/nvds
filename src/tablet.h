@@ -8,7 +8,8 @@
 
 namespace nvds {
 
-static const uint32_t kHashTableSize = 1;
+// A reasonable prime number
+static const uint32_t kHashTableSize = 99871;
 
 struct NVMObject {
   NVMPtr<NVMObject> next;
@@ -23,6 +24,8 @@ struct NVMTablet {
   std::array<NVMPtr<NVMObject>, kHashTableSize> hash_table;
   char data[0];
 };
+static const uint32_t kNVMTabletSize = sizeof(NVMTablet) + Allocator::kSize;
+
 
 class Tablet {
  public:

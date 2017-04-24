@@ -18,10 +18,9 @@ namespace nvds {
  * For each server, there is only one NVMDevice object which is
  * mapped to the address passed when the server is started.
  */
-PACKED(
 struct NVMDevice {
+
   // The server id of the machine.
-  // 0 means this NVMDevice is not used yet, all information are invalid.
   ServerId server_id;
   // The size in byte of the NVM device
   uint64_t size;
@@ -31,9 +30,11 @@ struct NVMDevice {
   // The number of tablets
   uint32_t tablet_num;
   // The begin of tablets
-  Tablet tablets[0];
+  NVMTablet nvm_tablets[0];
   NVMDevice() = delete;
-});
+};
+static const uint64_t kNVMDeviceSize = sizeof(NVMDevice) +
+                                       kNVMTabletSize * kNumTabletsPerServer;
 
 class Server : public BasicServer {
  public:
@@ -54,6 +55,7 @@ class Server : public BasicServer {
   bool Join();
   void Leave();
   void Listening();
+  void Poll();
 
  private:
   static const uint32_t kSendBufSize = 1024 + 128;

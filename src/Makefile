@@ -11,14 +11,12 @@ SRCS = allocator.cc         \
 	   common.cc			\
 	   config.cc			\
 	   coordinator.cc		\
-	   hash_table.cc		\
 	   index.cc				\
 	   infiniband.cc		\
 	   message.cc			\
 	   server.cc			\
 	   session.cc			\
 	   tablet.cc			\
-	   transport.cc			\
 	   MurmurHash2.cc
 
 OBJS_DIR = build/
