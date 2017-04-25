@@ -18,18 +18,14 @@ Client::~Client() {
   Close();
   ib_.DestroyCQ(scq_);
   ib_.DestroyCQ(rcq_);
-  for (size_t i = 0; i < kNumServers; ++i) {
-    delete qps_[i];
-  }
+  delete qp_;
 }
 
 void Client::InitIB() {
   scq_ = ib_.CreateCQ(1);
   rcq_ = ib_.CreateCQ(1);
-  for (size_t i = 0; i < kNumServers; ++i) {
-    qps_[i] = new Infiniband::QueuePair(ib_, IBV_QPT_RC, i,
-                                        nullptr, scq_, rcq_, 128, 128);
-  }
+  qp_ = new Infiniband::QueuePair(ib_, IBV_QPT_RC, 1, nullptr,
+                                  scq_, rcq_, 128, 128);
 }
 
 void Client::Join() {
@@ -69,14 +65,18 @@ bool Client::Put(const std::string& key, const std::string& val) {
   auto& server = index_manager_.GetServer(hash);
 
   // 2. post ib send and recv
-  auto qp = GetQP(server);
-  auto sb = GetBuffer(send_bufs_, server);
+  auto sb = send_bufs_.Alloc();
   auto r = Request::New(sb->buf, Request::Type::PUT, key, val, hash);
-  auto rb = GetBuffer(recv_bufs_, server);
-  ib_.PostReceive(qp, rb);
-  ib_.PostSendAndWait(qp, sb, r->Len(), &server.ib_addr);
-  auto b = ib_.Receive(qp, nullptr);
-  return b == rb;
+  auto rb = recv_bufs_.Alloc();
+  ib_.PostReceive(qp_, rb);
+  ib_.PostSendAndWait(qp_, sb, r->Len(), &server.ib_addr);
+  auto b = ib_.Receive(qp_, nullptr);
+
+  auto ret = b == rb;
+  send_bufs_.Free(sb);
+  recv_bufs_.Free(rb);
+  Request::Del(r);
+  return ret;
 }
 
  bool Client::Delete(const std::string& key) {

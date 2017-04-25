@@ -101,6 +101,8 @@ class Infiniband {
 		int32_t ib_port;
 		uint16_t lid;
 		uint32_t qpn;
+    // `ah` is moved to class `Infiniband`
+    // ibv_ah* ah; // Could be nullptr
 		std::string ToString() const;
     bool operator==(const Address& other) const {
       return ib_port == other.ib_port &&
@@ -207,7 +209,9 @@ class Infiniband {
 	int PollCQ(ibv_cq* cq, int num_entries, ibv_wc* ret) {
 		return ibv_poll_cq(cq, num_entries, ret);
 	}
-  
+
+  ibv_ah* GetAddrHandler(const Address& addr);
+
 	Device& dev() { return dev_; }
 	const Device& dev() const { return dev_; }
 	ProtectionDomain& pd() { return pd_; }
@@ -216,6 +220,7 @@ class Infiniband {
  private:
  	Device dev_;
 	ProtectionDomain pd_;
+  std::array<ibv_ah*, UINT16_MAX + 1> addr_handlers_;
 };
 
 } // namespace nvds

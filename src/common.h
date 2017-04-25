@@ -10,6 +10,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
+#include <array>
 #include <iostream>
 #include <string>
 #include <vector>

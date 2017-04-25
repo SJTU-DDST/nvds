@@ -30,15 +30,10 @@ class Client {
   tcp::socket Connect(const std::string& coord_addr);
   void Close() {}
   void Join();
+  
   // Init infiniband devices
   void InitIB();
-  Infiniband::QueuePair* GetQP(const ServerInfo& server) {
-    return qps_[server.id];
-  }
-  Infiniband::Buffer* GetBuffer(Infiniband::RegisteredBuffers& bufs,
-                                const ServerInfo& server) {
-    return &bufs[server.id];
-  }
+
   Session session_;
   IndexManager index_manager_;
 
@@ -46,7 +41,9 @@ class Client {
   Infiniband ib_;
   Infiniband::RegisteredBuffers send_bufs_;
   Infiniband::RegisteredBuffers recv_bufs_;
-  std::array<Infiniband::QueuePair*, kNumServers> qps_;
+  //std::array<Infiniband::QueuePair*, kNumServers> qps_;
+  // TODO(wgtdkp):
+  Infiniband::QueuePair* qp_;
   ibv_cq* rcq_;
   ibv_cq* scq_;
 };

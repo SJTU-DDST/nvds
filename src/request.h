@@ -24,8 +24,6 @@ struct Request {
   static void Del(const Request* r) {
     // Explicitly call destructor(only when pairing with placement new)
     r->~Request();
-    //auto buf = reinterpret_cast<const char*>(r);
-    //delete[] buf;
   }
   size_t Len() const { return sizeof(Request) + key_len + val_len; }
 

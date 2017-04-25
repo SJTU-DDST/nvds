@@ -16,13 +16,13 @@ Infiniband::DeviceList::DeviceList()
 }
 
 ibv_device* Infiniband::DeviceList::Lookup(const char* name) {
-    if (name == nullptr)
-      return dev_list_[0];
-    for (int i = 0; dev_list_[i] != nullptr; ++i) {
-      if (strcmp(dev_list_[i]->name, name) == 0)
-        return dev_list_[i];
-    }
-    return nullptr;
+  if (name == nullptr)
+    return dev_list_[0];
+  for (int i = 0; dev_list_[i] != nullptr; ++i) {
+    if (strcmp(dev_list_[i]->name, name) == 0)
+      return dev_list_[i];
+  }
+  return nullptr;
 }
 
 Infiniband::Device::Device(const char* name) {
@@ -80,10 +80,10 @@ Infiniband::QueuePair::QueuePair(Infiniband& ib, ibv_qp_type type,
     mask |= IBV_QP_ACCESS_FLAGS;
     mask |= IBV_QP_PKEY_INDEX;
     break;
-  //case IBV_QPT_UD:
-  //  mask |= IBV_QP_QKEY;
-  //  mask |= IBV_QP_PKEY_INDEX;
-  //  break;
+  case IBV_QPT_UD:
+    mask |= IBV_QP_QKEY;
+    mask |= IBV_QP_PKEY_INDEX;
+    break;
   default:
     assert(false);
   }
@@ -171,7 +171,7 @@ void Infiniband::QueuePair::Plumb(QueuePairInfo* qpi) {
 }
 
 void Infiniband::QueuePair::Activate() {
-  assert(type == IBV_QPT_RC);
+  assert(type == IBV_QPT_UD);
   assert(GetState() == IBV_QPS_INIT);
 
   ibv_qp_attr qpa;
@@ -302,8 +302,12 @@ void Infiniband::PostSRQReceive(ibv_srq* srq, Buffer* b) {
 
 void Infiniband::PostSend(QueuePair* qp, Buffer* b,
     uint32_t len, const Address* peer_addr, uint32_t peer_qkey) {
-  // We do not support UD
-  assert(peer_addr == nullptr && peer_qkey == 0);
+  if (qp->type == IBV_QPT_UD) {
+      assert(peer_addr != nullptr);
+  } else {
+      assert(peer_addr == nullptr);
+      assert(peer_qkey == 0);
+  }
 
   ibv_sge sge {
     reinterpret_cast<uint64_t>(b->buf),
@@ -313,6 +317,11 @@ void Infiniband::PostSend(QueuePair* qp, Buffer* b,
   ibv_send_wr swr;
   memset(&swr, 0, sizeof(swr));
   swr.wr_id = reinterpret_cast<uint64_t>(b);
+  if (qp->type == IBV_QPT_UD) {
+    swr.wr.ud.ah = GetAddrHandler(*peer_addr);
+    swr.wr.ud.remote_qpn = peer_addr->qpn;
+    swr.wr.ud.remote_qkey = peer_qkey;
+  }
   swr.next = nullptr;
   swr.sg_list = &sge;
   swr.num_sge = 1;
@@ -331,6 +340,8 @@ void Infiniband::PostSend(QueuePair* qp, Buffer* b,
 
 void Infiniband::PostSendAndWait(QueuePair* qp, Buffer* b,
     uint32_t len, const Address* peer_addr, uint32_t peer_qkey) {
+  assert(qp->type == IBV_QPT_RC);
+
   PostSend(qp, b, len, peer_addr, peer_qkey);
 
   ibv_wc wc;
@@ -341,6 +352,20 @@ void Infiniband::PostSendAndWait(QueuePair* qp, Buffer* b,
   if (wc.status != IBV_WC_SUCCESS) {
     throw TransportException(HERE, "PostSendAndWiat failed", wc.status);
   }
+}
+
+ibv_ah* Infiniband::GetAddrHandler(const Address& addr) {
+  auto ah = addr_handlers_[addr.lid];
+  if (ah != nullptr)
+    return ah;
+
+  ibv_ah_attr attr;
+  attr.dlid = addr.lid;
+  attr.src_path_bits = 0;
+  attr.is_global = 0;
+  attr.sl = 0;
+  attr.port_num = addr.ib_port;
+  return ibv_create_ah(pd_.pd(), &attr);
 }
 
 } // namespace nvds

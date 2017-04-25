@@ -76,6 +76,8 @@ class IndexManager {
   // Assign tablets to servers
   void AssignTablets();
 
+  void UpdateIBAddrHandler();
+
  private:
   static ServerId AllocServerId() {
     static ServerId id = 0;
