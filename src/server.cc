@@ -2,6 +2,7 @@
 
 #include "config.h"
 #include "json.hpp"
+#include "request.h"
 
 #include <thread>
 
@@ -14,12 +15,25 @@ Server::Server(NVMPtr<NVMDevice> nvm, uint64_t nvm_size)
       active_(false), nvm_size_(nvm_size), nvm_(nvm),
       send_bufs_(ib_.pd(), kSendBufSize, kNumTabletsPerServer),
       recv_bufs_(ib_.pd(), kRecvBufSize, kNumTabletsPerServer, true) {
+  // Infiniband
   int32_t ib_port = 1;
   scq_ = ib_.CreateCQ(kNumTabletsPerServer);
   rcq_ = ib_.CreateCQ(kNumTabletsPerServer);
   qp_ = new Infiniband::QueuePair(ib_, IBV_QPT_RC, ib_port, nullptr,
       scq_, rcq_, kNumTabletsPerServer, kNumTabletsPerServer);
   ib_addr_ = {ib_port, ib_.GetLid(ib_port), qp_->GetLocalQPNum()};
+}
+
+Server::~Server() {
+  delete qp_;
+  ib_.DestroyCQ(scq_);
+  ib_.DestroyCQ(rcq_);
+
+  // Destruct elements in reverse order
+  for (int64_t i = kNumTabletsPerServer - 1; i >= 0; --i) {
+    delete tablets_[i];
+    delete workers_[i];
+  }
 }
 
 void Server::Run() {
@@ -63,6 +77,7 @@ bool Server::Join() {
       id_ = j_body["id"];
       index_manager_ = j_body["index_manager"];
       active_ = true;
+      InitTabletsAndWorkers();
     } catch (boost::system::system_error& err) {
       NVDS_ERR("receive join response from coordinator failed: %s",
                err.what());
@@ -104,10 +119,30 @@ void Server::Poll() {
     auto b = ib_.Receive(qp_, &peer_addr);
     
     // Dispatch(b, peer_addr);
-    
+    // Dispatch to worker's queue, then worker get work from it's queue.
+    // The buffer `b` will be freed by the worker, thus, the buffer pool
+    // must made thread safe.
+
+    // recv_bufs_.Alloc() is fast, don't worry.
     if ((b = recv_bufs_.Alloc()) != nullptr) {
-      ib_.PostReceive(qp_, recv_bufs_.Alloc());
+      ib_.PostReceive(qp_, b);
     }
+  }
+}
+
+void Server::Dispatch(Work* work) {
+  auto r = reinterpret_cast<Request*>(work->buf);
+  assert(r->Len() == work->msg_len);
+}
+
+void Server::InitTabletsAndWorkers() {
+  const auto& server_info = index_manager_.GetServer(id_);
+  for (uint32_t i = 0; i < kNumTabletsPerServer; ++i) {
+    auto tablet_id = server_info.tablets[i];
+    const auto& tablet_info = index_manager_.GetTablet(tablet_id);
+    tablets_[i] = new Tablet(tablet_info,
+                             NVMPtr<NVMTablet>(&nvm_->tablets[i]));
+    workers_[i] = new Worker(tablets_[i]);
   }
 }
 

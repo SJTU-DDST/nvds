@@ -55,9 +55,12 @@ class IndexManager {
                               const Infiniband::Address& ib_addr);
   const ServerInfo& GetServer(KeyHash key_hash) const {
     auto id = GetServerId(key_hash);
-    const auto& ans = servers_[id];
+    const auto& ans = GetServer(id);
     assert(ans.id == id);
     return ans;
+  }
+  const ServerInfo& GetServer(ServerId id) const {
+    return servers_[id];
   }
   ServerId GetServerId(KeyHash key_hash) const {       
     return GetTablet(key_hash).server_id;
@@ -70,8 +73,11 @@ class IndexManager {
   const TabletInfo& GetTablet(KeyHash key_hash) const {
     return tablets_[GetTabletId(key_hash)];
   }
-  TabletInfo& GetTablet(KeyHash key_hash) {
-    return tablets_[GetTabletId(key_hash)];
+  //TabletInfo& GetTablet(KeyHash key_hash) {
+  //  return tablets_[GetTabletId(key_hash)];
+  //}
+  const TabletInfo& GetTablet(TabletId id) const {
+    return tablets_[id];
   }
   // Assign tablets to servers
   void AssignTablets();

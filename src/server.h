@@ -6,10 +6,14 @@
 #include "index.h"
 #include "infiniband.h"
 #include "message.h"
+#include "spinlock.h"
 #include "tablet.h"
 
 #include <boost/asio.hpp>
 #include <boost/function.hpp>
+#include <condition_variable>
+#include <mutex>
+#include <thread>
 
 namespace nvds {
 
@@ -30,7 +34,7 @@ struct NVMDevice {
   // The number of tablets
   uint32_t tablet_num;
   // The begin of tablets
-  NVMTablet nvm_tablets[0];
+  NVMTablet tablets[0];
   NVMDevice() = delete;
 };
 static const uint64_t kNVMDeviceSize = sizeof(NVMDevice) +
@@ -38,12 +42,10 @@ static const uint64_t kNVMDeviceSize = sizeof(NVMDevice) +
 
 class Server : public BasicServer {
  public:
+  // Workers & tablets
+  using Work = Infiniband::Buffer;
   Server(NVMPtr<NVMDevice> nvm, uint64_t nvm_size);
-  ~Server() {
-    delete qp_;
-    ib_.DestroyCQ(scq_);
-    ib_.DestroyCQ(rcq_);
-  }
+  ~Server();
   DISALLOW_COPY_AND_ASSIGN(Server);
 
   ServerId id() const { return id_; }
@@ -56,6 +58,8 @@ class Server : public BasicServer {
   void Leave();
   void Listening();
   void Poll();
+  // Dispatch the `work` to specific `worker`, load balance considered.
+  void Dispatch(Work* work);
 
  private:
   static const uint32_t kSendBufSize = 1024 + 128;
@@ -79,6 +83,81 @@ class Server : public BasicServer {
   Infiniband::QueuePair* qp_;
   ibv_cq* rcq_;
   ibv_cq* scq_;
+
+  void InitTabletsAndWorkers();
+  // The WorkQueue will be enqueued by the dispatch,
+  // and dequeued by the worker. Thus, it must be made thread safe.
+  class WorkQueue {
+   public:
+    WorkQueue() {}
+    DISALLOW_COPY_AND_ASSIGN(WorkQueue);
+    // Made Thread safe
+    void Enqueue(Work* work) {
+      if (head == nullptr) {
+        std::lock_guard<Spinlock> _(spinlock_);
+        tail = work;
+        head = work;
+      } else if (head == tail) {
+        std::lock_guard<Spinlock> _(spinlock_);
+        tail->next = work;
+        tail = work;
+      } else {
+        tail->next = work;
+        tail = work;
+      }
+    }
+    // Made Thread safe
+    Work* Dequeue() {
+      if (head == nullptr) {
+        return nullptr;
+      } else if (head == tail) {
+        std::lock_guard<Spinlock> _(spinlock_);
+        auto ans = head;
+        head = nullptr;
+        tail = nullptr;
+        return ans;
+      } else {
+        auto ans = head;
+        head = head->next;
+        return ans;
+      }
+    }
+
+   private:
+    Work* head = nullptr;
+    Work* tail = nullptr;
+    Spinlock spinlock_;
+  };
+  class Worker {
+   public:
+    Worker(Tablet* tablet)
+        : tablet_(tablet), slave_(std::bind(&Worker::Serve, this)) {}
+    
+   private:
+    void Serve() {
+      while (true) {
+        Work* work;
+        std::unique_lock<std::mutex> lock(mtx_);
+        cond_var_.wait(lock, [&work, this]() {
+            return (work = wq_.Dequeue()) == nullptr; });
+        assert(work != nullptr);
+
+        // TODO(wgtdkp): serve request
+
+      }
+    }
+
+   private:
+    WorkQueue wq_;
+    Tablet* tablet_ = nullptr;
+
+    std::mutex mtx_;
+    std::condition_variable cond_var_;
+    std::thread slave_;
+  };
+
+  std::array<Worker*, kNumTabletsPerServer> workers_;
+  std::array<Tablet*, kNumTabletsPerServer> tablets_;
 };
 
 } // namespace nvds
