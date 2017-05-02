@@ -26,6 +26,10 @@ struct Request {
     r->~Request();
   }
   size_t Len() const { return sizeof(Request) + key_len + val_len; }
+  char* Key() { return data; }
+  const char* Key() const { return data; }
+  char* Val() { return data + key_len; }
+  const char* Val() const { return data + key_len; }
 
  private:
   Request(Type type, const std::string& key,

@@ -24,8 +24,8 @@ Client::~Client() {
 void Client::InitIB() {
   scq_ = ib_.CreateCQ(1);
   rcq_ = ib_.CreateCQ(1);
-  qp_ = new Infiniband::QueuePair(ib_, IBV_QPT_RC, 1, nullptr,
-                                  scq_, rcq_, 128, 128);
+  qp_ = new Infiniband::QueuePair(ib_, IBV_QPT_UD, Infiniband::kPort,
+                                  nullptr, scq_, rcq_, 128, 128);
 }
 
 void Client::Join() {
@@ -53,6 +53,7 @@ tcp::socket Client::Connect(const std::string& coord_addr) {
 }
 
 std::string Client::Get(const std::string& key) {
+  assert(false);
   return "";
 }
 
@@ -70,7 +71,7 @@ bool Client::Put(const std::string& key, const std::string& val) {
   auto rb = recv_bufs_.Alloc();
   ib_.PostReceive(qp_, rb);
   ib_.PostSendAndWait(qp_, sb, r->Len(), &server.ib_addr);
-  auto b = ib_.Receive(qp_, nullptr);
+  auto b = ib_.Receive(qp_);
 
   auto ret = b == rb;
   send_bufs_.Free(sb);
@@ -79,7 +80,8 @@ bool Client::Put(const std::string& key, const std::string& val) {
   return ret;
 }
 
- bool Client::Delete(const std::string& key) {
+ bool Client::Del(const std::string& key) {
+  assert(false);
   return false;
 }
 

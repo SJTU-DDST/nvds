@@ -2,18 +2,43 @@
 
 namespace nvds {
 
+// FIXME(wgtdkp): Remove the item if there already exists
 int32_t Tablet::Put(KeyHash hash, uint16_t key_len, const char* key,
                     uint16_t val_len, const char* val) {
   auto idx = hash % kHashTableSize;
   auto& head = nvm_tablet_->hash_table[idx];
-  auto next = head == nullptr ? NVMPtr<NVMObject>(nullptr) : head->next;
-  auto size = sizeof(NVMObject) + key_len + val_len;
-  auto obj = allocator_.Alloc<NVMObject>(size);
-  *obj = {next, hash, key_len, val_len};
-  // FIXME(wgtdkp): shouldn't use memcpy, it is wrong to simulate NVM speed/latency.
-  memcpy(obj->data, key, key_len);
-  memcpy(obj->data + key_len, val, val_len);
-  head = obj;
+  auto q = head, p = head->next;
+  while (p != nullptr) {
+    if (p->key_len != key_len || memcmp(p->data, key, key_len)) {
+      q = p;
+      p = p->next;
+      continue;
+    }
+    if (val_len < p->val_len) {
+      // The new value is shorter than the older, store data
+      // at its original place.
+      p->val_len = val_len;
+      memcpy(p->data + key_len, val, val_len);
+    } else {
+      auto next = p->next;
+      auto size = sizeof(NVMObject) + key_len + val_len;
+      Allocator_.Free(p);
+      p = allocator_.Alloc(size);
+      q->next = p;
+      p->next = next;
+    }
+    break;
+  }
+  if (p == nullptr) {
+    auto next = head == nullptr ? NVMPtr<NVMObject>(nullptr) : head->next;
+    auto size = sizeof(NVMObject) + key_len + val_len;
+    auto obj = allocator_.Alloc<NVMObject>(size);
+    *obj = {next, hash, key_len, val_len};
+    // FIXME(wgtdkp): shouldn't use memcpy, it is wrong to simulate NVM speed/latency.
+    memcpy(obj->data, key, key_len);
+    memcpy(obj->data + key_len, val, val_len);
+    head = obj;
+  }
   return 0;
 }
 

@@ -1,7 +1,6 @@
 /*
 * BUILD COMMAND:
-* gcc -g -Wall -D_GNU_SOURCE -g -O2 -o examples/mckey examples/mckey.c -libverbs
-* -lrdmacm
+* gcc -g -Wall -D_GNU_SOURCE -g -O2 -o examples/mckey examples/mckey.c -libverbs -lrdmacm
 *
 * $Id$
 */
@@ -37,9 +36,9 @@ struct cmatest {
   struct cmatest_node *nodes;
   int conn_index;
   int connects_left;
-  struct sockaddr_in6dst_in;
+  struct sockaddr_in6 dst_in;
   struct sockaddr *dst_addr;
-  struct sockaddr_in6src_in;
+  struct sockaddr_in6 src_in;
   struct sockaddr *src_addr;
 };
 

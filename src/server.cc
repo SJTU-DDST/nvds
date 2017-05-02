@@ -16,12 +16,15 @@ Server::Server(NVMPtr<NVMDevice> nvm, uint64_t nvm_size)
       send_bufs_(ib_.pd(), kSendBufSize, kNumTabletsPerServer),
       recv_bufs_(ib_.pd(), kRecvBufSize, kNumTabletsPerServer, true) {
   // Infiniband
-  int32_t ib_port = 1;
   scq_ = ib_.CreateCQ(kNumTabletsPerServer);
   rcq_ = ib_.CreateCQ(kNumTabletsPerServer);
-  qp_ = new Infiniband::QueuePair(ib_, IBV_QPT_RC, ib_port, nullptr,
+  qp_ = new Infiniband::QueuePair(ib_, IBV_QPT_UD, Infiniband::kPort, nullptr,
       scq_, rcq_, kNumTabletsPerServer, kNumTabletsPerServer);
-  ib_addr_ = {ib_port, ib_.GetLid(ib_port), qp_->GetLocalQPNum()};
+  ib_addr_ = {
+    Infiniband::kPort,
+    ib_.GetLid(Infiniband::kPort),
+    qp_->GetLocalQPNum()
+  };
 }
 
 Server::~Server() {
@@ -84,8 +87,8 @@ bool Server::Join() {
       return false;
     }
   } catch (boost::system::system_error& err) {
-    NVDS_ERR("connect to coordinator: %s: %" PRIu16 "failed: %s",
-             Config::coord_addr().c_str(), kCoordPort, err.what());
+    NVDS_ERR("connect to coordinator: %s: %" PRIu16 " failed",
+             Config::coord_addr().c_str(), kCoordPort);
     return false;
   }
   return true;
@@ -115,13 +118,13 @@ void Server::Poll() {
     ib_.PostReceive(qp_, recv_bufs_.Alloc());
   }
   while (true) {
-    Infiniband::Address peer_addr;
-    auto b = ib_.Receive(qp_, &peer_addr);
+    auto b = ib_.Receive(qp_);
     
     // Dispatch(b, peer_addr);
     // Dispatch to worker's queue, then worker get work from it's queue.
     // The buffer `b` will be freed by the worker, thus, the buffer pool
     // must made thread safe.
+    Dispatch(b);
 
     // recv_bufs_.Alloc() is fast, don't worry.
     if ((b = recv_bufs_.Alloc()) != nullptr) {
@@ -131,8 +134,10 @@ void Server::Poll() {
 }
 
 void Server::Dispatch(Work* work) {
-  auto r = reinterpret_cast<Request*>(work->buf);
+  auto r = work->MakeRequest();
   assert(r->Len() == work->msg_len);
+  auto id = index_manager_.GetTabletId(r->key_hash);
+  workers_[id]->Enqueue(work);
 }
 
 void Server::InitTabletsAndWorkers() {
@@ -142,7 +147,38 @@ void Server::InitTabletsAndWorkers() {
     const auto& tablet_info = index_manager_.GetTablet(tablet_id);
     tablets_[i] = new Tablet(tablet_info,
                              NVMPtr<NVMTablet>(&nvm_->tablets[i]));
-    workers_[i] = new Worker(tablets_[i]);
+    workers_[i] = new Worker(this, tablets_[i]);
+  }
+}
+
+void Server::Worker::Serve() {
+  while (true) {
+    // Get request
+    Work* work;
+    std::unique_lock<std::mutex> lock(mtx_);
+    cond_var_.wait(lock, [&work, this]() -> bool {
+        return (work = wq_.Dequeue()); });
+    assert(work != nullptr);
+
+    // Serve
+    auto r = work->MakeRequest();
+    Infiniband::Buffer* b;
+    while ((b = server_->send_bufs_.Alloc()) == nullptr) {}
+
+    switch (r->type) {
+    case Request::Type::PUT:
+      tablet_->Put(r->key_hash, r->key_len, r->Key(),r->val_len, r->Val());
+      break;
+    case Request::Type::GET:
+      tablet_->Get(b->buf, r->key_hash, r->key_len, r->Key());
+      break;
+    case Request::Type::DEL:
+      tablet_->Del(r->key_hash, r->key_len, r->Key());
+      break;
+    }
+
+    // TODO(wgtdkp): Put response
+
   }
 }
 

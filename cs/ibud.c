@@ -1,4 +1,4 @@
-#include "rdma.h"
+#include "ibud.h"
 
 #define RDMA_WRITE_ID   (3)
 #define RDMA_READ_ID    (4)
@@ -18,12 +18,12 @@ static void nvds_set_qp_state_init(struct ibv_qp* qp, nvds_data_t* data);
 static void nvds_set_qp_state_rtr(struct ibv_qp* qp, nvds_data_t* data);
 static void nvds_set_qp_state_rts(struct ibv_qp* qp, nvds_data_t* data);
 
-static void nvds_rdma_write(nvds_context_t* ctx, nvds_data_t* data);
-static void nvds_rdma_read(nvds_context_t* ctx, nvds_data_t* data);
-static void nvds_poll_send(nvds_context_t* ctx);
-//static void nvds_poll_recv(nvds_context_t* ctx);
+// static void nvds_rdma_write(nvds_context_t* ctx, nvds_data_t* data);
+// static void nvds_rdma_read(nvds_context_t* ctx, nvds_data_t* data);
 static void nvds_post_send(nvds_context_t* ctx, nvds_data_t* data);
 static void nvds_post_recv(nvds_context_t* ctx, nvds_data_t* data);
+static void nvds_poll_send(nvds_context_t* ctx);
+//static void nvds_poll_recv(nvds_context_t* ctx);
 
 static void nvds_set_qp_state_init(struct ibv_qp* qp, nvds_data_t* data) {
   struct ibv_qp_attr attr = {
@@ -161,18 +161,6 @@ static void nvds_run_server(nvds_context_t* ctx, nvds_data_t* data) {
   while (1) {}
 }
 
-/*
-static void nvds_multi_rdma_write(nvds_context_t* ctx, nvds_data_t* data) {
-
-}
-
-static void nvds_test_multi_sge(nvds_context_t* ctx, nvds_data_t* data) {
-  static const int n = 1000 * 1000;
-
-
-}
-*/
-
 static void nvds_run_client(nvds_context_t* ctx, nvds_data_t* data) {
   nvds_client_exch_info(data);
   nvds_set_qp_state_rts(ctx->qp, data);
@@ -187,9 +175,10 @@ static void nvds_run_client(nvds_context_t* ctx, nvds_data_t* data) {
   begin = clock();
   for (int i = 0; i < n; ++i) {
     // Step 1: RDMA write to server
-    nvds_rdma_write(ctx, data);
+    //nvds_rdma_write(ctx, data);
+    nvds_post_send(ctx, data);
     // Step 2: polling if RDMA write done
-    nvds_poll_send(ctx);
+    // nvds_poll_send(ctx);
   }
   t = (clock() - begin) * 1.0 / CLOCKS_PER_SEC;
   printf("time: %fs\n", t);
@@ -199,44 +188,17 @@ static void nvds_run_client(nvds_context_t* ctx, nvds_data_t* data) {
   begin = clock();
   for (int i = 0; i < n; ++i) {
     // Step 1: RDMA read from server
-    nvds_rdma_read(ctx, data);
+    //nvds_rdma_read(ctx, data);
     // Step 2: polling if RDMA read done
-    nvds_poll_send(ctx);
+    //nvds_poll_send(ctx);
   }
   t = (clock() - begin) * 1.0 / CLOCKS_PER_SEC;
   printf("time: %fs\n", t);
   printf("read latency: %fus\n", t / n * 1000 * 1000);
-
-  /*
-  for (int i = 0; i < n; ++i) {
-    // Step 1: RDMA write to server
-    snprintf(ctx->buf, RDMA_WRITE_LEN, "hello rdma\n");
-    nvds_rdma_write(ctx, data);
-    // Step 2: polling if RDMA write done
-    nvds_poll_send(ctx);
-    // Step 3: RDMA read from server
-    nvds_rdma_read(ctx, data);
-    // Step 4: polling if RDMA read done
-    nvds_poll_send(ctx);
-    // Step 5: verify read data
-    //char* write_buf = ctx->buf;
-    //char* read_buf = ctx->buf + RDMA_WRITE_LEN;
-    //nvds_expect(strncmp(write_buf, read_buf, RDMA_WRITE_LEN) == 0,
-    //            "data read dirty");
-    //printf("%s", read_buf);
-    //printf("%d th write/read completed\n", i);
-    //memset(ctx->buf, 0, ctx->size);
-  }
-
-  double t = (clock() - begin) * 1.0 / CLOCKS_PER_SEC;
-  printf("time: %fs\n", t);
-  printf("QPS: %f\n", n / t);
-  printf("client exited\n");
-  */
   exit(0);
-  // Dump statistic info
 }
 
+/*
 static void nvds_rdma_write(nvds_context_t* ctx, nvds_data_t* data) {
   ctx->sge.addr    = (uintptr_t)ctx->buf;
   ctx->sge.length  = RDMA_WRITE_LEN;
@@ -256,6 +218,7 @@ static void nvds_rdma_write(nvds_context_t* ctx, nvds_data_t* data) {
   nvds_expect(ibv_post_send(ctx->qp, &ctx->wr, &bad_wr) == 0,
               "ibv_post_send() failed");
 }
+*/
 
 static void nvds_rdma_read(nvds_context_t* ctx, nvds_data_t* data) {
   ctx->sge.addr    = (uintptr_t)ctx->buf + RDMA_WRITE_LEN;
@@ -295,10 +258,44 @@ static void nvds_poll_recv(nvds_context_t* ctx) {
 */
 
 static void nvds_post_send(nvds_context_t* ctx, nvds_data_t* data) {
+  assert(ctx->qp->qp_type == IBV_QPT_UD);
+
+  ctx->sge.addr    = (uintptr_t)ctx->buf + RDMA_WRITE_LEN;
+  ctx->sge.length  = RDMA_READ_LEN;
+  ctx->sge.lkey    = ctx->mr->lkey;
+
+  // Init unreliable datagram
+  struct ibv_ah_attr attr;
+  memset(&attr, 0, sizeof(attr));
+  attr.is_global = 0;
+  attr.dlid = data->remote_conn.lid;
+  attr.sl = 1;
+  attr.src_path_bits = 0;
+  attr.port_num = IB_PORT;
+
+  ctx->wr.wr.ud.ah = ibv_create_ah(ctx->pd, &attr);
+  ctx->wr.wr.ud.remote_qpn = data->remote_conn.qpn;
+  ctx->wr.wr.ud.remote_qkey = QKEY;
+  assert(ctx->wr.wr.ud.ah != NULL);
+
+  // The address read from
+  ctx->wr.wr.rdma.remote_addr = data->remote_conn.vaddr;
+  ctx->wr.wr.rdma.rkey        = data->remote_conn.rkey;
+  ctx->wr.wr_id               = RDMA_READ_ID;
+  ctx->wr.sg_list             = &ctx->sge;
+  ctx->wr.num_sge             = 1;
+  ctx->wr.opcode              = IBV_WR_RDMA_READ;
+  ctx->wr.send_flags          = IBV_SEND_SIGNALED;
+  ctx->wr.next                = NULL;
+
+  struct ibv_send_wr* bad_wr;
+  nvds_expect(ibv_post_send(ctx->qp, &ctx->wr, &bad_wr) == 0,
+              "ibv_post_send() failed");
 
 }
 
 static void nvds_post_recv(nvds_context_t* ctx, nvds_data_t* data) {
+
 
 }
 
@@ -375,7 +372,7 @@ int main(int argc, const char* argv[]) {
   nvds_context_t ctx;
   nvds_data_t data = {
     .port         = 5500,
-    .ib_port      = 1,
+    .ib_port      = IB_PORT,
     .size         = 65536,
     .tx_depth     = 100,
     .server_name  = NULL,

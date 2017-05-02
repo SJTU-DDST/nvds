@@ -21,7 +21,7 @@ class Client {
   bool Put(const std::string& key, const std::string& value);
   
   // Delete item indexed by the key
-  bool Delete(const std::string& key);
+  bool Del(const std::string& key);
 
  private:
   static const uint32_t kSendBufSize = 1024 * 2 + 128;

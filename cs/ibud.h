@@ -1,6 +1,7 @@
-#ifndef _NVDS_COMMON_H_
-#define _NVDS_COMMON_H_
+#ifndef _NVDS_IBUD_H_
+#define _NVDS_IBUD_H_
 
+#include <assert.h>
 #include <ctype.h>
 #include <errno.h>
 #include <malloc.h>
@@ -33,7 +34,9 @@
   }                                   \
 }
 
-#define QP_TYPE IBV_QPT_RC
+#define QP_TYPE IBV_QPT_UD
+#define QKEY  (13)
+#define IB_PORT (1)
 
 typedef struct nvds_context {
   struct ibv_context*       context;

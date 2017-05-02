@@ -29,15 +29,16 @@ static const uint32_t kNVMTabletSize = sizeof(NVMTablet) + Allocator::kSize;
 
 class Tablet {
  public:
-  
+
   Tablet(const TabletInfo& info, NVMPtr<NVMTablet> nvm_tablet)
       : nvm_tablet_(nvm_tablet), allocator_(&nvm_tablet->data) {
     nvm_tablet_->info = info;
   }
   ~Tablet() {}
   DISALLOW_COPY_AND_ASSIGN(Tablet);
-  
+
   const TabletInfo& info() const { return nvm_tablet_->info; }
+  // TODO(wgtdkp): Directly return NVM address of the value
   // Find the key and copy the value into `val`.
   // Return: -1, not found; else, the length of the `val`.
   int32_t Get(char* val, KeyHash hash, uint16_t key_len, const char* key);
@@ -50,7 +51,7 @@ class Tablet {
   NVMPtr<NVMTablet> nvm_tablet_;
   Allocator allocator_;
 
-  // TODO(wgtdkp): Locks
+  
 };
 
 } // namespace nvds

@@ -10,13 +10,16 @@
 
 namespace nvds {
 
+struct Request;
+
 // Derived from RAMCloud Infiniband.h
 class Infiniband {
  public:
+  static const uint16_t kPort = 1;
  	static const uint32_t kMaxInlineData = 400;
 	// If the device name is not specified, choose the first one in device list
 	explicit Infiniband(const char* device_name=nullptr);
-	~Infiniband() {}
+	~Infiniband();
 
 	// This class includes informations for constructing a connection
 	struct QueuePairInfo {
@@ -120,14 +123,17 @@ class Infiniband {
 		uint32_t 	size;		    // Buffer size
 		uint32_t 	msg_len;    // message length
 		ibv_mr*		mr;         // IBV memory region
-		uint16_t  peer_lid;   // Peer lid
+		Address   peer_addr;  // Peer address of this request
 		bool 			is_recv;    // Is this a recv buffer
 
 		Buffer(char* b, uint32_t size, ibv_mr* mr, bool is_recv=false)
 				: next(nullptr), buf(b), size(size), mr(mr), is_recv(is_recv) {}
 		Buffer() : next(nullptr), buf(nullptr), size(0), msg_len(0),
-               mr(nullptr), peer_lid(0), is_recv(false) {}
+               mr(nullptr), is_recv(false) {}
 		DISALLOW_COPY_AND_ASSIGN(Buffer);
+    Request* MakeRequest() {
+      return reinterpret_cast<Request*>(buf);
+    }
 	};
 
   // A registered buffer pool
@@ -142,14 +148,14 @@ class Infiniband {
 		DISALLOW_COPY_AND_ASSIGN(RegisteredBuffers);
     // Used as buffer pool
     Buffer* Alloc() {
-      // TODO(wgtdkp): make it thread safe
+      // FIXME(wgtdkp): make it thread safe
       auto ret = root_;
       if (root_ != nullptr)
         root_ = root_->next;
       return ret;
     }
     void Free(Buffer* b) {
-      // TODO(wgtdkp): make it thread safe
+      // FIXME(wgtdkp): make it thread safe
       b->next = root_;
       root_ = b;
     }
@@ -179,8 +185,8 @@ class Infiniband {
 	//										ibv_srq* srq, ibv_cq* scq,
 	//										ibv_cq* rcq, uint32_t max_send,
 	//										uint32_t max_recv, uint32_t qkey=0);
-	Buffer* TryReceive(QueuePair* qp, Address* peer_addr=nullptr);
-	Buffer* Receive(QueuePair* qp, Address* peer_addr=nullptr);
+	Buffer* TryReceive(QueuePair* qp);
+	Buffer* Receive(QueuePair* qp);
 	void PostReceive(QueuePair* qp, Buffer* b);
 	void PostSRQReceive(ibv_srq* srq, Buffer* b);
 	void PostSend(QueuePair* qp, Buffer* b, uint32_t len,

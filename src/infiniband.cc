@@ -1,11 +1,21 @@
 #include "infiniband.h"
 
+#include <algorithm>
 #include <malloc.h>
 
 namespace nvds {
 
 Infiniband::Infiniband(const char* device_name)
     : dev_(device_name), pd_(dev_) {
+  std::fill(addr_handlers_.begin(), addr_handlers_.end(), nullptr);
+}
+
+Infiniband::~Infiniband() {
+  for (auto iter = addr_handlers_.rbegin(); iter != addr_handlers_.rend(); ++iter) {
+    auto ah = *iter;
+    if (ah != nullptr)
+      ibv_destroy_ah(ah);
+  }
 }
 
 Infiniband::DeviceList::DeviceList()
@@ -47,7 +57,7 @@ Infiniband::QueuePair::QueuePair(Infiniband& ib, ibv_qp_type type,
     : ib(ib), type(type), ctx(ib.dev().ctx()),
       ib_port(ib_port), pd(ib.pd().pd()), srq(srq),
       qp(nullptr), scq(scq), rcq(rcq), psn(0), peer_lid(0), sin() {
-  assert(type == IBV_QPT_RC || type == IBV_QPT_UD);
+  assert(type == IBV_QPT_UD);
 
   ibv_qp_init_attr qpia;
   memset(&qpia, 0, sizeof(qpia));
@@ -93,6 +103,8 @@ Infiniband::QueuePair::QueuePair(Infiniband& ib, ibv_qp_type type,
     ibv_destroy_qp(qp);
     throw TransportException(HERE, ret);
   }
+
+  Activate();
 }
 
 uint32_t Infiniband::QueuePair::GetPeerQPNum() const {
@@ -117,6 +129,7 @@ int Infiniband::QueuePair::GetState() const {
   return qpa.qp_state;
 }
 
+// Called only on RC queue pair
 void Infiniband::QueuePair::Plumb(QueuePairInfo* qpi) {
   assert(type == IBV_QPT_RC);
   assert(GetState() == IBV_QPS_INIT);
@@ -170,6 +183,7 @@ void Infiniband::QueuePair::Plumb(QueuePairInfo* qpi) {
   peer_lid = qpi->lid;
 }
 
+// Bring UD queue pair into RTS status
 void Infiniband::QueuePair::Activate() {
   assert(type == IBV_QPT_UD);
   assert(GetState() == IBV_QPS_INIT);
@@ -200,6 +214,7 @@ Infiniband::RegisteredBuffers::RegisteredBuffers(ProtectionDomain& pd,
       ptr_(nullptr), bufs_(nullptr), root_(nullptr) {
   const size_t bytes = buf_size * buf_num;
   ptr_ = memalign(4096, bytes);
+  assert(ptr_ != nullptr);
   auto mr = ibv_reg_mr(pd.pd(), ptr_, bytes,
                        IBV_ACCESS_REMOTE_WRITE | IBV_ACCESS_LOCAL_WRITE);
   if (mr == nullptr) {
@@ -208,7 +223,7 @@ Infiniband::RegisteredBuffers::RegisteredBuffers(ProtectionDomain& pd,
   bufs_ = new Buffer[buf_num_];
   char* p = static_cast<char*>(ptr_);
   for (uint32_t i = 0; i < buf_num; ++i) {
-    new (&bufs_[i]) Buffer(p, buf_size_, mr);
+    new (&bufs_[i]) Buffer(p, buf_size_, mr, is_recv);
     bufs_[i].next = i + 1 < buf_num ? &bufs_[i+1] : nullptr;
     p += buf_size_;
   }
@@ -231,7 +246,7 @@ uint16_t Infiniband::GetLid(int32_t port) {
   return port_attr.lid;
 }
 
-Infiniband::Buffer* Infiniband::TryReceive(QueuePair* qp, Address* peer_addr) {
+Infiniband::Buffer* Infiniband::TryReceive(QueuePair* qp) {
   ibv_wc wc;
   int r = ibv_poll_cq(qp->rcq, 1, &wc);
   if (r == 0) {
@@ -245,17 +260,15 @@ Infiniband::Buffer* Infiniband::TryReceive(QueuePair* qp, Address* peer_addr) {
   // wr_id is used as buffer address
   Buffer* b = reinterpret_cast<Buffer*>(wc.wr_id);
   b->msg_len = wc.byte_len;
-  if (peer_addr != nullptr) {
-    *peer_addr = {qp->ib_port, wc.slid, wc.src_qp};
-  }
+  b->peer_addr = {qp->ib_port, wc.slid, wc.src_qp};
   return b;
 }
 
 // May blocking
-Infiniband::Buffer* Infiniband::Receive(QueuePair* qp, Address* peer_addr) {
+Infiniband::Buffer* Infiniband::Receive(QueuePair* qp) {
   Buffer* b = nullptr;
   do {
-    b = TryReceive(qp, peer_addr);
+    b = TryReceive(qp);
   } while (b == nullptr);
   return b;
 }
@@ -321,6 +334,7 @@ void Infiniband::PostSend(QueuePair* qp, Buffer* b,
     swr.wr.ud.ah = GetAddrHandler(*peer_addr);
     swr.wr.ud.remote_qpn = peer_addr->qpn;
     swr.wr.ud.remote_qkey = peer_qkey;
+    assert(swr.wr.ud.ah != nullptr);
   }
   swr.next = nullptr;
   swr.sg_list = &sge;
@@ -340,7 +354,7 @@ void Infiniband::PostSend(QueuePair* qp, Buffer* b,
 
 void Infiniband::PostSendAndWait(QueuePair* qp, Buffer* b,
     uint32_t len, const Address* peer_addr, uint32_t peer_qkey) {
-  assert(qp->type == IBV_QPT_RC);
+  assert(qp->type == IBV_QPT_UD);
 
   PostSend(qp, b, len, peer_addr, peer_qkey);
 
@@ -355,17 +369,19 @@ void Infiniband::PostSendAndWait(QueuePair* qp, Buffer* b,
 }
 
 ibv_ah* Infiniband::GetAddrHandler(const Address& addr) {
-  auto ah = addr_handlers_[addr.lid];
-  if (ah != nullptr)
+  auto& ah = addr_handlers_[addr.lid];
+  if (ah != nullptr) {
     return ah;
-
+  }
+  
   ibv_ah_attr attr;
-  attr.dlid = addr.lid;
-  attr.src_path_bits = 0;
+  memset(&attr, 0, sizeof(attr));
   attr.is_global = 0;
-  attr.sl = 0;
-  attr.port_num = addr.ib_port;
-  return ibv_create_ah(pd_.pd(), &attr);
+  attr.dlid = addr.lid;
+  attr.sl = 1;
+  attr.src_path_bits = 0;
+  attr.port_num = kPort;
+  return ah = ibv_create_ah(pd_.pd(), &attr);
 }
 
 } // namespace nvds

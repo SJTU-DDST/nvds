@@ -37,12 +37,14 @@ struct NVMDevice {
   NVMTablet tablets[0];
   NVMDevice() = delete;
 };
+
 static const uint64_t kNVMDeviceSize = sizeof(NVMDevice) +
                                        kNVMTabletSize * kNumTabletsPerServer;
 
 class Server : public BasicServer {
  public:
   // Workers & tablets
+  friend class Worker;
   using Work = Infiniband::Buffer;
   Server(NVMPtr<NVMDevice> nvm, uint64_t nvm_size);
   ~Server();
@@ -68,23 +70,8 @@ class Server : public BasicServer {
                          std::shared_ptr<Message> msg);
   void HandleSendMessage(std::shared_ptr<Session> session,
                          std::shared_ptr<Message> msg);
-  ServerId id_;
-  bool active_;
-  uint64_t nvm_size_;  
-  NVMPtr<NVMDevice> nvm_;
-
-  IndexManager index_manager_;
-
-  // Infiniband
-  Infiniband ib_;
-  Infiniband::Address ib_addr_;
-  Infiniband::RegisteredBuffers send_bufs_;
-  Infiniband::RegisteredBuffers recv_bufs_;
-  Infiniband::QueuePair* qp_;
-  ibv_cq* rcq_;
-  ibv_cq* scq_;
-
   void InitTabletsAndWorkers();
+
   // The WorkQueue will be enqueued by the dispatch,
   // and dequeued by the worker. Thus, it must be made thread safe.
   class WorkQueue {
@@ -128,34 +115,45 @@ class Server : public BasicServer {
     Work* tail = nullptr;
     Spinlock spinlock_;
   };
+
   class Worker {
    public:
-    Worker(Tablet* tablet)
-        : tablet_(tablet), slave_(std::bind(&Worker::Serve, this)) {}
-    
-   private:
-    void Serve() {
-      while (true) {
-        Work* work;
-        std::unique_lock<std::mutex> lock(mtx_);
-        cond_var_.wait(lock, [&work, this]() {
-            return (work = wq_.Dequeue()) == nullptr; });
-        assert(work != nullptr);
-
-        // TODO(wgtdkp): serve request
-
-      }
+    Worker(Server* server, Tablet* tablet)
+        : server_(server), tablet_(tablet),
+          slave_(std::bind(&Worker::Serve, this)) {}
+    void Enqueue(Work* work) {
+      wq_.Enqueue(work);
+      cond_var_.notify_one();
     }
 
    private:
+    void Serve();
     WorkQueue wq_;
-    Tablet* tablet_ = nullptr;
+    Server* server_;
+    Tablet* tablet_;
 
     std::mutex mtx_;
     std::condition_variable cond_var_;
     std::thread slave_;
   };
 
+  ServerId id_;
+  bool active_;
+  uint64_t nvm_size_;  
+  NVMPtr<NVMDevice> nvm_;
+
+  IndexManager index_manager_;
+
+  // Infiniband
+  Infiniband ib_;
+  Infiniband::Address ib_addr_;
+  Infiniband::RegisteredBuffers send_bufs_;
+  Infiniband::RegisteredBuffers recv_bufs_;
+  Infiniband::QueuePair* qp_;
+  ibv_cq* rcq_;
+  ibv_cq* scq_;
+
+  // Worker
   std::array<Worker*, kNumTabletsPerServer> workers_;
   std::array<Tablet*, kNumTabletsPerServer> tablets_;
 };

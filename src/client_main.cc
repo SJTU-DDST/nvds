@@ -6,7 +6,7 @@ using namespace nvds;
 
 int main() {
   try {
-    Client c {"192.168.1.67"};
+    Client c {"192.168.99.14"};
     c.Put("AUTHOR", "SJTU-DDST");
     c.Put("VERSION", "0.0.1");
 
