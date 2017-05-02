@@ -213,7 +213,7 @@ Infiniband::RegisteredBuffers::RegisteredBuffers(ProtectionDomain& pd,
     : buf_size_(buf_size), buf_num_(buf_num),
       ptr_(nullptr), bufs_(nullptr), root_(nullptr) {
   const size_t bytes = buf_size * buf_num;
-  ptr_ = memalign(4096, bytes);
+  ptr_ = memalign(kPageSize, bytes);
   assert(ptr_ != nullptr);
   auto mr = ibv_reg_mr(pd.pd(), ptr_, bytes,
                        IBV_ACCESS_REMOTE_WRITE | IBV_ACCESS_LOCAL_WRITE);
@@ -229,6 +229,14 @@ Infiniband::RegisteredBuffers::RegisteredBuffers(ProtectionDomain& pd,
   }
   root_ = bufs_;
 }
+
+Infiniband::RegisteredBuffers::~RegisteredBuffers() {
+  // Deregsiter memory region
+  ibv_dereg_mr(bufs_[0].mr);
+  free(ptr_);
+  delete[] bufs_;
+}
+
 /*
 Infiniband::QueuePair* Infiniband::CreateQP(ibv_qp_type type, int ib_port,
     ibv_srq* srq, ibv_cq* scq, ibv_cq* rcq, uint32_t max_send,

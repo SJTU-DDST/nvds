@@ -141,10 +141,7 @@ class Infiniband {
 	 public:
 	  RegisteredBuffers(ProtectionDomain& pd,
 		    uint32_t buf_size, uint32_t buf_num, bool is_recv=false);
-		~RegisteredBuffers() {
-      free(ptr_);
-      delete[] bufs_;
-    }
+		~RegisteredBuffers();
 		DISALLOW_COPY_AND_ASSIGN(RegisteredBuffers);
     // Used as buffer pool
     Buffer* Alloc() {

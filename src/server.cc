@@ -13,7 +13,7 @@ using json = nlohmann::json;
 Server::Server(NVMPtr<NVMDevice> nvm, uint64_t nvm_size)
     : BasicServer(kServerPort), id_(0),
       active_(false), nvm_size_(nvm_size), nvm_(nvm),
-      send_bufs_(ib_.pd(), kSendBufSize, kNumTabletsPerServer),
+      send_bufs_(ib_.pd(), kSendBufSize, kNumTabletsPerServer, false),
       recv_bufs_(ib_.pd(), kRecvBufSize, kNumTabletsPerServer, true) {
   // Infiniband
   scq_ = ib_.CreateCQ(kNumTabletsPerServer);

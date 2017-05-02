@@ -8,7 +8,7 @@ using json = nlohmann::json;
 
 Client::Client(const std::string& coord_addr)
     : session_(Connect(coord_addr)),
-      send_bufs_(ib_.pd(), kSendBufSize, kNumServers),
+      send_bufs_(ib_.pd(), kSendBufSize, kNumServers, false),
       recv_bufs_(ib_.pd(), kRecvBufSize, kNumServers, true) {
   InitIB();
   Join();
@@ -16,9 +16,9 @@ Client::Client(const std::string& coord_addr)
 
 Client::~Client() {
   Close();
+  delete qp_;  
   ib_.DestroyCQ(scq_);
   ib_.DestroyCQ(rcq_);
-  delete qp_;
 }
 
 void Client::InitIB() {

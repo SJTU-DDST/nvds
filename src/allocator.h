@@ -1,5 +1,5 @@
 /*
- * This allocator is a simplified version of _Doug Lea's Malloc_.
+ * This allocator is a simplified version of `Doug Lea's Malloc`.
  * Reference: http://g.oswego.edu/dl/html/malloc.html
  */
 
@@ -8,9 +8,12 @@
 
 #include "common.h"
 
+#include <memory.h>
+
 namespace nvds {
 
 class Allocator {
+  friend class Tablet;
  public:
   static const uint32_t kMaxBlockSize = 1024 + 128;
   static const uint32_t kSize = 16 * 1024 * 1024;
@@ -34,7 +37,6 @@ class Allocator {
     auto ret = blk == 0 ? 0 : blk + sizeof(uint32_t) + base_;
     return NVMPtr<T>(reinterpret_cast<T*>(ret));
   }
-
   template<typename T>
   void Free(NVMPtr<T> ptr) {
     // TODO(wgtdkp): checking if ptr is actually in this Allocator zone.
@@ -44,29 +46,46 @@ class Allocator {
     FreeBlock(blk);
   }
   void Format();
-
   uintptr_t base() const { return base_; }
   uint64_t cnt_writes() const { return cnt_writes_; }
 
  private:
   static const uint32_t kNumFreeLists = kMaxBlockSize / 16 + 1;
-
   template<typename T>
   T* OffsetToPtr(uint32_t offset) const {
     return reinterpret_cast<T*>(base_ + offset);
   }
-
   template<typename T>
-  void Write(uint32_t offset, T val) {
+  void Write(uint32_t offset, const T& val) {
+    assert(offset);
     auto ptr = OffsetToPtr<T>(offset);
     *ptr = val;
     // TODO(wgtdkp): Collect
     ++cnt_writes_;
   }
-
   template<typename T>
   T Read(uint32_t offset) {
+    assert(offset);
     return *OffsetToPtr<T>(offset);
+  }
+  int Memcmp(uint32_t lhs, uint32_t rhs, uint32_t len) {
+    // TODO(wgtdkp): add latency
+    return memcmp(OffsetToPtr<char>(lhs), OffsetToPtr<char>(rhs), len);
+  }
+  int Memcmp(uint32_t lhs, const char* rhs, uint32_t len) {
+    return memcmp(OffsetToPtr<char>(lhs), rhs, len);
+  }
+  int Memcmp(const char* lhs, uint32_t rhs, uint32_t len) {
+    return memcmp(lhs, OffsetToPtr<char>(rhs), len);
+  }
+  void Memcpy(uint32_t des, uint32_t src, uint32_t len) {
+    memcpy(OffsetToPtr<char>(des), OffsetToPtr<char>(src), len);
+  }
+  void Memcpy(uint32_t des, const char* src, uint32_t len) {
+    memcpy(OffsetToPtr<char>(des), src, len);
+  }
+  void Memcpy(char* des, uint32_t src, uint32_t len) {
+    memcpy(des, OffsetToPtr<char>(src), len);
   }
 
   PACKED(
@@ -116,12 +135,10 @@ class Allocator {
     auto head = Read<uint32_t>(free_list * sizeof(uint32_t));
     return head == 0 ? 0 : ReadTheSizeTag(head);
   }
-
   uint32_t GetFreeListByBlockOffset(uint32_t blk) {
     auto blk_size = OffsetToPtr<const BlockHeader>(blk)->size;
     return GetFreeListByBlockSize(blk_size);
   }
-
   uint32_t GetFreeListByBlockSize(uint32_t blk_size) {
     assert(blk_size >= 16);
     if (blk_size <= kMaxBlockSize) {
@@ -129,19 +146,16 @@ class Allocator {
     }
     return GetLastFreeList();
   }
-  
-  uint32_t RoundupBlockSize(uint32_t blk_size) {
+  static uint32_t RoundupBlockSize(uint32_t blk_size) {
     if (blk_size <= kMaxBlockSize) {
       return (blk_size + 16 - 1) / 16 * 16;
     }
     assert(false);
     return 0;
   }
-
-  uint32_t GetLastFreeList() {
+  static uint32_t GetLastFreeList() {
     return (kNumFreeLists - 1) * sizeof(uint32_t);
   }
-
   void SetTheFreeTag(uint32_t blk, uint32_t blk_size) {
     auto next_blk = blk + blk_size;
     Write(next_blk, Read<uint32_t>(next_blk) | BlockHeader::kFreeMask);

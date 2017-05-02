@@ -6,6 +6,8 @@
 
 namespace nvds {
 
+// using nvmoffset_t = uint32_t;
+
 /*
  * A pointer that points to objects allocated on NVM. As are 
  * persistent on NVM, They should be Allocated and freed by

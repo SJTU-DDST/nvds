@@ -41,8 +41,6 @@ class Client {
   Infiniband ib_;
   Infiniband::RegisteredBuffers send_bufs_;
   Infiniband::RegisteredBuffers recv_bufs_;
-  //std::array<Infiniband::QueuePair*, kNumServers> qps_;
-  // TODO(wgtdkp):
   Infiniband::QueuePair* qp_;
   ibv_cq* rcq_;
   ibv_cq* scq_;

@@ -64,8 +64,6 @@ class Server : public BasicServer {
   void Dispatch(Work* work);
 
  private:
-  static const uint32_t kSendBufSize = 1024 + 128;
-  static const uint32_t kRecvBufSize = 1024 * 2 + 128;
   void HandleRecvMessage(std::shared_ptr<Session> session,
                          std::shared_ptr<Message> msg);
   void HandleSendMessage(std::shared_ptr<Session> session,

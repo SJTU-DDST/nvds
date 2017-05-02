@@ -46,6 +46,9 @@ static const uint32_t kNumTabletsPerServer = 8; // equal to `thread::hardware_co
 static const uint32_t kNumTablets = kNumTabletsPerServer * kNumServers;
 static_assert(kNumTablets % kNumServers == 0,
               "`kNumTablets` cannot be divisible by `kNumServers`");
+static const uint32_t kSendBufSize = 1024 + 128;
+static const uint32_t kRecvBufSize = 1024 * 2 + 128;
+static const uint32_t kPageSize = sysconf(_SC_PAGESIZE);
 
 std::string Format(const char* format, ...);
 std::string Demangle(const char* name);

@@ -12,29 +12,28 @@ namespace nvds {
 static const uint32_t kHashTableSize = 99871;
 
 struct NVMObject {
-  NVMPtr<NVMObject> next;
   KeyHash key_hash;
   uint16_t key_len;
   uint16_t val_len;
+  uint32_t next;
   char data[0];
 };
 
 struct NVMTablet {
   TabletInfo info;
-  std::array<NVMPtr<NVMObject>, kHashTableSize> hash_table;
+  std::array<uint32_t, kHashTableSize> hash_table;
   char data[0];
+  NVMTablet() {
+    hash_table.fill(0);
+  }
 };
 static const uint32_t kNVMTabletSize = sizeof(NVMTablet) + Allocator::kSize;
 
 
 class Tablet {
  public:
-
-  Tablet(const TabletInfo& info, NVMPtr<NVMTablet> nvm_tablet)
-      : nvm_tablet_(nvm_tablet), allocator_(&nvm_tablet->data) {
-    nvm_tablet_->info = info;
-  }
-  ~Tablet() {}
+  Tablet(const TabletInfo& info, NVMPtr<NVMTablet> nvm_tablet);
+  ~Tablet();
   DISALLOW_COPY_AND_ASSIGN(Tablet);
 
   const TabletInfo& info() const { return nvm_tablet_->info; }
@@ -51,7 +50,15 @@ class Tablet {
   NVMPtr<NVMTablet> nvm_tablet_;
   Allocator allocator_;
 
-  
+  // Infiniband
+  Infiniband ib_;
+  //Infiniband::Address ib_addr_;
+  Infiniband::RegisteredBuffers send_bufs_;
+  Infiniband::RegisteredBuffers recv_bufs_;
+  std::array<Infiniband::QueuePair*, kNumReplicas> qps_;
+  // `kNumReplica` queue pairs share this `rcq_` and `scq_`
+  ibv_cq* rcq_;
+  ibv_cq* scq_;
 };
 
 } // namespace nvds
