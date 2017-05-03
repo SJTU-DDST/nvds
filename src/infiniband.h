@@ -23,10 +23,11 @@ class Infiniband {
 
 	// This class includes informations for constructing a connection
 	struct QueuePairInfo {
-    uint16_t lid; // Local id
-		uint32_t qpn; // Queue pair number
-		uint32_t psn; // Packet sequence number
-		uint64_t nonce;
+    uint16_t lid;   // Local id
+		uint32_t qpn;   // Queue pair number
+		uint32_t psn;   // Packet sequence number
+		//uint32_t rkey;  // Memory region key
+    //uint64_t vaddr; // Virtual address of memory regions
 	};
 
 	class DeviceList {
@@ -89,7 +90,7 @@ class Infiniband {
 	 	QueuePair(Infiniband& ib, ibv_qp_type type,
 		 					int ib_port, ibv_srq* srq, ibv_cq* scq,
 							ibv_cq* rcq, uint32_t max_send,
-							uint32_t max_recv, uint32_t qkey=0);
+							uint32_t max_recv);
 		~QueuePair() { ibv_destroy_qp(qp); }
 		DISALLOW_COPY_AND_ASSIGN(QueuePair);
 		uint32_t GetLocalQPNum() const { return qp->qp_num; }
@@ -98,6 +99,8 @@ class Infiniband {
     // Bring a queue pair into RTS state
     void Plumb(QueuePairInfo* qpi);
 		void Activate();
+   //private:
+   // ibv_qp* Create(uint32_t max_send, uint32_t max_recv, );
 	};
 
 	struct Address {

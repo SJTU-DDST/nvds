@@ -53,11 +53,11 @@ Infiniband::Device::Device(const char* name) {
 
 Infiniband::QueuePair::QueuePair(Infiniband& ib, ibv_qp_type type,
     int ib_port, ibv_srq* srq, ibv_cq* scq, ibv_cq* rcq,
-    uint32_t max_send, uint32_t max_recv, uint32_t qkey)
+    uint32_t max_send, uint32_t max_recv)
     : ib(ib), type(type), ctx(ib.dev().ctx()),
       ib_port(ib_port), pd(ib.pd().pd()), srq(srq),
       qp(nullptr), scq(scq), rcq(rcq), psn(0), peer_lid(0), sin() {
-  assert(type == IBV_QPT_UD);
+  assert(type == IBV_QPT_UD || type == IBV_QPT_RC);
 
   ibv_qp_init_attr qpia;
   memset(&qpia, 0, sizeof(qpia));
@@ -66,6 +66,9 @@ Infiniband::QueuePair::QueuePair(Infiniband& ib, ibv_qp_type type,
   qpia.srq = srq;
   qpia.cap.max_send_wr = max_send;
   qpia.cap.max_recv_wr = max_recv;
+  // FIXME(wgtdkp): what is the `max_send_sge` for replication `qp`
+  qpia.cap.max_send_sge = type == IBV_QPT_UD ? 1 : 8;
+  qpia.cap.max_recv_sge = type == IBV_QPT_UD ? 1 : 8;
   qpia.cap.max_inline_data = kMaxInlineData;
   qpia.qp_type = type;
   qpia.sq_sig_all = 0; // Only generate CQEs on requested WQEs
@@ -82,7 +85,7 @@ Infiniband::QueuePair::QueuePair(Infiniband& ib, ibv_qp_type type,
   qpa.pkey_index = 0;
   qpa.port_num = static_cast<uint8_t>(ib_port);
   qpa.qp_access_flags = IBV_ACCESS_REMOTE_WRITE | IBV_ACCESS_LOCAL_WRITE;
-  qpa.qkey = qkey;
+  qpa.qkey = kQkey;
 
   int mask = IBV_QP_STATE | IBV_QP_PORT;
   switch (type) {
@@ -103,8 +106,6 @@ Infiniband::QueuePair::QueuePair(Infiniband& ib, ibv_qp_type type,
     ibv_destroy_qp(qp);
     throw TransportException(HERE, ret);
   }
-
-  Activate();
 }
 
 uint32_t Infiniband::QueuePair::GetPeerQPNum() const {

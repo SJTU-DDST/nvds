@@ -43,12 +43,14 @@ static const uint32_t kMaxItemSize = 1024;
 static const uint32_t kNumReplicas = 2;
 static const uint32_t kNumServers = 1;
 static const uint32_t kNumTabletsPerServer = 8; // equal to `thread::hardware_concurrency()`
+static const uint32_t kNumTabletAndBackupsPerServer = kNumTabletsPerServer * (1 + kNumReplicas);
 static const uint32_t kNumTablets = kNumTabletsPerServer * kNumServers;
 static_assert(kNumTablets % kNumServers == 0,
               "`kNumTablets` cannot be divisible by `kNumServers`");
 static const uint32_t kSendBufSize = 1024 + 128;
 static const uint32_t kRecvBufSize = 1024 * 2 + 128;
 static const uint32_t kPageSize = sysconf(_SC_PAGESIZE);
+static const uint32_t kQkey = 0;
 
 std::string Format(const char* format, ...);
 std::string Demangle(const char* name);

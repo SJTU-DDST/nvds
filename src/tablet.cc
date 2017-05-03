@@ -1,21 +1,31 @@
 #include "tablet.h"
 
+#include "request.h"
+
 #define OFFSETOF_NVMOBJECT(obj, member) \
     offsetof(NVMObject, member) + obj
 
 namespace nvds {
 
-Tablet::Tablet(const TabletInfo& info, NVMPtr<NVMTablet> nvm_tablet)
+Tablet::Tablet(NVMPtr<NVMTablet> nvm_tablet)
     : nvm_tablet_(nvm_tablet), allocator_(&nvm_tablet->data),
       send_bufs_(ib_.pd(), kSendBufSize, kNumReplicas, false),
       recv_bufs_(ib_.pd(), kRecvBufSize, kNumReplicas, true) {
-  nvm_tablet_->info = info;
+  // Memory region
+  // FIXME(wgtdkp): how to simulate latency of RDMA read/write to NVM?
+  mr_ = ibv_reg_mr(ib_.pd().pd(), nvm_tablet_.ptr(), kNVMTabletSize,
+                   IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_WRITE);
+  assert(mr_ != nullptr);
+  info_.vaddr = reinterpret_cast<uint64_t>(nvm_tablet_.ptr());
+  info_.rkey = mr_->rkey;
+
   scq_ = ib_.CreateCQ(1);
   rcq_ = ib_.CreateCQ(1);
   for (size_t i = 0; i < kNumReplicas; ++i) {
     qps_[i] = new Infiniband::QueuePair(ib_, IBV_QPT_RC, Infiniband::kPort,
         nullptr, scq_, rcq_, 2 * kNumReplicas, 2 * kNumReplicas);
-    assert(qps_[i] != nullptr);
+    //qps_[i]->Plumb(qpi);
+    // TODO(wgtdkp): plumb after getting peer queue pair info
   }
 }
 
@@ -25,6 +35,7 @@ Tablet::~Tablet() {
   }
   ib_.DestroyCQ(rcq_);
   ib_.DestroyCQ(scq_);
+  ibv_dereg_mr(mr_);  
 }
 
 // FIXME(wgtdkp): Remove the item if there already exists
@@ -60,7 +71,7 @@ int32_t Tablet::Put(KeyHash hash, uint16_t key_len, const char* key,
     auto next = head == 0 ? 0 : allocator_.Read<uint32_t>(OFFSETOF_NVMOBJECT(head, next));
     auto size = Allocator::RoundupBlockSize(sizeof(NVMObject) + key_len + val_len);
     auto obj = allocator_.AllocBlock(size);
-    allocator_.Write<NVMObject>(obj, {hash, key_len, val_len, next});
+    allocator_.Write<NVMObject>(obj, {next, key_len, val_len, next});
     // TODO(wgtdkp): use single `memcpy`
     allocator_.Memcpy(OFFSETOF_NVMOBJECT(obj, data), key, key_len);
     allocator_.Memcpy(OFFSETOF_NVMOBJECT(obj, data) + key_len, val, val_len);
@@ -103,6 +114,18 @@ void Tablet::Del(KeyHash hash, uint16_t key_len, const char* key) {
       return;
     }
   }
+}
+
+void Tablet::Serve(Request& r) {
+  switch (r.type) {
+  case Request::Type::PUT:
+    break;
+  case Request::Type::GET:
+    break;
+  case Request::Type::DEL:
+    break;
+  }
+
 }
 
 } // namespace nvds

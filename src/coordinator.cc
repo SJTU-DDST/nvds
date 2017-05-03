@@ -81,7 +81,6 @@ void Coordinator::HandleServerRequestJoin(std::shared_ptr<Session> session,
   if (num_servers_ == kNumServers) {
     NVDS_LOG("all servers' join request received. [total servers = %d]",
              kNumServers);
-    index_manager_.AssignTablets();
     ResponseAllJoins();
   }
 }

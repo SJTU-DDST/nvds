@@ -8,19 +8,20 @@
 
 namespace nvds {
 
+struct Request;
+
 // A reasonable prime number
 static const uint32_t kHashTableSize = 99871;
 
 struct NVMObject {
-  KeyHash key_hash;
+  uint32_t next;
   uint16_t key_len;
   uint16_t val_len;
-  uint32_t next;
+  KeyHash key_hash;    
   char data[0];
 };
 
 struct NVMTablet {
-  TabletInfo info;
   std::array<uint32_t, kHashTableSize> hash_table;
   char data[0];
   NVMTablet() {
@@ -29,14 +30,15 @@ struct NVMTablet {
 };
 static const uint32_t kNVMTabletSize = sizeof(NVMTablet) + Allocator::kSize;
 
-
 class Tablet {
  public:
-  Tablet(const TabletInfo& info, NVMPtr<NVMTablet> nvm_tablet);
+  //Tablet(const TabletInfo& info, NVMPtr<NVMTablet> nvm_tablet);
+  Tablet(NVMPtr<NVMTablet> nvm_tablet);
   ~Tablet();
   DISALLOW_COPY_AND_ASSIGN(Tablet);
 
-  const TabletInfo& info() const { return nvm_tablet_->info; }
+  void set_info(const TabletInfo& info) { info_ = info; }
+  const TabletInfo& info() const { return info_; }
   // TODO(wgtdkp): Directly return NVM address of the value
   // Find the key and copy the value into `val`.
   // Return: -1, not found; else, the length of the `val`.
@@ -45,14 +47,17 @@ class Tablet {
   // Return: -1, error(no enough space);
   int32_t Put(KeyHash hash, uint16_t key_len, const char* key,
               uint16_t val_len, const char* val);
-  
+  void Serve(Request& r);
+
  private:
+  TabletInfo info_;
   NVMPtr<NVMTablet> nvm_tablet_;
   Allocator allocator_;
 
   // Infiniband
   Infiniband ib_;
   //Infiniband::Address ib_addr_;
+  ibv_mr* mr_;
   Infiniband::RegisteredBuffers send_bufs_;
   Infiniband::RegisteredBuffers recv_bufs_;
   std::array<Infiniband::QueuePair*, kNumReplicas> qps_;

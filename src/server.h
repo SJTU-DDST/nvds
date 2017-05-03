@@ -68,7 +68,6 @@ class Server : public BasicServer {
                          std::shared_ptr<Message> msg);
   void HandleSendMessage(std::shared_ptr<Session> session,
                          std::shared_ptr<Message> msg);
-  void InitTabletsAndWorkers();
 
   // The WorkQueue will be enqueued by the dispatch,
   // and dequeued by the worker. Thus, it must be made thread safe.

@@ -20,23 +20,31 @@ Server::Server(NVMPtr<NVMDevice> nvm, uint64_t nvm_size)
   rcq_ = ib_.CreateCQ(kNumTabletsPerServer);
   qp_ = new Infiniband::QueuePair(ib_, IBV_QPT_UD, Infiniband::kPort, nullptr,
       scq_, rcq_, kNumTabletsPerServer, kNumTabletsPerServer);
+  qp_->Activate();
+  
   ib_addr_ = {
     Infiniband::kPort,
     ib_.GetLid(Infiniband::kPort),
     qp_->GetLocalQPNum()
   };
+
+  // Tablets
+  for (uint32_t i = 0; i < kNumTabletsPerServer; ++i) {
+    auto ptr = reinterpret_cast<char*>(&nvm_->tablets) + i * kNVMTabletSize;
+    tablets_[i] = new Tablet(NVMPtr<NVMTablet>(reinterpret_cast<NVMTablet*>(ptr)));
+    workers_[i] = new Worker(this, tablets_[i]);
+  }
 }
 
 Server::~Server() {
-  delete qp_;
-  ib_.DestroyCQ(scq_);
-  ib_.DestroyCQ(rcq_);
-
   // Destruct elements in reverse order
   for (int64_t i = kNumTabletsPerServer - 1; i >= 0; --i) {
     delete tablets_[i];
     delete workers_[i];
   }
+  delete qp_;
+  ib_.DestroyCQ(scq_);
+  ib_.DestroyCQ(rcq_);
 }
 
 void Server::Run() {
@@ -62,8 +70,19 @@ bool Server::Join() {
 
     Message::Header header {Message::SenderType::SERVER,
                             Message::Type::REQ_JOIN, 0};
-    Message msg(header,
-                json({{"size", nvm_size_}, {"ib_addr", ib_addr_}}).dump());
+    std::array<uint64_t, kNumTabletAndBackupsPerServer> vaddrs;
+    std::array<uint32_t, kNumTabletAndBackupsPerServer> rkeys;
+    for (uint32_t i = 0; i < kNumTabletsPerServer; ++i) {
+      vaddrs[i] = tablets_[i]->info().vaddr;
+      rkeys[i] = tablets_[i]->info().rkey;
+    }
+    json body {
+      {"size", nvm_size_},
+      {"ib_addr", ib_addr_},
+      {"tablets_vaddr", vaddrs},
+      {"tablets_rkey", rkeys}
+    };
+    Message msg(header, body.dump());
 
     try {
       session_join.SendMessage(msg);
@@ -80,7 +99,9 @@ bool Server::Join() {
       id_ = j_body["id"];
       index_manager_ = j_body["index_manager"];
       active_ = true;
-      InitTabletsAndWorkers();
+
+      // TODO(wgtdkp): Setting tablets' id and other info
+      
     } catch (boost::system::system_error& err) {
       NVDS_ERR("receive join response from coordinator failed: %s",
                err.what());
@@ -138,17 +159,6 @@ void Server::Dispatch(Work* work) {
   assert(r->Len() == work->msg_len);
   auto id = index_manager_.GetTabletId(r->key_hash);
   workers_[id]->Enqueue(work);
-}
-
-void Server::InitTabletsAndWorkers() {
-  const auto& server_info = index_manager_.GetServer(id_);
-  for (uint32_t i = 0; i < kNumTabletsPerServer; ++i) {
-    auto tablet_id = server_info.tablets[i];
-    const auto& tablet_info = index_manager_.GetTablet(tablet_id);
-    tablets_[i] = new Tablet(tablet_info,
-                             NVMPtr<NVMTablet>(&nvm_->tablets[i]));
-    workers_[i] = new Worker(this, tablets_[i]);
-  }
 }
 
 void Server::Worker::Serve() {

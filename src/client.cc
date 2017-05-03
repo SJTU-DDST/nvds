@@ -26,6 +26,7 @@ void Client::InitIB() {
   rcq_ = ib_.CreateCQ(1);
   qp_ = new Infiniband::QueuePair(ib_, IBV_QPT_UD, Infiniband::kPort,
                                   nullptr, scq_, rcq_, 128, 128);
+  qp_->Activate();
 }
 
 void Client::Join() {

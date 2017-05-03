@@ -68,8 +68,8 @@ class Allocator {
     assert(offset);
     return *OffsetToPtr<T>(offset);
   }
+  // TODO(wgtdkp): add latency
   int Memcmp(uint32_t lhs, uint32_t rhs, uint32_t len) {
-    // TODO(wgtdkp): add latency
     return memcmp(OffsetToPtr<char>(lhs), OffsetToPtr<char>(rhs), len);
   }
   int Memcmp(uint32_t lhs, const char* rhs, uint32_t len) {

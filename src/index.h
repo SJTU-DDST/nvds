@@ -52,7 +52,7 @@ class IndexManager {
   ~IndexManager() {}
 
   const ServerInfo& AddServer(const std::string& addr,
-                              const Infiniband::Address& ib_addr);
+                              nlohmann::json& msg_body);
   const ServerInfo& GetServer(KeyHash key_hash) const {
     auto id = GetServerId(key_hash);
     const auto& ans = GetServer(id);
@@ -79,23 +79,20 @@ class IndexManager {
   const TabletInfo& GetTablet(TabletId id) const {
     return tablets_[id];
   }
-  // Assign tablets to servers
-  void AssignTablets();
-
-  void UpdateIBAddrHandler();
 
  private:
   static ServerId AllocServerId() {
     static ServerId id = 0;
     return id++;
   }
-  static TabletId AllocTabletId() {
-    static TabletId id = 0;
-    return id++;
+
+  // `r_idx`: replication index; `s_idx`: server index; `t_idx`: tablet index;
+  static uint32_t CalcTabletId(uint32_t s_idx, uint32_t r_idx, uint32_t t_idx) {
+    return s_idx * kNumTabletAndBackupsPerServer + r_idx * kNumTabletsPerServer + t_idx;
   }
 
   std::array<TabletId, kNumTablets> key_tablet_map_;
-  std::array<TabletInfo, kNumTablets * (kNumReplicas + 1)> tablets_;
+  std::array<TabletInfo, kNumTabletAndBackupsPerServer> tablets_;
   std::array<ServerInfo, kNumServers> servers_;
 };
 

@@ -23,7 +23,9 @@ class IndexManager;
      "ib_port": int,
      "lid": int,
      "pqn": int,
-   }
+   },
+   "tablets_vaddr": [int],
+   "tablets_rkey": [int]
  }
  1. RES_JOIN :
  {
@@ -51,11 +53,13 @@ struct TabletInfo {
   TabletId id;
   ServerId server_id;
   bool is_backup;
+  uint64_t vaddr;
+  uint32_t rkey;
   union {
-    // If `is_backup_` == true,
-    // `master_` is the master tablet of this backup tablet
+    // If `is_backup` == true,
+    // `master` is the master tablet of this backup tablet
     TabletId master;
-    // Else, `backups_` is the backups of this makster tablet
+    // Else, `backups` is the backups of this makster tablet
     std::array<TabletId, kNumReplicas> backups;
   };
   bool operator==(const TabletInfo& other) const {
@@ -76,7 +80,7 @@ struct TabletInfo {
   "ib_addr": {
     "ib_port": int,
     "lid": int,
-    "pqn": int,
+    "qpn": int,
   }
   "tablets": array[TabletInfo],
 }
@@ -86,7 +90,7 @@ struct ServerInfo {
   bool active;
   std::string addr; // Ip address
   Infiniband::Address ib_addr; // Infiniband address
-  std::array<TabletId, kNumTabletsPerServer> tablets;
+  std::array<TabletId, kNumTabletsPerServer * (1 + kNumReplicas)> tablets;
 };
 
 class Message {
