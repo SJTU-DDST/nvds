@@ -37,6 +37,10 @@ namespace nvds {
 
 using ServerId = uint32_t;
 using TabletId = uint32_t;
+
+/*
+ * Cluster configuration
+ */
 static const uint16_t kCoordPort = 9090;
 static const uint16_t kServerPort = 7070;
 static const uint32_t kMaxItemSize = 1024;
@@ -47,10 +51,15 @@ static const uint32_t kNumTabletAndBackupsPerServer = kNumTabletsPerServer * (1 
 static const uint32_t kNumTablets = kNumTabletsPerServer * kNumServers;
 static_assert(kNumTablets % kNumServers == 0,
               "`kNumTablets` cannot be divisible by `kNumServers`");
+
+/*
+ * Infiniband configuration
+ */
 static const uint32_t kSendBufSize = 1024 + 128;
 static const uint32_t kRecvBufSize = 1024 * 2 + 128;
 static const uint32_t kPageSize = sysconf(_SC_PAGESIZE);
 static const uint32_t kQkey = 0;
+static const int32_t kQPPsn = 0x23;
 
 std::string Format(const char* format, ...);
 std::string Demangle(const char* name);

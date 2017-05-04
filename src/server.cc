@@ -70,17 +70,17 @@ bool Server::Join() {
 
     Message::Header header {Message::SenderType::SERVER,
                             Message::Type::REQ_JOIN, 0};
-    std::array<uint64_t, kNumTabletAndBackupsPerServer> vaddrs;
-    std::array<uint32_t, kNumTabletAndBackupsPerServer> rkeys;
-    for (uint32_t i = 0; i < kNumTabletsPerServer; ++i) {
-      vaddrs[i] = tablets_[i]->info().vaddr;
-      rkeys[i] = tablets_[i]->info().rkey;
+
+    std::vector<Infiniband::QueuePairInfo> qpis;
+    for (uint32_t i = 0; i < kNumTabletAndBackupsPerServer; ++i) {
+      for (uint32_t j = 0; j < kNumReplicas; ++j) {
+        qpis.emplace_back(tablets_[i]->info().qpis[j]);
+      }
     }
     json body {
       {"size", nvm_size_},
       {"ib_addr", ib_addr_},
-      {"tablets_vaddr", vaddrs},
-      {"tablets_rkey", rkeys}
+      {"tablet_qpis", qpis},
     };
     Message msg(header, body.dump());
 
@@ -100,8 +100,12 @@ bool Server::Join() {
       index_manager_ = j_body["index_manager"];
       active_ = true;
 
-      // TODO(wgtdkp): Setting tablets' id and other info
-      
+      auto& server_info = index_manager_.GetServer(id_);
+      for (uint32_t i = 0; i < kNumTabletAndBackupsPerServer; ++i) {
+        auto tablet_id = server_info.tablets[i];
+        // Both master and backup tablets
+        tablets_[i]->SettingupQPConnect(tablet_id, index_manager_);
+      }
     } catch (boost::system::system_error& err) {
       NVDS_ERR("receive join response from coordinator failed: %s",
                err.what());

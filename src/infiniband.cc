@@ -131,7 +131,7 @@ int Infiniband::QueuePair::GetState() const {
 }
 
 // Called only on RC queue pair
-void Infiniband::QueuePair::Plumb(QueuePairInfo* qpi) {
+void Infiniband::QueuePair::Plumb(const QueuePairInfo& qpi) {
   assert(type == IBV_QPT_RC);
   assert(GetState() == IBV_QPS_INIT);
 
@@ -140,12 +140,12 @@ void Infiniband::QueuePair::Plumb(QueuePairInfo* qpi) {
   // We must set qp into RTR state before RTS
   qpa.qp_state = IBV_QPS_RTR;
   qpa.path_mtu = IBV_MTU_1024;
-  qpa.dest_qp_num = qpi->qpn;
-  qpa.rq_psn = qpi->psn;
+  qpa.dest_qp_num = qpi.qpn;
+  qpa.rq_psn = qpi.psn;
   qpa.max_dest_rd_atomic = 1;
   qpa.min_rnr_timer = 12;
   qpa.ah_attr.is_global = 0;
-  qpa.ah_attr.dlid = qpi->lid;
+  qpa.ah_attr.dlid = qpi.lid;
   qpa.ah_attr.sl = 0;
   qpa.ah_attr.src_path_bits = 0;
   qpa.ah_attr.port_num = static_cast<uint8_t>(ib_port);
@@ -181,7 +181,7 @@ void Infiniband::QueuePair::Plumb(QueuePairInfo* qpi) {
   if (err != 0) {
     throw TransportException(HERE, err);
   }
-  peer_lid = qpi->lid;
+  peer_lid = qpi.lid;
 }
 
 // Bring UD queue pair into RTS status

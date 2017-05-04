@@ -89,14 +89,14 @@ void Coordinator::ResponseAllJoins() {
   assert(sessions_.size() == kNumServers);
 
   for (size_t i = 0; i < sessions_.size(); ++i) {
-    json j_body {
+    json msg_body {
       {"id", i},
       {"index_manager", index_manager_}
     };
     sessions_[i]->AsyncSendMessage(std::make_shared<Message>(
         Message::Header {Message::SenderType::COORDINATOR,
                          Message::Type::RES_JOIN},
-        j_body.dump()));
+        msg_body.dump()));
   }
   sessions_.clear();
 }

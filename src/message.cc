@@ -20,9 +20,27 @@ void from_json(const nlohmann::json& j, Infiniband::Address& ia) {
   };
 }
 
+void to_json(nlohmann::json& j, const Infiniband::QueuePairInfo& qpi) {
+  j["lid"] = qpi.lid;
+  j["qpn"] = qpi.qpn;
+  j["psn"] = qpi.psn;
+  j["rkey"] = qpi.rkey;
+  j["vaddr"] = qpi.vaddr;
+}
+
+void from_json(const nlohmann::json& j, Infiniband::QueuePairInfo& qpi) {
+  qpi.lid = j["lid"];
+  qpi.qpn = j["qpn"];
+  qpi.psn = j["psn"];
+  qpi.rkey = j["rkey"];
+  qpi.vaddr = j["vaddr"];
+}
+
 void to_json(nlohmann::json& j, const TabletInfo& ti) {
   j["id"] = ti.id;
+  j["server_id"] = ti.server_id;
   j["is_backup"] = ti.is_backup;
+  j["qpis"] = ti.qpis;
   if (ti.is_backup) {
     j["master"] = ti.master;
   } else {
@@ -32,6 +50,7 @@ void to_json(nlohmann::json& j, const TabletInfo& ti) {
 
 void from_json(const nlohmann::json& j, TabletInfo& ti) {
   ti.id = j["id"];
+  ti.server_id = j["server_id"];
   ti.is_backup = j["is_backup"];
   if (ti.is_backup) {
     ti.master = j["master"];

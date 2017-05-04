@@ -15,33 +15,6 @@
 #include <unordered_map>
 
 namespace nvds {
-/*
-class IndexManager {
- public:
-  static const uint32_t kVirtualNodeNum = 128;
-  using KeyServerMap = std::map<KeyHash, ServerId>;
-  struct ServerInfo {
-    ServerId id;
-    std::string addr; // ip address
-    KeyServerMap::iterator vnodes[kVirtualNodeNum];
-  };
-  using ServerInfoMap = std::unordered_map<ServerId, ServerInfo>;
-  
-  IndexManager() {}
-  ~IndexManager() {}
-  DISALLOW_COPY_AND_ASSIGN(IndexManager);
-
-  void AddServer(ServerId server_id, std::string addr);
-  void RemoveServer(ServerId server_id);
-  void ShrinkServer(ServerId server_id);
-  std::vector<KeyHashRange> GetServerRanges(ServerId server_id);
-  ServerId GetServer(KeyHash key_hash) const;
-
- private:
-  KeyServerMap key_server_map_;
-  ServerInfoMap server_info_map_;
-};
-*/
 
 class IndexManager {
   friend void to_json(nlohmann::json& j, const IndexManager& im);

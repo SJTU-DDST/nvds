@@ -53,8 +53,7 @@ struct TabletInfo {
   TabletId id;
   ServerId server_id;
   bool is_backup;
-  uint64_t vaddr;
-  uint32_t rkey;
+  std::array<Infiniband::QueuePairInfo, kNumReplicas> qpis;
   union {
     // If `is_backup` == true,
     // `master` is the master tablet of this backup tablet
@@ -90,7 +89,7 @@ struct ServerInfo {
   bool active;
   std::string addr; // Ip address
   Infiniband::Address ib_addr; // Infiniband address
-  std::array<TabletId, kNumTabletsPerServer * (1 + kNumReplicas)> tablets;
+  std::array<TabletId, kNumTabletAndBackupsPerServer> tablets;
 };
 
 class Message {
@@ -144,6 +143,8 @@ class Message {
 
 void to_json(nlohmann::json& j, const Infiniband::Address& ia);
 void from_json(const nlohmann::json& j, Infiniband::Address& ia);
+void to_json(nlohmann::json& j, const Infiniband::QueuePairInfo& qpi);
+void from_json(const nlohmann::json& j, Infiniband::QueuePairInfo& qpi);
 void to_json(nlohmann::json& j, const TabletInfo& ti);
 void from_json(const nlohmann::json& j, TabletInfo& ti);
 void to_json(nlohmann::json& j, const ServerInfo& si);

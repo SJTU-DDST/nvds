@@ -26,8 +26,8 @@ class Infiniband {
     uint16_t lid;   // Local id
 		uint32_t qpn;   // Queue pair number
 		uint32_t psn;   // Packet sequence number
-		//uint32_t rkey;  // Memory region key
-    //uint64_t vaddr; // Virtual address of memory regions
+		uint32_t rkey;  // Memory region key
+    uint64_t vaddr; // Virtual address of memory regions
 	};
 
 	class DeviceList {
@@ -97,7 +97,7 @@ class Infiniband {
 		uint32_t GetPeerQPNum() const;
 		int GetState() const;
     // Bring a queue pair into RTS state
-    void Plumb(QueuePairInfo* qpi);
+    void Plumb(const QueuePairInfo& qpi);
 		void Activate();
    //private:
    // ibv_qp* Create(uint32_t max_send, uint32_t max_recv, );

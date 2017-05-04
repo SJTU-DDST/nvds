@@ -152,7 +152,7 @@ class Server : public BasicServer {
 
   // Worker
   std::array<Worker*, kNumTabletsPerServer> workers_;
-  std::array<Tablet*, kNumTabletsPerServer> tablets_;
+  std::array<Tablet*, kNumTabletAndBackupsPerServer> tablets_;
 };
 
 } // namespace nvds

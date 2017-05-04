@@ -4,9 +4,20 @@
 
 using namespace nvds;
 
-int main() {
+void Usage() {
+  std::cout << "usage: " << std::endl;
+  std::cout << "client  <coordinator_addr>" << std::endl;
+}
+
+int main(int argc, const char* argv[]) {
+  if (argc < 2) {
+    Usage();
+    return -1;
+  }
+
+  const std::string coord_addr = argv[1];
   try {
-    Client c {"192.168.99.14"};
+    Client c {coord_addr};
     c.Put("AUTHOR", "SJTU-DDST");
     c.Put("VERSION", "0.0.1");
 

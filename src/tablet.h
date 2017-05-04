@@ -9,6 +9,7 @@
 namespace nvds {
 
 struct Request;
+class IndexManager;
 
 // A reasonable prime number
 static const uint32_t kHashTableSize = 99871;
@@ -37,8 +38,8 @@ class Tablet {
   ~Tablet();
   DISALLOW_COPY_AND_ASSIGN(Tablet);
 
-  void set_info(const TabletInfo& info) { info_ = info; }
   const TabletInfo& info() const { return info_; }
+
   // TODO(wgtdkp): Directly return NVM address of the value
   // Find the key and copy the value into `val`.
   // Return: -1, not found; else, the length of the `val`.
@@ -48,6 +49,7 @@ class Tablet {
   int32_t Put(KeyHash hash, uint16_t key_len, const char* key,
               uint16_t val_len, const char* val);
   void Serve(Request& r);
+  void SettingupQPConnect(TabletId id, const IndexManager& index_manager);
 
  private:
   TabletInfo info_;

@@ -1,5 +1,6 @@
 #include "tablet.h"
 
+#include "index.h"
 #include "request.h"
 
 #define OFFSETOF_NVMOBJECT(obj, member) \
@@ -16,14 +17,15 @@ Tablet::Tablet(NVMPtr<NVMTablet> nvm_tablet)
   mr_ = ibv_reg_mr(ib_.pd().pd(), nvm_tablet_.ptr(), kNVMTabletSize,
                    IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_WRITE);
   assert(mr_ != nullptr);
-  info_.vaddr = reinterpret_cast<uint64_t>(nvm_tablet_.ptr());
-  info_.rkey = mr_->rkey;
+  //info_.vaddr = reinterpret_cast<uint64_t>(nvm_tablet_.ptr());
+  //info_.rkey = mr_->rkey;
 
   scq_ = ib_.CreateCQ(1);
   rcq_ = ib_.CreateCQ(1);
   for (size_t i = 0; i < kNumReplicas; ++i) {
     qps_[i] = new Infiniband::QueuePair(ib_, IBV_QPT_RC, Infiniband::kPort,
         nullptr, scq_, rcq_, 2 * kNumReplicas, 2 * kNumReplicas);
+    info_.qpis[i] = {};
     //qps_[i]->Plumb(qpi);
     // TODO(wgtdkp): plumb after getting peer queue pair info
   }
@@ -126,6 +128,29 @@ void Tablet::Serve(Request& r) {
     break;
   }
 
+}
+
+void Tablet::SettingupQPConnect(TabletId id, const IndexManager& index_manager) {
+  info_ = index_manager.GetTablet(id);
+  // FIXME(wgtdkp): queue pairs of master and backup are different
+  if (info_.is_backup) {
+    auto master_info = index_manager.GetTablet(info_.master);
+    assert(!master_info.is_backup);
+    for (uint32_t i = 0; i < kNumReplicas; ++i) {
+      if (master_info.backups[i] == id) {
+        qps_[0]->Plumb(master_info.qpis[i]);
+        break;
+      }
+      assert(i < kNumReplicas - 1);
+    }
+  } else {
+    for (uint32_t i = 0; i < kNumReplicas; ++i) {
+      auto backup_id = info_.backups[i];
+      auto backup_info = index_manager.GetTablet(backup_id);
+      assert(backup_info.is_backup);
+      qps_[i]->Plumb(backup_info.qpis[0]);
+    }
+  }
 }
 
 } // namespace nvds
