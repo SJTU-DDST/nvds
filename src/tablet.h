@@ -34,7 +34,7 @@ static const uint32_t kNVMTabletSize = sizeof(NVMTablet) + Allocator::kSize;
 class Tablet {
  public:
   //Tablet(const TabletInfo& info, NVMPtr<NVMTablet> nvm_tablet);
-  Tablet(NVMPtr<NVMTablet> nvm_tablet);
+  Tablet(NVMPtr<NVMTablet> nvm_tablet, bool is_backup=false);
   ~Tablet();
   DISALLOW_COPY_AND_ASSIGN(Tablet);
 

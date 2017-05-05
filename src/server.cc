@@ -29,18 +29,24 @@ Server::Server(NVMPtr<NVMDevice> nvm, uint64_t nvm_size)
   };
 
   // Tablets
-  for (uint32_t i = 0; i < kNumTabletsPerServer; ++i) {
+  for (uint32_t i = 0; i < kNumTabletAndBackupsPerServer; ++i) {
     auto ptr = reinterpret_cast<char*>(&nvm_->tablets) + i * kNVMTabletSize;
-    tablets_[i] = new Tablet(NVMPtr<NVMTablet>(reinterpret_cast<NVMTablet*>(ptr)));
-    workers_[i] = new Worker(this, tablets_[i]);
+    bool is_backup = i >= kNumTabletsPerServer;
+    tablets_[i] = new Tablet(NVMPtr<NVMTablet>(reinterpret_cast<NVMTablet*>(ptr)),
+                             is_backup);
+    if (i < kNumTabletsPerServer) {
+      workers_[i] = new Worker(this, tablets_[i]);
+    }
   }
 }
 
 Server::~Server() {
   // Destruct elements in reverse order
-  for (int64_t i = kNumTabletsPerServer - 1; i >= 0; --i) {
+  for (int64_t i = kNumTabletAndBackupsPerServer - 1; i >= 0; --i) {
     delete tablets_[i];
-    delete workers_[i];
+    if (i < kNumTabletsPerServer) {
+      delete workers_[i];
+    }
   }
   delete qp_;
   ib_.DestroyCQ(scq_);

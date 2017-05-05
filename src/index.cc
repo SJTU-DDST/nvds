@@ -10,7 +10,7 @@ const ServerInfo& IndexManager::AddServer(const std::string& addr,
   std::vector<Infiniband::QueuePairInfo> qpis = msg_body["tablet_qpis"];
   
   auto i = id;
-  for (uint32_t j = 0; j < kNumReplicas; ++j) {
+  for (uint32_t j = 0; j < kNumReplicas + 1; ++j) {
     for (uint32_t k = 0; k < kNumTabletsPerServer; ++k) {
       auto tablet_id = CalcTabletId(i, j, k);
       auto tablet_idx = CalcTabletId(0, j, k);
@@ -26,6 +26,7 @@ const ServerInfo& IndexManager::AddServer(const std::string& addr,
         auto backup_id = tablet_id;
         auto master_id = CalcTabletId((kNumServers + i - j) % kNumServers, 0, k);
         // It is tricky here
+        assert(backup_id != 0);
         tablets_[master_id].backups[j-1] = backup_id;
         tablets_[backup_id].master = master_id;
       }

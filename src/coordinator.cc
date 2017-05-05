@@ -72,7 +72,7 @@ void Coordinator::HandleServerRequestJoin(std::shared_ptr<Session> session,
 
   NVDS_LOG("join request from server: [%s]", session->GetPeerAddr().c_str());
 
-  index_manager_.AddServer(session->GetPeerAddr(), body["ib_addr"]);
+  index_manager_.AddServer(session->GetPeerAddr(), body);
   sessions_.push_back(session);
   ++num_servers_;
   total_storage_ += nvm_size;

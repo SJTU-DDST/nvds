@@ -39,7 +39,7 @@ struct NVMDevice {
 };
 
 static const uint64_t kNVMDeviceSize = sizeof(NVMDevice) +
-                                       kNVMTabletSize * kNumTabletsPerServer;
+                                       kNVMTabletSize * kNumTabletAndBackupsPerServer;
 
 class Server : public BasicServer {
  public:

@@ -63,8 +63,8 @@ struct TabletInfo {
   };
   bool operator==(const TabletInfo& other) const {
     return id == other.id &&
-           is_backup == other.is_backup &&
-           backups == other.backups;
+           server_id == other.server_id &&
+           is_backup == other.is_backup;
   }
   bool operator!=(const TabletInfo& other) const {
     return !(*this == other);

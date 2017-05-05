@@ -8,26 +8,30 @@
 
 namespace nvds {
 
-Tablet::Tablet(NVMPtr<NVMTablet> nvm_tablet)
+Tablet::Tablet(NVMPtr<NVMTablet> nvm_tablet, bool is_backup)
     : nvm_tablet_(nvm_tablet), allocator_(&nvm_tablet->data),
       send_bufs_(ib_.pd(), kSendBufSize, kNumReplicas, false),
       recv_bufs_(ib_.pd(), kRecvBufSize, kNumReplicas, true) {
+  info_.is_backup = is_backup;
+  
   // Memory region
   // FIXME(wgtdkp): how to simulate latency of RDMA read/write to NVM?
   mr_ = ibv_reg_mr(ib_.pd().pd(), nvm_tablet_.ptr(), kNVMTabletSize,
                    IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_WRITE);
   assert(mr_ != nullptr);
-  //info_.vaddr = reinterpret_cast<uint64_t>(nvm_tablet_.ptr());
-  //info_.rkey = mr_->rkey;
 
   scq_ = ib_.CreateCQ(1);
   rcq_ = ib_.CreateCQ(1);
   for (size_t i = 0; i < kNumReplicas; ++i) {
     qps_[i] = new Infiniband::QueuePair(ib_, IBV_QPT_RC, Infiniband::kPort,
         nullptr, scq_, rcq_, 2 * kNumReplicas, 2 * kNumReplicas);
-    info_.qpis[i] = {};
-    //qps_[i]->Plumb(qpi);
-    // TODO(wgtdkp): plumb after getting peer queue pair info
+    info_.qpis[i] = {
+      ib_.GetLid(Infiniband::kPort),
+      qps_[i]->GetLocalQPNum(),
+      kQPPsn,
+      mr_->rkey,
+      reinterpret_cast<uint64_t>(nvm_tablet_.ptr())
+    };
   }
 }
 
@@ -132,7 +136,6 @@ void Tablet::Serve(Request& r) {
 
 void Tablet::SettingupQPConnect(TabletId id, const IndexManager& index_manager) {
   info_ = index_manager.GetTablet(id);
-  // FIXME(wgtdkp): queue pairs of master and backup are different
   if (info_.is_backup) {
     auto master_info = index_manager.GetTablet(info_.master);
     assert(!master_info.is_backup);
@@ -147,6 +150,10 @@ void Tablet::SettingupQPConnect(TabletId id, const IndexManager& index_manager) 
     for (uint32_t i = 0; i < kNumReplicas; ++i) {
       auto backup_id = info_.backups[i];
       auto backup_info = index_manager.GetTablet(backup_id);
+      if (!backup_info.is_backup) {
+        NVDS_LOG("tablet id: %d", id);
+        NVDS_LOG("tablet backup id: %d", backup_id);
+      }
       assert(backup_info.is_backup);
       qps_[i]->Plumb(backup_info.qpis[0]);
     }
