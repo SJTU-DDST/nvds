@@ -16,7 +16,7 @@ BasicServer::BasicServer(uint16_t port)
 void BasicServer::Accept(MessageHandler recv_msg_handler,
                          MessageHandler send_msg_handler) {
   tcp_acceptor_.async_accept(conn_sock_,
-      [=](boost::system::error_code err) {
+      [this, recv_msg_handler, send_msg_handler](boost::system::error_code err) {
         if (!err) {
           std::make_shared<Session>(std::move(conn_sock_),
               recv_msg_handler, send_msg_handler)->Start();

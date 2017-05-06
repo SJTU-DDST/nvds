@@ -46,7 +46,7 @@ class Server : public BasicServer {
   // Workers & tablets
   friend class Worker;
   using Work = Infiniband::Buffer;
-  Server(NVMPtr<NVMDevice> nvm, uint64_t nvm_size);
+  Server(uint16_t port, NVMPtr<NVMDevice> nvm, uint64_t nvm_size);
   ~Server();
   DISALLOW_COPY_AND_ASSIGN(Server);
 

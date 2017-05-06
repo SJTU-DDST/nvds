@@ -10,8 +10,8 @@ namespace nvds {
 
 using json = nlohmann::json;
 
-Server::Server(NVMPtr<NVMDevice> nvm, uint64_t nvm_size)
-    : BasicServer(kServerPort), id_(0),
+Server::Server(uint16_t port, NVMPtr<NVMDevice> nvm, uint64_t nvm_size)
+    : BasicServer(port), id_(0),
       active_(false), nvm_size_(nvm_size), nvm_(nvm),
       send_bufs_(ib_.pd(), kSendBufSize, kNumTabletsPerServer, false),
       recv_bufs_(ib_.pd(), kRecvBufSize, kNumTabletsPerServer, true) {

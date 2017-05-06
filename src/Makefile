@@ -1,9 +1,9 @@
 CXX = g++ -std=c++14 -O0
 LD = g++
 CXXINC = -I./ -I../json/src/
-CXXFLAGS = -g -Wall -D_XOPEN_SOURCE -D_GNU_SOURCE $(CXXINC)
+CXXFLAGS = -g -fsanitize=address -Wall -D_XOPEN_SOURCE -D_GNU_SOURCE $(CXXINC)
 LDFLAGS = 
-LDLIBS = -libverbs -lboost_system -lboost_thread -lrt -lpthread -lssl -lcrypto
+LDLIBS = -lasan -libverbs -lboost_system -lboost_thread -lrt -lpthread -lssl -lcrypto
 
 SRCS = allocator.cc         \
 	   basic_server.cc		\

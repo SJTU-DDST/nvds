@@ -14,13 +14,15 @@ const ServerInfo& IndexManager::AddServer(const std::string& addr,
     for (uint32_t k = 0; k < kNumTabletsPerServer; ++k) {
       auto tablet_id = CalcTabletId(i, j, k);
       auto tablet_idx = CalcTabletId(0, j, k);
-      tablets_[tablet_id] = {tablet_id, i, j > 0};
+      tablets_[tablet_id].id = tablet_id;
+      tablets_[tablet_id].server_id = i;
+      tablets_[tablet_id].is_backup = j > 0;
 
       copy(qpis.begin() + tablet_idx * kNumReplicas,
            qpis.begin() + (tablet_idx + 1) * kNumReplicas,
            tablets_[tablet_id].qpis.begin());
 
-      if (j == 0) {
+      if (!tablets_[tablet_id].is_backup) {
         key_tablet_map_[tablet_id] = tablet_id;
       } else {
         auto backup_id = tablet_id;

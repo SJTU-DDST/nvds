@@ -9,18 +9,20 @@ using namespace nvds;
 
 static void Usage(int argc, const char* argv[]) {
     std::cout << "Usage:" << std::endl
-              << "    " << argv[0] << " config_file" << std::endl;
+              << "    " << argv[0] << " <port> <config_file>" << std::endl;
 }
 
 int main(int argc, const char* argv[]) {
   // -2. Argument parsing.
-  if (argc < 2) {
+  if (argc < 3) {
     Usage(argc, argv);
     return -1;
   }
 
+  uint16_t server_port = std::stoi(argv[1]);
+
   // -1. Load config file.
-  Config::GetInst()->Load(argv[1]);
+  Config::GetInst()->Load(argv[2]);
 
   // Step 0, self initialization, including formatting nvm storage.
   // DRAM emulated NVM.
@@ -30,7 +32,7 @@ int main(int argc, const char* argv[]) {
     return -1;
   }
   try {
-    Server s(nvm, kNVMDeviceSize);
+    Server s(server_port, nvm, kNVMDeviceSize);
 
     // Step 1: request to the coordinator for joining in.
     if (!s.Join()) {
@@ -45,7 +47,7 @@ int main(int argc, const char* argv[]) {
 
     // Step 4: serving request
     NVDS_LOG("Server startup");
-    NVDS_LOG("Listening at: %u", kServerPort);
+    NVDS_LOG("Listening at: %u", server_port);
     NVDS_LOG("......");
     
     s.Run();

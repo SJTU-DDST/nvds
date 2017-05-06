@@ -17,6 +17,7 @@
 namespace nvds {
 
 class IndexManager {
+  friend class Coordinator;
   friend void to_json(nlohmann::json& j, const IndexManager& im);
   friend void from_json(const nlohmann::json& j, IndexManager& im);
 
@@ -64,8 +65,8 @@ class IndexManager {
     return s_idx * kNumTabletAndBackupsPerServer + r_idx * kNumTabletsPerServer + t_idx;
   }
 
-  std::array<TabletId, kNumTablets> key_tablet_map_;
-  std::array<TabletInfo, kNumTabletAndBackupsPerServer> tablets_;
+  std::array<TabletId, kNumTabletAndBackups> key_tablet_map_;
+  std::array<TabletInfo, kNumTabletAndBackups> tablets_;
   std::array<ServerInfo, kNumServers> servers_;
 };
 

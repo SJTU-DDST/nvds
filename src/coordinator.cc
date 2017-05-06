@@ -14,8 +14,6 @@ Coordinator::Coordinator()
 }
 
 void Coordinator::Run() {
-  // TODO(wgtdkp): initializations
-
   Accept(std::bind(&Coordinator::HandleRecvMessage, this,
                    std::placeholders::_1, std::placeholders::_2),
          std::bind(&Coordinator::HandleSendMessage, this,
@@ -25,7 +23,6 @@ void Coordinator::Run() {
 
 void Coordinator::HandleRecvMessage(std::shared_ptr<Session> session,
                                     std::shared_ptr<Message> msg) {
-  NVDS_LOG("received a message");
   switch (msg->sender_type()) {
   case Message::SenderType::SERVER:
     HandleMessageFromServer(session, msg);
@@ -40,16 +37,15 @@ void Coordinator::HandleRecvMessage(std::shared_ptr<Session> session,
 
 void Coordinator::HandleSendMessage(std::shared_ptr<Session> session,
                                     std::shared_ptr<Message> msg) {
-  // Start again
-  session->Start();
+  // Receive message
+  session->AsyncRecvMessage(std::make_shared<Message>());
 }
 
 void Coordinator::HandleMessageFromServer(std::shared_ptr<Session> session,
                                           std::shared_ptr<Message> msg) {
-  NVDS_LOG("received a message from server");
   switch (msg->type()) {
   case Message::Type::REQ_JOIN:
-    NVDS_LOG("join message: %s", msg->body().c_str());
+    //NVDS_LOG("join message: %s", msg->body().c_str());
     HandleServerRequestJoin(session, msg);
     break;
   case Message::Type::REQ_LEAVE:
@@ -73,7 +69,7 @@ void Coordinator::HandleServerRequestJoin(std::shared_ptr<Session> session,
   NVDS_LOG("join request from server: [%s]", session->GetPeerAddr().c_str());
 
   index_manager_.AddServer(session->GetPeerAddr(), body);
-  sessions_.push_back(session);
+  sessions_.emplace_back(session);
   ++num_servers_;
   total_storage_ += nvm_size;
 
@@ -82,12 +78,13 @@ void Coordinator::HandleServerRequestJoin(std::shared_ptr<Session> session,
     NVDS_LOG("all servers' join request received. [total servers = %d]",
              kNumServers);
     ResponseAllJoins();
+  } else {
+    NVDS_LOG("[%d/%d] join requests received", num_servers_, kNumServers);
   }
 }
 
 void Coordinator::ResponseAllJoins() {
   assert(sessions_.size() == kNumServers);
-
   for (size_t i = 0; i < sessions_.size(); ++i) {
     json msg_body {
       {"id", i},
