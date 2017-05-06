@@ -44,9 +44,8 @@ void Client::Join() {
 }
 
 tcp::socket Client::Connect(const std::string& coord_addr) {
-  boost::asio::io_service tcp_service;
-  tcp::resolver resolver {tcp_service};
-  tcp::socket conn_sock {tcp_service};
+  tcp::resolver resolver {tcp_service_};
+  tcp::socket conn_sock {tcp_service_};
   tcp::resolver::query query {coord_addr, std::to_string(kCoordPort)};
   auto ep = resolver.resolve(query);
   boost::asio::connect(conn_sock, ep);

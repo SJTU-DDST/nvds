@@ -34,6 +34,7 @@ class Client {
   // Init infiniband devices
   void InitIB();
 
+  boost::asio::io_service tcp_service_;
   Session session_;
   IndexManager index_manager_;
 

@@ -17,7 +17,6 @@
 namespace nvds {
 
 class IndexManager {
-  friend class Coordinator;
   friend void to_json(nlohmann::json& j, const IndexManager& im);
   friend void from_json(const nlohmann::json& j, IndexManager& im);
 
@@ -41,7 +40,7 @@ class IndexManager {
   }
   // Get the id of the tablet that this key hash locates in.
   TabletId GetTabletId(KeyHash key_hash) const {
-    uint32_t idx = key_hash / ((1.0 + kMaxKeyHash) / kNumTablets);
+    uint32_t idx = key_hash / ((1.0 + kMaxKeyHash) / key_tablet_map_.size());
     return key_tablet_map_[idx];
   }
   const TabletInfo& GetTablet(KeyHash key_hash) const {
@@ -65,7 +64,7 @@ class IndexManager {
     return s_idx * kNumTabletAndBackupsPerServer + r_idx * kNumTabletsPerServer + t_idx;
   }
 
-  std::array<TabletId, kNumTabletAndBackups> key_tablet_map_;
+  std::array<TabletId, kNumTablets> key_tablet_map_;
   std::array<TabletInfo, kNumTabletAndBackups> tablets_;
   std::array<ServerInfo, kNumServers> servers_;
 };

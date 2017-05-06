@@ -23,7 +23,8 @@ const ServerInfo& IndexManager::AddServer(const std::string& addr,
            tablets_[tablet_id].qpis.begin());
 
       if (!tablets_[tablet_id].is_backup) {
-        key_tablet_map_[tablet_id] = tablet_id;
+        auto idx = CalcTabletId(0, i, k);
+        key_tablet_map_[idx] = tablet_id;
       } else {
         auto backup_id = tablet_id;
         auto master_id = CalcTabletId((kNumServers + i - j) % kNumServers, 0, k);
