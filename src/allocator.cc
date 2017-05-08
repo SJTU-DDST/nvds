@@ -5,7 +5,7 @@
 namespace nvds {
 
 void Allocator::Format() {
-  memset(flm_, 0, sizeof(FreeListManager));
+  memset(flm_, 0, kSize);
   uint32_t blk = sizeof(FreeListManager);
   Write(GetLastFreeList(), blk);
 
@@ -16,6 +16,7 @@ void Allocator::Format() {
   Write(blk, blk_size & ~BlockHeader::kFreeMask);
   Write(blk + blk_size - sizeof(uint32_t), blk_size);
   SetTheFreeTag(blk, blk_size);
+  // TODO(wgtdkp): setting `next` and `prev` nullptr(unnecessary if called `memset`)
 }
 
 uint32_t Allocator::AllocBlock(uint32_t blk_size) {

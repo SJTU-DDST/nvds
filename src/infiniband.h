@@ -2,9 +2,11 @@
 #define _NVDS_INFINIBAND_H_
 
 #include "common.h"
+#include "spinlock.h"
 #include "transport.h"
 
 #include <cstring>
+#include <mutex>
 #include <infiniband/verbs.h>
 #include <netinet/ip.h>
 
@@ -148,14 +150,15 @@ class Infiniband {
 		DISALLOW_COPY_AND_ASSIGN(RegisteredBuffers);
     // Used as buffer pool
     Buffer* Alloc() {
-      // FIXME(wgtdkp): make it thread safe
+      std::lock_guard<Spinlock> _(spinlock_);
       auto ret = root_;
-      if (root_ != nullptr)
+      if (root_ != nullptr) {
         root_ = root_->next;
+      }
       return ret;
     }
     void Free(Buffer* b) {
-      // FIXME(wgtdkp): make it thread safe
+      std::lock_guard<Spinlock> _(spinlock_);
       b->next = root_;
       root_ = b;
     }
@@ -171,13 +174,14 @@ class Infiniband {
     }
 		Buffer* begin() { return bufs_; }
 		Buffer* end() { return bufs_ + buf_num_; }
-
+    const Buffer* root() const { return root_; }
 	 private:
 	 	uint32_t buf_size_;
 		uint32_t buf_num_;
 		void* ptr_;
 		Buffer* bufs_;
     Buffer* root_;
+    Spinlock spinlock_;
 	};
 
   uint16_t GetLid(int32_t port);

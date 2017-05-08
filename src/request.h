@@ -30,7 +30,20 @@ struct Request {
   const char* Key() const { return data; }
   char* Val() { return data + key_len; }
   const char* Val() const { return data + key_len; }
-
+  void Print() const {
+    std::cout << "type: " << (type == Type::PUT ? "PUT" : type == Type::GET ? "GET" : "DEL") << std::endl;
+    std::cout << "key_len: " << key_len << std::endl;
+    std::cout << "val_len: " << val_len << std::endl;
+    std::cout << "key_hash: " << key_hash << std::endl;
+    std::cout << "key: ";
+    for (size_t i = 0; i < key_len; ++i)
+      std::cout << data[i];
+    std::cout << std::endl;
+    std::cout << "val: ";
+    for (size_t i = key_len; i < key_len + val_len; ++i)
+      std::cout << data[i];
+    std::cout << std::endl;
+  }
  private:
   Request(Type type, const std::string& key,
       const std::string& val, KeyHash key_hash)

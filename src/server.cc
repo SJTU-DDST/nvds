@@ -4,6 +4,7 @@
 #include "json.hpp"
 #include "request.h"
 
+#include <chrono>
 #include <thread>
 
 namespace nvds {
@@ -13,8 +14,8 @@ using json = nlohmann::json;
 Server::Server(uint16_t port, NVMPtr<NVMDevice> nvm, uint64_t nvm_size)
     : BasicServer(port), id_(0),
       active_(false), nvm_size_(nvm_size), nvm_(nvm),
-      send_bufs_(ib_.pd(), kSendBufSize, kNumTabletsPerServer, false),
-      recv_bufs_(ib_.pd(), kRecvBufSize, kNumTabletsPerServer, true) {
+      send_bufs_(ib_.pd(), kSendBufSize, kNumTabletsPerServer + 100, false),
+      recv_bufs_(ib_.pd(), kRecvBufSize, kNumTabletsPerServer + 100, true) {
   // Infiniband
   scq_ = ib_.CreateCQ(kNumTabletsPerServer);
   rcq_ = ib_.CreateCQ(kNumTabletsPerServer);
@@ -144,29 +145,31 @@ void Server::HandleSendMessage(std::shared_ptr<Session> session,
 }
 
 void Server::Poll() {
-  // Post 3 extra Receives
-  for (size_t i = 0; i < 3; ++i) {
-    ib_.PostReceive(qp_, recv_bufs_.Alloc());
-  }
   while (true) {
-    auto b = ib_.Receive(qp_);
+    Infiniband::Buffer* b = nullptr;
+    while ((b = recv_bufs_.Alloc()) == nullptr) {
+      std::this_thread::sleep_for(std::chrono::microseconds(1));
+    }
+    assert(b);
+    ib_.PostReceive(qp_, b);
+    assert(b == ib_.Receive(qp_));
     
     // Dispatch(b, peer_addr);
     // Dispatch to worker's queue, then worker get work from it's queue.
     // The buffer `b` will be freed by the worker, thus, the buffer pool
     // must made thread safe.
     Dispatch(b);
-
-    // recv_bufs_.Alloc() is fast, don't worry.
-    if ((b = recv_bufs_.Alloc()) != nullptr) {
-      ib_.PostReceive(qp_, b);
-    }
   }
 }
 
 void Server::Dispatch(Work* work) {
   auto r = work->MakeRequest();
   auto id = index_manager_.GetTabletId(r->key_hash);
+  // DEBUG
+  //r->Print();
+  //std::cout << "server id: " << id_ << std::endl;
+  //std::cout << "tablet id: " << id << std::endl;
+  //std::cout << std::flush;
   workers_[id % kNumTabletAndBackupsPerServer]->Enqueue(work);
 }
 

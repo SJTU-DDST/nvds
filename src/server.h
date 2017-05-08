@@ -83,6 +83,7 @@ class Server : public BasicServer {
         head = work;
       } else if (head == tail) {
         std::lock_guard<Spinlock> _(spinlock_);
+        // FIXME(wgtdkp): tail COULD BE nullptr !!!
         tail->next = work;
         tail = work;
       } else {

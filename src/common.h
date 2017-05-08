@@ -32,7 +32,7 @@ namespace nvds {
 }
 
 #define NVDS_LOG(format, args...) {                 \
-  std::clog << Format(format, ##args) << std::endl; \
+  std::cout << Format(format, ##args) << std::endl; \
 }
 
 using ServerId = uint32_t;
@@ -46,7 +46,7 @@ static const uint16_t kServerPort = 7070;
 static const uint32_t kMaxItemSize = 1024;
 static const uint32_t kNumReplicas = 2;
 static const uint32_t kNumServers = 3;
-static const uint32_t kNumTabletsPerServer = 8; // equal to `thread::hardware_concurrency()`
+static const uint32_t kNumTabletsPerServer = 1; // equal to `thread::hardware_concurrency()`
 static const uint32_t kNumTabletAndBackupsPerServer = kNumTabletsPerServer * (1 + kNumReplicas);
 static const uint32_t kNumTablets = kNumTabletsPerServer * kNumServers;
 static const uint32_t kNumTabletAndBackups = kNumTabletAndBackupsPerServer * kNumServers;

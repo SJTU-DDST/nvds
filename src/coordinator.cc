@@ -67,6 +67,10 @@ void Coordinator::HandleServerRequestJoin(std::shared_ptr<Session> session,
   uint64_t nvm_size = body["size"];
 
   NVDS_LOG("join request from server: [%s]", session->GetPeerAddr().c_str());
+  if (num_servers_ >= kNumServers) {
+    NVDS_LOG("too much servers, ignored");
+    return;
+  }
 
   index_manager_.AddServer(session->GetPeerAddr(), body);
   sessions_.emplace_back(session);
