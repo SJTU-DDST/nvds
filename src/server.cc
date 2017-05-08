@@ -165,10 +165,10 @@ void Server::Poll() {
 }
 
 void Server::Dispatch(Work* work) {
-  auto r = work->MakeRequest();
-  assert(r->Len() == work->msg_len);
+  auto r = work->MakeRequest();\
+  std::cout << "hash: " << r->key_hash << std::endl;
   auto id = index_manager_.GetTabletId(r->key_hash);
-  workers_[id]->Enqueue(work);
+  workers_[id % kNumTabletAndBackupsPerServer]->Enqueue(work);
 }
 
 void Server::Worker::Serve() {

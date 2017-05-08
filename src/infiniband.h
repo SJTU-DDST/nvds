@@ -135,7 +135,7 @@ class Infiniband {
                mr(nullptr), is_recv(false) {}
 		DISALLOW_COPY_AND_ASSIGN(Buffer);
     Request* MakeRequest() {
-      return reinterpret_cast<Request*>(buf);
+      return reinterpret_cast<Request*>(buf + kIBUDPadding);
     }
 	};
 

@@ -60,7 +60,8 @@ static const uint32_t kSendBufSize = 1024 + 128;
 static const uint32_t kRecvBufSize = 1024 * 2 + 128;
 static const uint32_t kPageSize = sysconf(_SC_PAGESIZE);
 static const uint32_t kQkey = 0;
-static const int32_t kQPPsn = 0x23;
+static const int32_t  kQPPsn = 0x23;
+static const uint32_t kIBUDPadding = 40;
 
 std::string Format(const char* format, ...);
 std::string Demangle(const char* name);

@@ -17,7 +17,9 @@ class Allocator {
  public:
   static const uint32_t kMaxBlockSize = 1024 + 128;
   static const uint32_t kSize = 16 * 1024 * 1024;
-  Allocator(void* base) : Allocator(reinterpret_cast<uintptr_t>(base)) {}
+  Allocator(void* base) : Allocator(reinterpret_cast<uintptr_t>(base)) {
+    Format();
+  }
   Allocator(uintptr_t base) : base_(base), cnt_writes_(0) {
     flm_ = OffsetToPtr<FreeListManager>(0);
   }
@@ -45,19 +47,19 @@ class Allocator {
     auto blk = p - sizeof(uint32_t) - base_;
     FreeBlock(blk);
   }
-  void Format();
   uintptr_t base() const { return base_; }
   uint64_t cnt_writes() const { return cnt_writes_; }
 
  private:
   static const uint32_t kNumFreeLists = kMaxBlockSize / 16 + 1;
+  void Format();
   template<typename T>
   T* OffsetToPtr(uint32_t offset) const {
     return reinterpret_cast<T*>(base_ + offset);
   }
   template<typename T>
   void Write(uint32_t offset, const T& val) {
-    assert(offset);
+    assert(offset != 0);
     auto ptr = OffsetToPtr<T>(offset);
     *ptr = val;
     // TODO(wgtdkp): Collect
