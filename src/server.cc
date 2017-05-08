@@ -165,8 +165,7 @@ void Server::Poll() {
 }
 
 void Server::Dispatch(Work* work) {
-  auto r = work->MakeRequest();\
-  std::cout << "hash: " << r->key_hash << std::endl;
+  auto r = work->MakeRequest();
   auto id = index_manager_.GetTabletId(r->key_hash);
   workers_[id % kNumTabletAndBackupsPerServer]->Enqueue(work);
 }

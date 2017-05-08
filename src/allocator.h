@@ -13,7 +13,6 @@
 namespace nvds {
 
 class Allocator {
-  friend class Tablet;
  public:
   static const uint32_t kMaxBlockSize = 1024 + 128;
   static const uint32_t kSize = 16 * 1024 * 1024;
@@ -25,9 +24,7 @@ class Allocator {
   }
   ~Allocator() {}
   DISALLOW_COPY_AND_ASSIGN(Allocator);
-
-  //uintptr_t Alloc(uint32_t size);
-  //void Free(uintptr_t ptr);
+  /*
   template<typename T>
   NVMPtr<T> Alloc(uint32_t size) {
     auto blk_size = RoundupBlockSize(size + sizeof(uint32_t));
@@ -39,6 +36,8 @@ class Allocator {
     auto ret = blk == 0 ? 0 : blk + sizeof(uint32_t) + base_;
     return NVMPtr<T>(reinterpret_cast<T*>(ret));
   }
+  */
+  /*
   template<typename T>
   void Free(NVMPtr<T> ptr) {
     // TODO(wgtdkp): checking if ptr is actually in this Allocator zone.
@@ -47,13 +46,23 @@ class Allocator {
     auto blk = p - sizeof(uint32_t) - base_;
     FreeBlock(blk);
   }
-  uintptr_t base() const { return base_; }
-  uint64_t cnt_writes() const { return cnt_writes_; }
+  */
+  // Return offset to the object
+  uint32_t Alloc(uint32_t size) {
+    auto blk_size = RoundupBlockSize(size + sizeof(uint32_t));
+    assert(blk_size % 16 == 0);
+    // The client side should refuse too big kv item.  
+    assert(blk_size <= kMaxBlockSize);
 
- private:
-  static const uint32_t kNumFreeLists = kMaxBlockSize / 16 + 1;
-  void Format();
-  template<typename T>
+    auto blk = AllocBlock(blk_size);
+    return blk == 0 ? 0 : blk + sizeof(uint32_t);
+  }
+  void Free(uint32_t ptr) {
+    // TODO(wgtdkp): checking if ptr is actually in this Allocator zone.
+    assert(ptr > sizeof(uint32_t) && ptr <= kSize);
+    FreeBlock(ptr - sizeof(uint32_t));
+  }
+    template<typename T>
   T* OffsetToPtr(uint32_t offset) const {
     return reinterpret_cast<T*>(base_ + offset);
   }
@@ -89,6 +98,12 @@ class Allocator {
   void Memcpy(char* des, uint32_t src, uint32_t len) {
     memcpy(des, OffsetToPtr<char>(src), len);
   }
+  uintptr_t base() const { return base_; }
+  uint64_t cnt_writes() const { return cnt_writes_; }
+
+ private:
+  static const uint32_t kNumFreeLists = kMaxBlockSize / 16 + 1;
+  void Format();
 
   PACKED(
   struct BlockHeader {

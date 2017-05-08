@@ -68,17 +68,16 @@ bool Client::Put(const std::string& key, const std::string& val) {
   // 2. post ib send and recv
   auto sb = send_bufs_.Alloc();
   auto r = Request::New(sb->buf, Request::Type::PUT, key, val, hash);
-  std::cout << "hash: " << r->key_hash << std::endl;
-  auto rb = recv_bufs_.Alloc();
-  ib_.PostReceive(qp_, rb);
+  //auto rb = recv_bufs_.Alloc();
+  //ib_.PostReceive(qp_, rb);
   ib_.PostSendAndWait(qp_, sb, r->Len(), &server.ib_addr);
-  auto b = ib_.Receive(qp_);
+  //auto b = ib_.Receive(qp_);
 
-  auto ret = b == rb;
+  //auto ret = b == rb;
   send_bufs_.Free(sb);
-  recv_bufs_.Free(rb);
+  //recv_bufs_.Free(rb);
   Request::Del(r);
-  return ret;
+  return true;//ret;
 }
 
  bool Client::Del(const std::string& key) {

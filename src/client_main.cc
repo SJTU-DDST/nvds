@@ -19,7 +19,8 @@ int main(int argc, const char* argv[]) {
   try {
     Client c {coord_addr};
     c.Put("AUTHOR", "SJTU-DDST");
-    c.Put("VERSION", "0.0.1");
+    c.Put("AUTHOR", "SJTU-DDST");
+    //c.Put("VERSION", "0.0.1");
 
     auto a = c.Get("AUTHOR");
     auto v = c.Get("VERSION");

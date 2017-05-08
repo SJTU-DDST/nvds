@@ -64,9 +64,9 @@ int32_t Tablet::Put(KeyHash hash, uint16_t key_len, const char* key,
       allocator_.Memcpy(OFFSETOF_NVMOBJECT(p, data) + key_len, val, val_len);
     } else {
       auto next = allocator_.Read<uint32_t>(OFFSETOF_NVMOBJECT(p, next));
-      allocator_.FreeBlock(p);
-      auto size = Allocator::RoundupBlockSize(sizeof(NVMObject) + key_len + val_len);
-      p = allocator_.AllocBlock(size);
+      allocator_.Free(p);
+      auto size = sizeof(NVMObject) + key_len + val_len;
+      p = allocator_.Alloc(size);
       allocator_.Write<NVMObject>(p, {next, key_len, val_len, hash});
       allocator_.Memcpy(OFFSETOF_NVMOBJECT(p, data), key, key_len);
       allocator_.Memcpy(OFFSETOF_NVMOBJECT(p, data) + key_len, val, val_len);
@@ -75,8 +75,8 @@ int32_t Tablet::Put(KeyHash hash, uint16_t key_len, const char* key,
     break;
   }
   if (!p) {
-    auto size = Allocator::RoundupBlockSize(sizeof(NVMObject) + key_len + val_len);
-    p = allocator_.AllocBlock(size);
+    auto size = sizeof(NVMObject) + key_len + val_len;
+    p = allocator_.Alloc(size);
     // TODO(wgtdkp): use single `memcpy`
     allocator_.Write<NVMObject>(p, {head, key_len, val_len, hash});
     allocator_.Memcpy(OFFSETOF_NVMOBJECT(p, data), key, key_len);
@@ -115,7 +115,7 @@ void Tablet::Del(KeyHash hash, uint16_t key_len, const char* key) {
         allocator_.Memcmp(OFFSETOF_NVMOBJECT(p, data), key, key_len)) {
       auto next = allocator_.Read<uint32_t>(OFFSETOF_NVMOBJECT(p, next));
       allocator_.Write(OFFSETOF_NVMOBJECT(q, next), next);
-      allocator_.FreeBlock(p);
+      allocator_.Free(p);
       return;
     }
   }
