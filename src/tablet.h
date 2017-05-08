@@ -23,13 +23,13 @@ struct NVMObject {
 };
 
 struct NVMTablet {
+  char data[Allocator::kSize];
   std::array<uint32_t, kHashTableSize> hash_table;
-  char data[0];
   NVMTablet() {
     hash_table.fill(0);
   }
 };
-static const uint32_t kNVMTabletSize = sizeof(NVMTablet) + Allocator::kSize;
+static const uint32_t kNVMTabletSize = sizeof(NVMTablet);
 
 class Tablet {
  public:

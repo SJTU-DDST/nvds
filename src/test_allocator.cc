@@ -22,8 +22,6 @@ TEST (AllocatorTest, Format) {
   uintptr_t base = reinterpret_cast<uintptr_t>(mem);
   Allocator a(base);
 
-  a.Format();
-
   free(mem);
 }
 
@@ -32,7 +30,6 @@ TEST (AllocatorTest, Alloc) {
 
   uintptr_t base = reinterpret_cast<uintptr_t>(mem);
   Allocator a(base);
-  a.Format();
 
   uintptr_t blk;
   vector<uintptr_t> blks;
@@ -49,7 +46,6 @@ TEST (AllocatorTest, AllocFree) {
 
   uintptr_t base = reinterpret_cast<uintptr_t>(mem);
   Allocator a(base);
-  a.Format();
 
   vector<uintptr_t> blks;
   uintptr_t blk;
@@ -77,7 +73,6 @@ TEST (AllocatorTest, Random) {
 
   uintptr_t base = reinterpret_cast<uintptr_t>(mem);
   Allocator a(base);
-  a.Format();
 
   vector<uintptr_t> blks;
   uintptr_t blk;
@@ -112,7 +107,6 @@ TEST (AllocatorTest, UsageRate) {
 
   uintptr_t base = reinterpret_cast<uintptr_t>(mem);
   Allocator a(base);
-  a.Format();
 
   vector<uintptr_t> blks;
   vector<uint32_t> blk_sizes;
