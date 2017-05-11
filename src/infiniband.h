@@ -163,9 +163,7 @@ class Infiniband {
       root_ = b;
     }
 		Buffer& GetBuffer(const void* pos) {
-			auto idx =
-          (static_cast<const char*>(pos) - static_cast<const char*>(ptr_)) /
-					buf_size_;
+			auto idx = (static_cast<const char*>(pos) - static_cast<const char*>(ptr_)) / buf_size_;
 			return bufs_[idx];
 		}
     Buffer& operator[](size_t idx) { return bufs_[idx]; }

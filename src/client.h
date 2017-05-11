@@ -24,6 +24,7 @@ class Client {
   bool Del(const std::string& key);
 
  private:
+  static const uint32_t kMaxIBQueueDepth = 128;
   static const uint32_t kSendBufSize = 1024 * 2 + 128;
   static const uint32_t kRecvBufSize = 1024 + 128;
   // May throw exception `boost::system::system_error`

@@ -14,13 +14,13 @@ using json = nlohmann::json;
 Server::Server(uint16_t port, NVMPtr<NVMDevice> nvm, uint64_t nvm_size)
     : BasicServer(port), id_(0),
       active_(false), nvm_size_(nvm_size), nvm_(nvm),
-      send_bufs_(ib_.pd(), kSendBufSize, kNumTabletsPerServer + 100, false),
-      recv_bufs_(ib_.pd(), kRecvBufSize, kNumTabletsPerServer + 100, true) {
+      send_bufs_(ib_.pd(), kSendBufSize, kMaxIBQueueDepth, false),
+      recv_bufs_(ib_.pd(), kRecvBufSize, kMaxIBQueueDepth, true) {
   // Infiniband
-  scq_ = ib_.CreateCQ(kNumTabletsPerServer);
-  rcq_ = ib_.CreateCQ(kNumTabletsPerServer);
+  scq_ = ib_.CreateCQ(kMaxIBQueueDepth);
+  rcq_ = ib_.CreateCQ(kMaxIBQueueDepth);
   qp_ = new Infiniband::QueuePair(ib_, IBV_QPT_UD, Infiniband::kPort, nullptr,
-      scq_, rcq_, kNumTabletsPerServer, kNumTabletsPerServer);
+      scq_, rcq_, kMaxIBQueueDepth, kMaxIBQueueDepth);
   qp_->Activate();
   
   ib_addr_ = {
@@ -145,20 +145,48 @@ void Server::HandleSendMessage(std::shared_ptr<Session> session,
 }
 
 void Server::Poll() {
-  while (true) {
-    Infiniband::Buffer* b = nullptr;
-    while ((b = recv_bufs_.Alloc()) == nullptr) {
-      std::this_thread::sleep_for(std::chrono::microseconds(1));
-    }
+  // This has a great
+  // Fill the receive queue
+  for (size_t i = 0; i < kMaxIBQueueDepth; ++i) {
+    auto b = recv_bufs_.Alloc();
     assert(b);
     ib_.PostReceive(qp_, b);
-    assert(b == ib_.Receive(qp_));
-    
+  }
+
+  using namespace std::chrono;
+  uint64_t cnt = 0, total = 0;
+  high_resolution_clock::time_point begin;
+  while (true) {
+    auto b = ib_.Receive(qp_);
+    assert(b);
     // Dispatch(b, peer_addr);
     // Dispatch to worker's queue, then worker get work from it's queue.
     // The buffer `b` will be freed by the worker, thus, the buffer pool
     // must made thread safe.
-    Dispatch(b);
+    //Dispatch(b);
+    recv_bufs_.Free(b);
+
+    b = recv_bufs_.Alloc();
+    //while ((b = recv_bufs_.Alloc()) == nullptr) {
+    //  std::this_thread::sleep_for(std::chrono::microseconds(1));
+    //}
+    assert(b);
+    ib_.PostReceive(qp_, b);
+    
+    // Performance measurement
+    if (cnt == 0) {
+      begin = high_resolution_clock::now();
+    }
+    if (++cnt == 500 * 1000) {
+      auto end = high_resolution_clock::now();
+      double t = duration_cast<duration<double>>(end - begin).count();
+      NVDS_LOG("server %d QPS: %.2f, time: %.2f", id_, cnt / t, t);
+      cnt = 0;
+    }
+
+    if (0/*(++total % 50000) == 0 || total > 3950000*/) {
+      std::clog << total << std::endl;
+    }
   }
 }
 

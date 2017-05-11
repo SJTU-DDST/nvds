@@ -8,8 +8,8 @@ using json = nlohmann::json;
 
 Client::Client(const std::string& coord_addr)
     : session_(Connect(coord_addr)),
-      send_bufs_(ib_.pd(), kSendBufSize, kNumServers, false),
-      recv_bufs_(ib_.pd(), kRecvBufSize, kNumServers, true) {
+      send_bufs_(ib_.pd(), kSendBufSize, kMaxIBQueueDepth, false),
+      recv_bufs_(ib_.pd(), kRecvBufSize, kMaxIBQueueDepth, true) {
   InitIB();
   Join();
 }
@@ -22,10 +22,10 @@ Client::~Client() {
 }
 
 void Client::InitIB() {
-  scq_ = ib_.CreateCQ(1);
-  rcq_ = ib_.CreateCQ(1);
+  scq_ = ib_.CreateCQ(kMaxIBQueueDepth);
+  rcq_ = ib_.CreateCQ(kMaxIBQueueDepth);
   qp_ = new Infiniband::QueuePair(ib_, IBV_QPT_UD, Infiniband::kPort,
-                                  nullptr, scq_, rcq_, 128, 128);
+      nullptr, scq_, rcq_, kMaxIBQueueDepth, kMaxIBQueueDepth);
   qp_->Activate();
 }
 
@@ -64,7 +64,6 @@ bool Client::Put(const std::string& key, const std::string& val) {
   // 1. get tablet and server info
   //auto& tablet = index_manager_.GetTablet(hash);
   auto& server = index_manager_.GetServer(hash);
-
   // 2. post ib send and recv
   auto sb = send_bufs_.Alloc();
   auto r = Request::New(sb->buf, Request::Type::PUT, key, val, hash);

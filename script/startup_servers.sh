@@ -1,6 +1,5 @@
 #!/bin/bash
-../src/build/server 5050 ./config.json > server_5050.txt &
-sleep 0.1s
-../src/build/server 6060 ./config.json > server_6060.txt &
-sleep 0.1s
-../src/build/server 7070 ./config.json > server_7070.txt &
+for ((i = 5050; i < 5050 + $1; i = i + 1)) do
+    ../src/build/server $i ./config.json > "server_$i.txt" &
+    sleep 0.1s
+done

@@ -77,12 +77,13 @@ class Server : public BasicServer {
     DISALLOW_COPY_AND_ASSIGN(WorkQueue);
     // Made Thread safe
     void Enqueue(Work* work) {
+      std::lock_guard<Spinlock> _(spinlock_);
       if (head == nullptr) {
-        std::lock_guard<Spinlock> _(spinlock_);
+        //std::lock_guard<Spinlock> _(spinlock_);
         tail = work;
         head = work;
       } else if (head == tail) {
-        std::lock_guard<Spinlock> _(spinlock_);
+        //std::lock_guard<Spinlock> _(spinlock_);
         // FIXME(wgtdkp): tail COULD BE nullptr !!!
         tail->next = work;
         tail = work;
@@ -93,10 +94,11 @@ class Server : public BasicServer {
     }
     // Made Thread safe
     Work* Dequeue() {
+      std::lock_guard<Spinlock> _(spinlock_);
       if (head == nullptr) {
         return nullptr;
       } else if (head == tail) {
-        std::lock_guard<Spinlock> _(spinlock_);
+        //std::lock_guard<Spinlock> _(spinlock_);
         auto ans = head;
         head = nullptr;
         tail = nullptr;
@@ -135,6 +137,7 @@ class Server : public BasicServer {
     std::thread slave_;
   };
 
+  static const uint32_t kMaxIBQueueDepth = 128;
   ServerId id_;
   bool active_;
   uint64_t nvm_size_;  
