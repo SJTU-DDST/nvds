@@ -5,6 +5,7 @@
 #include "common.h"
 #include "hash.h"
 #include "message.h"
+#include "response.h"
 
 namespace nvds {
 
@@ -40,15 +41,9 @@ class Tablet {
 
   const TabletInfo& info() const { return info_; }
 
-  // TODO(wgtdkp): Directly return NVM address of the value
-  // Find the key and copy the value into `val`.
-  // Return: -1, not found; else, the length of the `val`.
-  int32_t Get(char* val, KeyHash hash, uint16_t key_len, const char* key);
-  void    Del(KeyHash hash, uint16_t key_len, const char* key);
-  // Return: -1, error(no enough space);
-  int32_t Put(KeyHash hash, uint16_t key_len, const char* key,
-              uint16_t val_len, const char* val);
-  void Serve(Request& r);
+  Response::Status Get(Response* resp, const Request* r);
+  Response::Status Del(const Request* r);
+  Response::Status Put(const Request* r);
   void SettingupQPConnect(TabletId id, const IndexManager& index_manager);
 
  private:

@@ -8,6 +8,8 @@
 
 namespace nvds {
 
+using Status = Response::Status;
+
 Tablet::Tablet(NVMPtr<NVMTablet> nvm_tablet, bool is_backup)
     : nvm_tablet_(nvm_tablet), allocator_(&nvm_tablet->data),
       send_bufs_(ib_.pd(), kSendBufSize, kNumReplicas, false),
@@ -44,93 +46,84 @@ Tablet::~Tablet() {
   ibv_dereg_mr(mr_);  
 }
 
-// FIXME(wgtdkp): Remove the item if there already exists
-int32_t Tablet::Put(KeyHash hash, uint16_t key_len, const char* key,
-                    uint16_t val_len, const char* val) {
-  auto idx = hash % kHashTableSize;
+Status Tablet::Put(const Request* r) {
+  assert(r->type == Request::Type::PUT);
+  auto idx = r->key_hash % kHashTableSize;
   uint32_t slot = offsetof(NVMTablet, hash_table) + sizeof(uint32_t) * idx;
   auto head = allocator_.Read<uint32_t>(slot);
   auto q = slot, p = head;
   while (p) {
-    if (key_len != allocator_.Read<uint16_t>(p + offsetof(NVMObject, key_len)) ||
-        allocator_.Memcmp(OFFSETOF_NVMOBJECT(p, data), key, key_len)) {
+    if (r->key_len != allocator_.Read<uint16_t>(OFFSETOF_NVMOBJECT(p, key_len)) ||
+        allocator_.Memcmp(OFFSETOF_NVMOBJECT(p, data), r->Key(), r->key_len)) {
       q = p;
       p = allocator_.Read<uint32_t>(OFFSETOF_NVMOBJECT(p, next));
       continue;
     }
-    if (val_len < allocator_.Read<uint16_t>(OFFSETOF_NVMOBJECT(p, val_len))) {
+    if (r->val_len < allocator_.Read<uint16_t>(OFFSETOF_NVMOBJECT(p, val_len))) {
       // The new value is shorter than the older, store data at its original place.
-      allocator_.Write(OFFSETOF_NVMOBJECT(p, val_len), val_len);
-      allocator_.Memcpy(OFFSETOF_NVMOBJECT(p, data) + key_len, val, val_len);
+      allocator_.Write(OFFSETOF_NVMOBJECT(p, val_len), r->val_len);
+      allocator_.Memcpy(OFFSETOF_NVMOBJECT(p, data) + r->key_len, r->Val(), r->val_len);
     } else {
       auto next = allocator_.Read<uint32_t>(OFFSETOF_NVMOBJECT(p, next));
       allocator_.Free(p);
-      auto size = sizeof(NVMObject) + key_len + val_len;
+      auto size = sizeof(NVMObject) + r->key_len + r->val_len;
       p = allocator_.Alloc(size);
-      allocator_.Write<NVMObject>(p, {next, key_len, val_len, hash});
-      allocator_.Memcpy(OFFSETOF_NVMOBJECT(p, data), key, key_len);
-      allocator_.Memcpy(OFFSETOF_NVMOBJECT(p, data) + key_len, val, val_len);
+      // TODO(wgtdkp): handle the situation: `no space`.
+      assert(p != 0);
+      allocator_.Write<NVMObject>(p, {next, r->key_len, r->val_len, r->key_hash});
+      allocator_.Memcpy(OFFSETOF_NVMOBJECT(p, data), r->data, r->key_len + r->val_len);
       allocator_.Write(OFFSETOF_NVMOBJECT(q, next), p);
     }
     break;
   }
   if (!p) {
-    auto size = sizeof(NVMObject) + key_len + val_len;
+    auto size = sizeof(NVMObject) + r->key_len + r->val_len;
     p = allocator_.Alloc(size);
+    // TODO(wgtdkp): handle the situation: `no space`.
+    assert(p != 0);
     // TODO(wgtdkp): use single `memcpy`
-    allocator_.Write<NVMObject>(p, {head, key_len, val_len, hash});
-    allocator_.Memcpy(OFFSETOF_NVMOBJECT(p, data), key, key_len);
-    allocator_.Memcpy(OFFSETOF_NVMOBJECT(p, data) + key_len, val, val_len);
+    allocator_.Write<NVMObject>(p, {head, r->key_len, r->val_len, r->key_hash});
+    allocator_.Memcpy(OFFSETOF_NVMOBJECT(p, data), r->data, r->key_len + r->val_len);
     // Insert the new item to head of the bucket list
     allocator_.Write(slot, p);
   }
-  return 0;
+  return Status::OK;
 }
 
-int32_t Tablet::Get(char* val, KeyHash hash,
-                    uint16_t key_len, const char* key) {
-  auto idx = hash % kHashTableSize;
+Status Tablet::Get(Response* resp, const Request* r) {
+  assert(r->type == Request::Type::GET);
+  auto idx = r->key_hash % kHashTableSize;
   auto p = offsetof(NVMTablet, hash_table) + sizeof(uint32_t) * idx;
   p = allocator_.Read<uint32_t>(p);
   while (p) {
     // TODO(wgtdkp): use a different hash to speedup searching
-    if (allocator_.Read<uint16_t>(p + offsetof(NVMObject, key_len)) != key_len ||
-        allocator_.Memcmp(OFFSETOF_NVMOBJECT(p, data), key, key_len)) {
-      // FIXME(wgtdkp): use nvmcpy instead.
-      auto val_len = allocator_.Read<uint16_t>(OFFSETOF_NVMOBJECT(p, val_len));
-      allocator_.Memcpy(val, OFFSETOF_NVMOBJECT(p, data) + key_len, val_len);
-      return val_len;
+    if (r->key_len != allocator_.Read<uint16_t>(OFFSETOF_NVMOBJECT(p, key_len)) ||
+        allocator_.Memcmp(OFFSETOF_NVMOBJECT(p, data), r->Key(), r->key_len)) {
+      auto len = allocator_.Read<uint16_t>(OFFSETOF_NVMOBJECT(p, val_len));
+      allocator_.Memcpy(resp->val, OFFSETOF_NVMOBJECT(p, data) + r->key_len, len);
+      resp->val_len = len;
+      return Status::OK;
     }
     p = allocator_.Read<uint32_t>(OFFSETOF_NVMOBJECT(p, next));
   }
-  return -1;
+  return Status::ERROR;
 }
 
-void Tablet::Del(KeyHash hash, uint16_t key_len, const char* key) {
-  auto idx = hash % kHashTableSize;
+Status Tablet::Del(const Request* r) {
+  assert(r->type == Request::Type::DEL);
+  auto idx = r->key_hash % kHashTableSize;
   auto q = offsetof(NVMTablet, hash_table) + sizeof(uint32_t) * idx;
   auto p = allocator_.Read<uint32_t>(q);
   while (p) {
-    if (allocator_.Read<uint16_t>(p + offsetof(NVMObject, key_len)) != key_len ||
-        allocator_.Memcmp(OFFSETOF_NVMOBJECT(p, data), key, key_len)) {
+    if (r->key_len != allocator_.Read<uint16_t>(OFFSETOF_NVMOBJECT(p, key_len)) ||
+        allocator_.Memcmp(OFFSETOF_NVMOBJECT(p, data), r->Key(), r->key_len)) {
       auto next = allocator_.Read<uint32_t>(OFFSETOF_NVMOBJECT(p, next));
       allocator_.Write(OFFSETOF_NVMOBJECT(q, next), next);
       allocator_.Free(p);
-      return;
+      return Status::OK;
     }
   }
-}
-
-void Tablet::Serve(Request& r) {
-  switch (r.type) {
-  case Request::Type::PUT:
-    break;
-  case Request::Type::GET:
-    break;
-  case Request::Type::DEL:
-    break;
-  }
-
+  return Status::ERROR;
 }
 
 void Tablet::SettingupQPConnect(TabletId id, const IndexManager& index_manager) {
@@ -149,10 +142,6 @@ void Tablet::SettingupQPConnect(TabletId id, const IndexManager& index_manager) 
     for (uint32_t i = 0; i < kNumReplicas; ++i) {
       auto backup_id = info_.backups[i];
       auto backup_info = index_manager.GetTablet(backup_id);
-      if (!backup_info.is_backup) {
-        NVDS_LOG("tablet id: %d", id);
-        NVDS_LOG("tablet backup id: %d", backup_id);
-      }
       assert(backup_info.is_backup);
       qps_[i]->Plumb(backup_info.qpis[0]);
     }

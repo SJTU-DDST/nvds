@@ -2,6 +2,7 @@
 #define _NVDS_REQUEST_H_
 
 #include "common.h"
+#include "infiniband.h"
 
 namespace nvds {
 
@@ -13,13 +14,15 @@ struct Request {
   uint16_t key_len;
   uint16_t val_len;
   KeyHash key_hash;
+  // TODO(wgtdkp):
+  //uint64_t id;
   // Key data followed by value data
   char data[0];
  
-  static Request* New(void* ptr, Type type, const std::string& key,
+  static Request* New(Infiniband::Buffer* b, Type type, const std::string& key,
                       const std::string& val, KeyHash key_hash) {
     //auto buf = new char[sizeof(Request) + key.size() + val.size()];
-    return new (ptr) Request(type, key, val, key_hash);
+    return new (b->buf) Request(type, key, val, key_hash);
   }
   static void Del(const Request* r) {
     // Explicitly call destructor(only when pairing with placement new)

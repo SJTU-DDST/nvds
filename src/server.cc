@@ -154,26 +154,29 @@ void Server::Poll() {
   }
 
   using namespace std::chrono;
-  uint64_t cnt = 0, total = 0;
+  //uint64_t cnt = 0;
   high_resolution_clock::time_point begin;
   while (true) {
-    auto b = ib_.Receive(qp_);
-    assert(b);
-    // Dispatch(b, peer_addr);
-    // Dispatch to worker's queue, then worker get work from it's queue.
-    // The buffer `b` will be freed by the worker, thus, the buffer pool
-    // must made thread safe.
-    //Dispatch(b);
-    recv_bufs_.Free(b);
+    auto b = ib_.TryReceive(qp_);
+    if (b != nullptr) {
+      // Dispatch to worker's queue, then worker get work from it's queue.
+      // The buffer `b` will be freed by the worker. Thus, the buffer pool
+      // must made thread safe.
+      Dispatch(b);
+    }
+    if ((b = ib_.TrySend(qp_)) != nullptr) {
+      send_bufs_.Free(b);
+    }
 
-    b = recv_bufs_.Alloc();
-    //while ((b = recv_bufs_.Alloc()) == nullptr) {
-    //  std::this_thread::sleep_for(std::chrono::microseconds(1));
-    //}
-    assert(b);
-    ib_.PostReceive(qp_, b);
+    // The receive queue is not full, if there are free buffers.
+    if ((b = recv_bufs_.Alloc()) != nullptr) {
+      assert(b);
+      // Try posting receive if we could
+      ib_.PostReceive(qp_, b);
+    }
     
     // Performance measurement
+    /*
     if (cnt == 0) {
       begin = high_resolution_clock::now();
     }
@@ -183,10 +186,7 @@ void Server::Poll() {
       NVDS_LOG("server %d QPS: %.2f, time: %.2f", id_, cnt / t, t);
       cnt = 0;
     }
-
-    if (0/*(++total % 50000) == 0 || total > 3950000*/) {
-      std::clog << total << std::endl;
-    }
+    */
   }
 }
 
@@ -210,23 +210,25 @@ void Server::Worker::Serve() {
         return (work = wq_.Dequeue()); });
     assert(work != nullptr);
 
-    // Serve
+    // Do the work
     auto r = work->MakeRequest();
-    Infiniband::Buffer* b;
-    while ((b = server_->send_bufs_.Alloc()) == nullptr) {}
-
+    auto b = server_->send_bufs_.Alloc();
+    assert(b != nullptr);
+    auto resp = Response::New(b, r->type, Response::Status::OK);
     switch (r->type) {
     case Request::Type::PUT:
-      tablet_->Put(r->key_hash, r->key_len, r->Key(),r->val_len, r->Val());
-      break;
-    case Request::Type::GET:
-      tablet_->Get(b->buf, r->key_hash, r->key_len, r->Key());
+      resp->status = tablet_->Put(r);
       break;
     case Request::Type::DEL:
-      tablet_->Del(r->key_hash, r->key_len, r->Key());
+      tablet_->Del(r);
+      break;
+    case Request::Type::GET:
+      tablet_->Get(resp, r);
       break;
     }
+    // TODO(wgtdkp): collect nvm writes
 
+    server_->recv_bufs_.Free(work);
     // TODO(wgtdkp): Put response
 
   }

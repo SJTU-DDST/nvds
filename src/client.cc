@@ -66,7 +66,7 @@ bool Client::Put(const std::string& key, const std::string& val) {
   auto& server = index_manager_.GetServer(hash);
   // 2. post ib send and recv
   auto sb = send_bufs_.Alloc();
-  auto r = Request::New(sb->buf, Request::Type::PUT, key, val, hash);
+  auto r = Request::New(sb, Request::Type::PUT, key, val, hash);
   //auto rb = recv_bufs_.Alloc();
   //ib_.PostReceive(qp_, rb);
   ib_.PostSendAndWait(qp_, sb, r->Len(), &server.ib_addr);

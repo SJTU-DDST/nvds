@@ -255,9 +255,16 @@ uint16_t Infiniband::GetLid(int32_t port) {
   return port_attr.lid;
 }
 
-Infiniband::Buffer* Infiniband::TryReceive(QueuePair* qp) {
+// May blocking
+Infiniband::Buffer* Infiniband::Receive(QueuePair* qp) {
+  Buffer* b;
+  while ((b = TryReceive(qp)) == nullptr) {}
+  return b;
+}
+
+Infiniband::Buffer* Infiniband::PollCQ(ibv_cq* cq, int num_entries) {
   ibv_wc wc;
-  int r = ibv_poll_cq(qp->rcq, 1, &wc);
+  int r = ibv_poll_cq(cq, num_entries, &wc);
   if (r == 0) {
     return NULL;
   } else if (r < 0) {
@@ -265,20 +272,11 @@ Infiniband::Buffer* Infiniband::TryReceive(QueuePair* qp) {
   } else if (wc.status != IBV_WC_SUCCESS) {
     throw TransportException(HERE, wc.status);
   }
-
   // wr_id is used as buffer address
-  Buffer* b = reinterpret_cast<Buffer*>(wc.wr_id);
+  auto b = reinterpret_cast<Buffer*>(wc.wr_id);
   b->msg_len = wc.byte_len;
-  b->peer_addr = {qp->ib_port, wc.slid, wc.src_qp};
-  return b;
-}
-
-// May blocking
-Infiniband::Buffer* Infiniband::Receive(QueuePair* qp) {
-  Buffer* b = nullptr;
-  do {
-    b = TryReceive(qp);
-  } while (b == nullptr);
+  // FIXME(wgtdkp):
+  b->peer_addr = {Infiniband::kPort/*qp->ib_port*/, wc.slid, wc.src_qp};
   return b;
 }
 
@@ -370,10 +368,10 @@ void Infiniband::PostSendAndWait(QueuePair* qp, Buffer* b,
   ibv_wc wc;
   while (ibv_poll_cq(qp->scq, 1, &wc) < 1) {}
   // FIXME(wgtdkp):
-  // How can we make sure that the completion element we polled is the one
-  // we have just sent?
+  // How can we make sure that the completed work we polled is the one
+  // we have just post?
   if (wc.status != IBV_WC_SUCCESS) {
-    throw TransportException(HERE, "PostSendAndWiat failed", wc.status);
+    throw TransportException(HERE, "PostSendAndWait failed", wc.status);
   }
 }
 

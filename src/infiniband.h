@@ -13,6 +13,7 @@
 namespace nvds {
 
 struct Request;
+struct Response;
 
 // Derived from RAMCloud Infiniband.h
 class Infiniband {
@@ -139,6 +140,10 @@ class Infiniband {
     Request* MakeRequest() {
       return reinterpret_cast<Request*>(buf + kIBUDPadding);
     }
+    Response* MakeResponse() {
+      // TODO(wgtdkp): are you sure ?
+      return reinterpret_cast<Response*>(buf + kIBUDPadding);
+    }
 	};
 
   // A registered buffer pool
@@ -187,7 +192,12 @@ class Infiniband {
 	//										ibv_srq* srq, ibv_cq* scq,
 	//										ibv_cq* rcq, uint32_t max_send,
 	//										uint32_t max_recv, uint32_t qkey=0);
-	Buffer* TryReceive(QueuePair* qp);
+	Buffer* TryReceive(QueuePair* qp) {
+    return PollCQ(qp->rcq, 1);
+  }
+  Buffer* TrySend(QueuePair* qp) {
+    return PollCQ(qp->scq, 1);
+  }
 	Buffer* Receive(QueuePair* qp);
 	void PostReceive(QueuePair* qp, Buffer* b);
 	void PostSRQReceive(ibv_srq* srq, Buffer* b);
@@ -214,9 +224,7 @@ class Infiniband {
   void DestroySRQ(ibv_srq* srq) {
     ibv_destroy_srq(srq);
   }
-	int PollCQ(ibv_cq* cq, int num_entries, ibv_wc* ret) {
-		return ibv_poll_cq(cq, num_entries, ret);
-	}
+	Buffer* PollCQ(ibv_cq* cq, int num_entries);
 
   ibv_ah* GetAddrHandler(const Address& addr);
 
