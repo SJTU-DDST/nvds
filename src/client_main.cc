@@ -82,9 +82,18 @@ static int function_test_main(int argc, const char* argv[]) {
     Client c {coord_addr};
     std::string author = "DDST-SJTU";
     std::string version = "0.1.0";
-    c.Put("author", author);
-    c.Put("version", version);
+    c.Put("author", "DDST-SJTU");
+    c.Put("version", "0.1.0");
+    std::cout << "author: "  << c.Get("author")  << std::endl;
+    std::cout << "version: " << c.Get("version") << std::endl;
 
+    c.Put("author", "wgtdkp");
+    c.Put("version", "0.2.0");
+    std::cout << "author: "  << c.Get("author")  << std::endl;
+    std::cout << "version: " << c.Get("version") << std::endl;
+
+    c.Del("author");
+    c.Del("version");
     std::cout << "author: "  << c.Get("author")  << std::endl;
     std::cout << "version: " << c.Get("version") << std::endl;
   } catch (boost::system::system_error& e) {
