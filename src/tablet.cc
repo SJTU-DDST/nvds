@@ -97,8 +97,8 @@ Status Tablet::Get(Response* resp, const Request* r) {
   p = allocator_.Read<uint32_t>(p);
   while (p) {
     // TODO(wgtdkp): use a different hash to speedup searching
-    if (r->key_len != allocator_.Read<uint16_t>(OFFSETOF_NVMOBJECT(p, key_len)) ||
-        allocator_.Memcmp(OFFSETOF_NVMOBJECT(p, data), r->Key(), r->key_len)) {
+    if (r->key_len == allocator_.Read<uint16_t>(OFFSETOF_NVMOBJECT(p, key_len)) &&
+        allocator_.Memcmp(OFFSETOF_NVMOBJECT(p, data), r->Key(), r->key_len) == 0) {
       auto len = allocator_.Read<uint16_t>(OFFSETOF_NVMOBJECT(p, val_len));
       allocator_.Memcpy(resp->val, OFFSETOF_NVMOBJECT(p, data) + r->key_len, len);
       resp->val_len = len;
@@ -115,8 +115,8 @@ Status Tablet::Del(const Request* r) {
   auto q = offsetof(NVMTablet, hash_table) + sizeof(uint32_t) * idx;
   auto p = allocator_.Read<uint32_t>(q);
   while (p) {
-    if (r->key_len != allocator_.Read<uint16_t>(OFFSETOF_NVMOBJECT(p, key_len)) ||
-        allocator_.Memcmp(OFFSETOF_NVMOBJECT(p, data), r->Key(), r->key_len)) {
+    if (r->key_len == allocator_.Read<uint16_t>(OFFSETOF_NVMOBJECT(p, key_len)) &&
+        allocator_.Memcmp(OFFSETOF_NVMOBJECT(p, data), r->Key(), r->key_len) == 0) {
       auto next = allocator_.Read<uint32_t>(OFFSETOF_NVMOBJECT(p, next));
       allocator_.Write(OFFSETOF_NVMOBJECT(q, next), next);
       allocator_.Free(p);

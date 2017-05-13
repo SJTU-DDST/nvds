@@ -204,33 +204,39 @@ void Server::Dispatch(Work* work) {
 void Server::Worker::Serve() {
   while (true) {
     // Get request
-    Work* work;
+    Work* work = nullptr;
+    Infiniband::Buffer* sb = nullptr;
     std::unique_lock<std::mutex> lock(mtx_);
-    cond_var_.wait(lock, [&work, this]() -> bool {
-        return (work = wq_.Dequeue()); });
-    assert(work != nullptr);
+    cond_var_.wait(lock, [&work, &sb, this]() -> bool {
+        return (work || (work = wq_.Dequeue())) &&
+               (sb || (sb = server_->send_bufs_.Alloc()));
+      });
+    assert(work != nullptr && sb != nullptr);
 
     // Do the work
     auto r = work->MakeRequest();
-    auto b = server_->send_bufs_.Alloc();
-    assert(b != nullptr);
-    auto resp = Response::New(b, r->type, Response::Status::OK);
+    auto resp = Response::New(sb, r->type, Response::Status::OK);
     switch (r->type) {
     case Request::Type::PUT:
+      std::cout << "a put request" << std::endl;
       resp->status = tablet_->Put(r);
+      resp->Print();
       break;
     case Request::Type::DEL:
-      tablet_->Del(r);
+      std::cout << "a get request" << std::endl;
+      resp->status = tablet_->Del(r);
+      resp->Print();      
       break;
     case Request::Type::GET:
-      tablet_->Get(resp, r);
+      std::cout << "a get request" << std::endl;
+      r->Print();
+      resp->status = tablet_->Get(resp, r);
+      resp->Print();
       break;
     }
     // TODO(wgtdkp): collect nvm writes
-
+    server_->ib_.PostSend(server_->qp_, sb, resp->Len(), &work->peer_addr);
     server_->recv_bufs_.Free(work);
-    // TODO(wgtdkp): Put response
-
   }
 }
 

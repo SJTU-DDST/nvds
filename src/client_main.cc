@@ -28,7 +28,7 @@ static VecStr GenRandomStrings(size_t len, size_t n) {
   return ans;
 }
 
-void Work(double* qps, const std::string& coord_addr, size_t n) {
+static void Work(double* qps, const std::string& coord_addr, size_t n) {
   using namespace std::chrono;
   try {
     Client c {coord_addr};
@@ -49,7 +49,7 @@ void Work(double* qps, const std::string& coord_addr, size_t n) {
   }
 }
 
-int main(int argc, const char* argv[]) {
+static int bench_main(int argc, const char* argv[]) {
   if (argc < 4) {
     Usage();
     return -1;
@@ -73,4 +73,30 @@ int main(int argc, const char* argv[]) {
   }
   NVDS_LOG("total QPS: %.2f", std::accumulate(qpss.begin(), qpss.end(), 0.0));
   return 0;
+}
+
+static int function_test_main(int argc, const char* argv[]) {
+  assert(argc >= 2);
+  std::string coord_addr {argv[1]};
+  try {
+    Client c {coord_addr};
+    std::string author = "DDST-SJTU";
+    std::string version = "0.1.0";
+    c.Put("author", author);
+    c.Put("version", version);
+
+    std::cout << "author: "  << c.Get("author")  << std::endl;
+    std::cout << "version: " << c.Get("version") << std::endl;
+  } catch (boost::system::system_error& e) {
+    NVDS_ERR(e.what());
+  } catch (TransportException& e) {
+    NVDS_ERR(e.msg().c_str());
+    NVDS_LOG("initialize infiniband devices failed");
+  }
+  return 0;
+}
+
+int main(int argc, const char* argv[]) {
+  return function_test_main(argc, argv);
+  return bench_main(argc, argv);
 }

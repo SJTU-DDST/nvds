@@ -1,6 +1,7 @@
 #include "client.h"
 
 #include "request.h"
+#include "response.h"
 
 namespace nvds {
 
@@ -53,8 +54,28 @@ tcp::socket Client::Connect(const std::string& coord_addr) {
 }
 
 std::string Client::Get(const std::string& key) {
-  assert(false);
-  return "";
+  // 0. compute key hash
+  auto hash = Hash(key);
+  
+  // 1. get tablet and server info
+  //auto& tablet = index_manager_.GetTablet(hash);
+  auto& server = index_manager_.GetServer(hash);
+  // 2. post ib send and recv
+  auto sb = send_bufs_.Alloc();
+  assert(sb != nullptr);
+  auto r = Request::New(sb, Request::Type::GET, key, "", hash);
+  auto rb = recv_bufs_.Alloc();
+  assert(rb != nullptr);
+  ib_.PostReceive(qp_, rb);
+  ib_.PostSendAndWait(qp_, sb, r->Len(), &server.ib_addr);
+  Request::Del(r);
+  send_bufs_.Free(sb);
+  assert(rb == ib_.Receive(qp_));
+  auto resp = rb->MakeResponse();
+  //resp->Print();
+  std::string ans(resp->val, resp->val_len);
+  recv_bufs_.Free(rb);
+  return ans;
 }
 
 bool Client::Put(const std::string& key, const std::string& val) {
@@ -66,22 +87,45 @@ bool Client::Put(const std::string& key, const std::string& val) {
   auto& server = index_manager_.GetServer(hash);
   // 2. post ib send and recv
   auto sb = send_bufs_.Alloc();
+  assert(sb != nullptr);
   auto r = Request::New(sb, Request::Type::PUT, key, val, hash);
-  //auto rb = recv_bufs_.Alloc();
-  //ib_.PostReceive(qp_, rb);
+  auto rb = recv_bufs_.Alloc();
+  assert(rb != nullptr);
+  ib_.PostReceive(qp_, rb);
   ib_.PostSendAndWait(qp_, sb, r->Len(), &server.ib_addr);
-  //auto b = ib_.Receive(qp_);
-
-  //auto ret = b == rb;
-  send_bufs_.Free(sb);
-  //recv_bufs_.Free(rb);
   Request::Del(r);
-  return true;//ret;
+  send_bufs_.Free(sb);
+  assert(rb == ib_.Receive(qp_));
+  auto resp = rb->MakeResponse();
+  //resp->Print();
+  bool ans = resp->status == Response::Status::OK;
+  recv_bufs_.Free(rb);
+  return ans;
 }
 
- bool Client::Del(const std::string& key) {
-  assert(false);
-  return false;
+bool Client::Del(const std::string& key) {
+  // 0. compute key hash
+  auto hash = Hash(key);
+
+  // 1. get tablet and server info
+  //auto& tablet = index_manager_.GetTablet(hash);
+  auto& server = index_manager_.GetServer(hash);
+  // 2. post ib send and recv
+  auto sb = send_bufs_.Alloc();
+  assert(sb != nullptr);
+  auto r = Request::New(sb, Request::Type::DEL, key, "", hash);
+  auto rb = recv_bufs_.Alloc();
+  assert(rb != nullptr);
+  ib_.PostReceive(qp_, rb);
+  ib_.PostSendAndWait(qp_, sb, r->Len(), &server.ib_addr);
+  Request::Del(r);
+  send_bufs_.Free(sb);
+  assert(rb == ib_.Receive(qp_));
+  auto resp = rb->MakeResponse();
+  //resp->Print();
+  bool ans = resp->status == Response::Status::OK;
+  recv_bufs_.Free(rb);
+  return ans;
 }
 
 } // namespace nvds

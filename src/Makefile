@@ -1,4 +1,4 @@
-CXX = g++ -std=c++14 -O2
+CXX = g++ -std=c++14 -O0
 LD = g++
 CXXINC = -I./ -I../json/src/
 CXXFLAGS = -g -fsanitize=address -Wall -D_XOPEN_SOURCE -D_GNU_SOURCE $(CXXINC)
