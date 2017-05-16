@@ -14,39 +14,32 @@ namespace nvds {
 
 class Allocator {
  public:
+  struct Modification {
+    uint32_t des;
+    uint32_t len;
+    uint64_t src;
+    Modification(uint32_t des, uint64_t src, uint32_t len)
+        : des(des), len(len), src(src) {}
+    // For STL
+    Modification() : des(0), len(0), src(0) {}
+    bool operator<(const Modification& other) const {
+      return des < other.des;
+    }
+  };
+  using ModificationList = std::vector<Modification>;
+
   static const uint32_t kMaxBlockSize = 1024 + 128;
   static const uint32_t kSize = 64 * 1024 * 1024;
   Allocator(void* base) : Allocator(reinterpret_cast<uintptr_t>(base)) {
     Format();
   }
-  Allocator(uintptr_t base) : base_(base), cnt_writes_(0) {
+  Allocator(uintptr_t base)
+      : base_(base), cnt_writes_(0), modifications_(nullptr) {
     flm_ = OffsetToPtr<FreeListManager>(0);
   }
   ~Allocator() {}
   DISALLOW_COPY_AND_ASSIGN(Allocator);
-  /*
-  template<typename T>
-  NVMPtr<T> Alloc(uint32_t size) {
-    auto blk_size = RoundupBlockSize(size + sizeof(uint32_t));
-    assert(blk_size % 16 == 0);
-    // The client side should refuse too big kv item.  
-    assert(blk_size <= kMaxBlockSize);
 
-    auto blk = AllocBlock(blk_size);
-    auto ret = blk == 0 ? 0 : blk + sizeof(uint32_t) + base_;
-    return NVMPtr<T>(reinterpret_cast<T*>(ret));
-  }
-  */
-  /*
-  template<typename T>
-  void Free(NVMPtr<T> ptr) {
-    // TODO(wgtdkp): checking if ptr is actually in this Allocator zone.
-    auto p = reinterpret_cast<uintptr_t>(ptr.ptr());
-    assert(p >= base_ + sizeof(uint32_t) && p <= base_ + kSize);
-    auto blk = p - sizeof(uint32_t) - base_;
-    FreeBlock(blk);
-  }
-  */
   // Return offset to the object
   uint32_t Alloc(uint32_t size) {
     auto blk_size = RoundupBlockSize(size + sizeof(uint32_t));
@@ -72,6 +65,8 @@ class Allocator {
     auto ptr = OffsetToPtr<T>(offset);
     *ptr = val;
     // TODO(wgtdkp): Collect
+    modifications_->emplace_back(offset,
+        base_ + offset, static_cast<uint32_t>(sizeof(T)));
     ++cnt_writes_;
   }
   template<typename T>
@@ -91,15 +86,21 @@ class Allocator {
   }
   void Memcpy(uint32_t des, uint32_t src, uint32_t len) {
     memcpy(OffsetToPtr<char>(des), OffsetToPtr<char>(src), len);
+    modifications_->emplace_back(des, base_ + des, len);
   }
   void Memcpy(uint32_t des, const char* src, uint32_t len) {
     memcpy(OffsetToPtr<char>(des), src, len);
+    modifications_->emplace_back(des, base_ + des, len);
   }
   void Memcpy(char* des, uint32_t src, uint32_t len) {
     memcpy(des, OffsetToPtr<char>(src), len);
+    // Copy to user, no NVM modification
   }
   uintptr_t base() const { return base_; }
   uint64_t cnt_writes() const { return cnt_writes_; }
+  void set_modifications(ModificationList* modifications) {
+    modifications_ = modifications;
+  }
 
  private:
   static const uint32_t kNumFreeLists = kMaxBlockSize / 16 + 1;
@@ -208,6 +209,7 @@ class Allocator {
   uintptr_t base_;
   FreeListManager* flm_;
   uint64_t cnt_writes_;
+  ModificationList* modifications_;
 };
 
 } // namespace nvds

@@ -25,6 +25,14 @@ static void nvds_poll_send(nvds_context_t* ctx);
 static void nvds_post_send(nvds_context_t* ctx, nvds_data_t* data);
 static void nvds_post_recv(nvds_context_t* ctx, nvds_data_t* data);
 
+static void nvds_print_ib_connection(nvds_ib_connection_t* c) {
+  printf("lid: %d\n", c->lid);
+  printf("qpn: %d\n", c->qpn);
+  printf("psn: %d\n", c->psn);
+  printf("rkey: %u\n", c->rkey);
+  printf("vaddr: %llu\n", c->vaddr);
+}
+
 static void nvds_set_qp_state_init(struct ibv_qp* qp, nvds_data_t* data) {
   struct ibv_qp_attr attr = {
     .qp_state = IBV_QPS_INIT,
@@ -154,9 +162,13 @@ static void nvds_client_exch_info(nvds_data_t* data) {
 static void nvds_run_server(nvds_context_t* ctx, nvds_data_t* data) {
   nvds_server_exch_info(data);
 
-  // Set queue pair state to RTR(Read to Receive)
+  // Set queue pair state to RTR(Ready to receive)
   nvds_set_qp_state_rtr(ctx->qp, data);
-
+  printf("server side: \n");
+  printf("local connection: \n");
+  nvds_print_ib_connection(&data->local_conn);
+  printf("remote connection: \n");  
+  nvds_print_ib_connection(&data->remote_conn);
   // TODO(wgtdkp): poll request from client or do nothing
   while (1) {}
 }
@@ -176,6 +188,11 @@ static void nvds_test_multi_sge(nvds_context_t* ctx, nvds_data_t* data) {
 static void nvds_run_client(nvds_context_t* ctx, nvds_data_t* data) {
   nvds_client_exch_info(data);
   nvds_set_qp_state_rts(ctx->qp, data);
+  printf("client side: \n");
+  printf("local connection: \n");
+  nvds_print_ib_connection(&data->local_conn);
+  printf("remote connection: \n");  
+  nvds_print_ib_connection(&data->remote_conn);
 
   snprintf(ctx->buf, RDMA_WRITE_LEN, "hello rdma\n");
 
@@ -309,7 +326,7 @@ static void nvds_init_local_ib_connection(nvds_context_t* ctx,
               "ibv_query_port() failed");
   data->local_conn.lid = attr.lid;
   data->local_conn.qpn = ctx->qp->qp_num;
-  data->local_conn.psn = lrand48() & 0xffffff;
+  data->local_conn.psn = 33; //lrand48() & 0xffffff;
   data->local_conn.rkey = ctx->mr->rkey;
   data->local_conn.vaddr = (uintptr_t)ctx->buf;
 }
@@ -344,13 +361,14 @@ static void nvds_init_ctx(nvds_context_t* ctx, nvds_data_t* data) {
   nvds_expect(ctx->mr, "ibv_reg_mr() failed");
 
   // Create completion channel
-  ctx->ch = ibv_create_comp_channel(ctx->context);
-  nvds_expect(ctx->ch, "ibv_create_comp_channel() failed");
+  //ctx->ch = ibv_create_comp_channel(ctx->context);
+  //nvds_expect(ctx->ch, "ibv_create_comp_channel() failed");
 
   // Create complete queue
   ctx->rcq = ibv_create_cq(ctx->context, 1, NULL, NULL, 0);
   nvds_expect(ctx->rcq, "ibv_create_cq() failed");
-  ctx->scq = ibv_create_cq(ctx->context, ctx->tx_depth, ctx, ctx->ch, 0);
+  //ctx->scq = ibv_create_cq(ctx->context, ctx->tx_depth, ctx, ctx->ch, 0);
+  ctx->scq = ibv_create_cq(ctx->context, ctx->tx_depth, NULL, NULL, 0);
   nvds_expect(ctx->rcq, "ibv_create_cq() failed");  
 
   // Create & init queue apir
@@ -376,7 +394,7 @@ int main(int argc, const char* argv[]) {
   nvds_data_t data = {
     .port         = 5500,
     .ib_port      = 1,
-    .size         = 65536,
+    .size         = 3 * 64 * 1024 * 1024,
     .tx_depth     = 100,
     .server_name  = NULL,
     .ib_dev       = NULL

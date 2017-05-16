@@ -5,6 +5,9 @@
 namespace nvds {
 
 void Allocator::Format() {
+  ModificationList modifications;
+  set_modifications(&modifications);
+
   memset(flm_, 0, kSize);
   uint32_t blk = sizeof(FreeListManager);
   Write(GetLastFreeList(), blk);

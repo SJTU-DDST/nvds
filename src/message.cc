@@ -4,6 +4,24 @@
 
 namespace nvds {
 
+void TabletInfo::Print() const {
+  std::cout << "id: " << id << std::endl;
+  std::cout << "server id: " << server_id << std::endl;
+  std::cout << "is backup: " << is_backup << std::endl;
+  if (is_backup) {
+    std::cout << "master id: " << master << std::endl;
+    qpis[0].Print();
+  } else {
+    std::cout << "backups id: ";
+    for (size_t i = 0; i < backups.size(); ++i) {
+      std::cout << backups[i] << (i + 1 == backups.size() ? "\n" : ", ");
+    }
+    for (auto& qpi : qpis) {
+      qpi.Print();
+    }
+  }
+}
+
 void to_json(nlohmann::json& j, const Infiniband::Address& ia) {
   j = {
     {"ib_port", ia.ib_port},
@@ -52,6 +70,7 @@ void from_json(const nlohmann::json& j, TabletInfo& ti) {
   ti.id = j["id"];
   ti.server_id = j["server_id"];
   ti.is_backup = j["is_backup"];
+  ti.qpis = j["qpis"];
   if (ti.is_backup) {
     ti.master = j["master"];
   } else {

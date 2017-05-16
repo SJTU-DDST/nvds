@@ -69,6 +69,8 @@ struct TabletInfo {
   bool operator!=(const TabletInfo& other) const {
     return !(*this == other);
   }
+  // DEBUG
+  void Print() const;
 };
 
 /* Json representation

@@ -53,6 +53,9 @@ class IndexManager {
     return tablets_[id];
   }
 
+  // DEBUG
+  void PrintTablets() const;
+  
  private:
   static ServerId AllocServerId() {
     static ServerId id = 0;

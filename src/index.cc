@@ -40,4 +40,12 @@ const ServerInfo& IndexManager::AddServer(const std::string& addr,
   return servers_[id];
 }
 
+void IndexManager::PrintTablets() const {
+  for (auto& tablet : tablets_) {
+    tablet.Print();
+    std::cout << std::endl;
+  }
+}
+
+
 } // namespace nvds

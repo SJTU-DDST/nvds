@@ -10,10 +10,10 @@ namespace nvds {
 
 using Status = Response::Status;
 
-Tablet::Tablet(NVMPtr<NVMTablet> nvm_tablet, bool is_backup)
-    : nvm_tablet_(nvm_tablet), allocator_(&nvm_tablet->data),
-      send_bufs_(ib_.pd(), kSendBufSize, kNumReplicas, false),
-      recv_bufs_(ib_.pd(), kRecvBufSize, kNumReplicas, true) {
+Tablet::Tablet(const IndexManager& index_manager,
+               NVMPtr<NVMTablet> nvm_tablet, bool is_backup)
+    : index_manager_(index_manager),
+      nvm_tablet_(nvm_tablet), allocator_(&nvm_tablet->data) {
   info_.is_backup = is_backup;
   
   // Memory region
@@ -22,11 +22,14 @@ Tablet::Tablet(NVMPtr<NVMTablet> nvm_tablet, bool is_backup)
                    IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_WRITE);
   assert(mr_ != nullptr);
 
-  scq_ = ib_.CreateCQ(1);
-  rcq_ = ib_.CreateCQ(1);
+  //scq_ = ib_.CreateCQ(kMaxIBQueueDepth);
+  //rcq_ = ib_.CreateCQ(kMaxIBQueueDepth);
   for (size_t i = 0; i < kNumReplicas; ++i) {
+    scq_ = ib_.CreateCQ(kMaxIBQueueDepth);
+    rcq_ = ib_.CreateCQ(kMaxIBQueueDepth);
     qps_[i] = new Infiniband::QueuePair(ib_, IBV_QPT_RC, Infiniband::kPort,
-        nullptr, scq_, rcq_, 2 * kNumReplicas, 2 * kNumReplicas);
+        nullptr, scq_, rcq_, kMaxIBQueueDepth, kMaxIBQueueDepth);
+    //qps_[i]->Plumb();
     info_.qpis[i] = {
       ib_.GetLid(Infiniband::kPort),
       qps_[i]->GetLocalQPNum(),
@@ -46,7 +49,10 @@ Tablet::~Tablet() {
   ibv_dereg_mr(mr_);  
 }
 
-Status Tablet::Put(const Request* r) {
+Status Tablet::Put(const Request* r,
+                   Allocator::ModificationList& modifications) {
+  allocator_.set_modifications(&modifications);
+
   assert(r->type == Request::Type::PUT);
   auto idx = r->key_hash % kHashTableSize;
   uint32_t slot = offsetof(NVMTablet, hash_table) + sizeof(uint32_t) * idx;
@@ -90,7 +96,10 @@ Status Tablet::Put(const Request* r) {
   return Status::OK;
 }
 
-Status Tablet::Get(Response* resp, const Request* r) {
+Status Tablet::Get(Response* resp, const Request* r,
+                   Allocator::ModificationList& modifications) {
+  allocator_.set_modifications(&modifications);
+
   assert(r->type == Request::Type::GET);
   auto idx = r->key_hash % kHashTableSize;
   auto p = offsetof(NVMTablet, hash_table) + sizeof(uint32_t) * idx;
@@ -109,7 +118,10 @@ Status Tablet::Get(Response* resp, const Request* r) {
   return Status::ERROR;
 }
 
-Status Tablet::Del(const Request* r) {
+Status Tablet::Del(const Request* r,
+                   Allocator::ModificationList& modifications) {
+  allocator_.set_modifications(&modifications);
+
   assert(r->type == Request::Type::DEL);
   auto idx = r->key_hash % kHashTableSize;
   auto q = offsetof(NVMTablet, hash_table) + sizeof(uint32_t) * idx;
@@ -133,7 +145,10 @@ void Tablet::SettingupQPConnect(TabletId id, const IndexManager& index_manager) 
     assert(!master_info.is_backup);
     for (uint32_t i = 0; i < kNumReplicas; ++i) {
       if (master_info.backups[i] == id) {
-        qps_[0]->Plumb(master_info.qpis[i]);
+        qps_[0]->Plumb(IBV_QPS_RTR, master_info.qpis[i]);
+        std::cout << "backup pairing queue pair:" << std::endl;
+        info_.qpis[0].Print();
+        master_info.qpis[i].Print();
         break;
       }
       assert(i < kNumReplicas - 1);
@@ -143,9 +158,95 @@ void Tablet::SettingupQPConnect(TabletId id, const IndexManager& index_manager) 
       auto backup_id = info_.backups[i];
       auto backup_info = index_manager.GetTablet(backup_id);
       assert(backup_info.is_backup);
-      qps_[i]->Plumb(backup_info.qpis[0]);
+      qps_[i]->Plumb(IBV_QPS_RTS, backup_info.qpis[0]);
+      std::cout << "master pairing queue pair:" << std::endl;
+      info_.qpis[i].Print();
+      backup_info.qpis[0].Print();
     }
   }
+}
+
+int Tablet::Sync(ModificationList& modifications) {
+  if (modifications.size() == 0) {
+    return 0;
+  }
+  MergeModifications(modifications);
+  
+  for (size_t k = 0; k < info_.backups.size(); ++k) {
+    auto backup = index_manager_.GetTablet(info_.backups[k]);
+    assert(backup.is_backup);
+    size_t i = 0;
+    for (const auto& m : modifications) {
+      sges[i] = {m.src, m.len, mr_->lkey};
+      
+      wrs[i].wr.rdma.remote_addr = backup.qpis[0].vaddr + m.des;
+      wrs[i].wr.rdma.rkey        = backup.qpis[0].rkey;
+      // TODO(wgtdkp): use unique id
+      wrs[i].wr_id               = 1;
+      wrs[i].sg_list             = &sges[i];
+      wrs[i].num_sge             = 1;
+      wrs[i].opcode              = IBV_WR_RDMA_WRITE;
+      // TODO(wgtdkp): do we really need to signal each send?
+      wrs[i].send_flags          = IBV_SEND_SIGNALED;
+      wrs[i].next                = &wrs[i+1];
+      ++i;
+
+      // DEBUG
+      break;
+    }
+    wrs[i-1].next = nullptr;
+    wrs[i-1].send_flags = IBV_SEND_SIGNALED;
+
+    struct ibv_send_wr* bad_wr;
+    int err = ibv_post_send(qps_[k]->qp, &wrs[0], &bad_wr);
+    if (err != 0) {
+      std::cerr << "k: " << k << std::endl << std::flush;
+      throw TransportException(HERE, "ibv_post_send failed", err);
+    }
+
+    // DEBUG
+    break;
+  }
+
+  for (auto& qp : qps_) {
+    ibv_wc wc;
+    int r;
+    while ((r = ibv_poll_cq(qp->scq, 1, &wc)) != 1) {}
+    if (wc.status != IBV_WC_SUCCESS) {
+      throw TransportException(HERE, wc.status);
+    } else {
+      std::clog << "success" << std::endl << std::flush;
+    }
+  }
+  return 0;
+}
+
+void Tablet::MergeModifications(ModificationList& modifications) {
+  auto n = modifications.size();
+  assert(n > 0);
+
+  // Baby, don't worry, n <= 12.
+  // This simple algorithm should be faster than `union-find`;
+  for (size_t i = 0; i < n; ++i) {
+    for (size_t j = i + 1; j < n; ++j) {
+      if (modifications[j] < modifications[i])
+        std::swap(modifications[j], modifications[i]);
+    }
+  }
+
+  size_t i = 0, j = 0;
+  uint32_t end = modifications[0].des + modifications[0].len;
+  for (size_t k = 1; k < n; ++k) {
+    if (end != modifications[k].des) {
+      modifications[i++] = modifications[j];
+      j = k;
+    } else {
+      modifications[j].len += modifications[k].len;
+    }
+    end = modifications[k].des + modifications[k].len;
+  }
+  modifications[i++] = modifications[j];
+  modifications.resize(i);
 }
 
 } // namespace nvds

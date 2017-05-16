@@ -43,9 +43,9 @@ using TabletId = uint32_t;
  */
 static const uint16_t kCoordPort = 9090;
 static const uint32_t kMaxItemSize = 1024;
-static const uint32_t kNumReplicas = 2;
-static const uint32_t kNumServers = 1;
-static const uint32_t kNumTabletsPerServer = 6; // equal to `thread::hardware_concurrency()`
+static const uint32_t kNumReplicas = 1;
+static const uint32_t kNumServers = 2;
+static const uint32_t kNumTabletsPerServer = 1; // equal to `thread::hardware_concurrency()`
 static const uint32_t kNumTabletAndBackupsPerServer = kNumTabletsPerServer * (1 + kNumReplicas);
 static const uint32_t kNumTablets = kNumTabletsPerServer * kNumServers;
 static const uint32_t kNumTabletAndBackups = kNumTabletAndBackupsPerServer * kNumServers;

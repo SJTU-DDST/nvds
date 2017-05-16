@@ -10,6 +10,7 @@
 namespace nvds {
 
 using json = nlohmann::json;
+using ModificationList = Allocator::ModificationList;
 
 Server::Server(uint16_t port, NVMPtr<NVMDevice> nvm, uint64_t nvm_size)
     : BasicServer(port), id_(0),
@@ -33,8 +34,8 @@ Server::Server(uint16_t port, NVMPtr<NVMDevice> nvm, uint64_t nvm_size)
   for (uint32_t i = 0; i < kNumTabletAndBackupsPerServer; ++i) {
     auto ptr = reinterpret_cast<char*>(&nvm_->tablets) + i * kNVMTabletSize;
     bool is_backup = i >= kNumTabletsPerServer;
-    tablets_[i] = new Tablet(NVMPtr<NVMTablet>(reinterpret_cast<NVMTablet*>(ptr)),
-                             is_backup);
+    tablets_[i] = new Tablet(index_manager_,
+        NVMPtr<NVMTablet>(reinterpret_cast<NVMTablet*>(ptr)), is_backup);
     if (i < kNumTabletsPerServer) {
       workers_[i] = new Worker(this, tablets_[i]);
     }
@@ -101,12 +102,11 @@ bool Server::Join() {
       msg = session_join.RecvMessage();
       assert(msg.sender_type() == Message::SenderType::COORDINATOR);
       assert(msg.type() == Message::Type::RES_JOIN);
-      
       auto j_body = json::parse(msg.body());
       id_ = j_body["id"];
       index_manager_ = j_body["index_manager"];
       active_ = true;
-
+      index_manager_.PrintTablets();
       auto& server_info = index_manager_.GetServer(id_);
       for (uint32_t i = 0; i < kNumTabletAndBackupsPerServer; ++i) {
         auto tablet_id = server_info.tablets[i];
@@ -202,6 +202,7 @@ void Server::Dispatch(Work* work) {
 }
 
 void Server::Worker::Serve() {
+  ModificationList modifications;
   while (true) {
     // Get request
     Work* work = nullptr;
@@ -216,25 +217,27 @@ void Server::Worker::Serve() {
     // Do the work
     auto r = work->MakeRequest();
     auto resp = Response::New(sb, r->type, Response::Status::OK);
+    modifications.clear();
     switch (r->type) {
     case Request::Type::PUT:
-      std::cout << "a put request" << std::endl;
-      resp->status = tablet_->Put(r);
-      resp->Print();
+      resp->status = tablet_->Put(r, modifications);
       break;
     case Request::Type::DEL:
-      std::cout << "a get request" << std::endl;
-      resp->status = tablet_->Del(r);
-      resp->Print();      
+      resp->status = tablet_->Del(r, modifications);
       break;
     case Request::Type::GET:
-      std::cout << "a get request" << std::endl;
-      r->Print();
-      resp->status = tablet_->Get(resp, r);
-      resp->Print();
+      resp->status = tablet_->Get(resp, r, modifications);
       break;
     }
     // TODO(wgtdkp): collect nvm writes
+    r->Print();
+    std::cout << modifications.size() << std::endl;
+    try {
+      tablet_->Sync(modifications);
+    } catch (TransportException& e) {
+      NVDS_ERR(e.ToString().c_str());
+    }
+
     server_->ib_.PostSend(server_->qp_, sb, resp->Len(), &work->peer_addr);
     server_->recv_bufs_.Free(work);
   }

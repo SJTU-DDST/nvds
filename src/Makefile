@@ -59,7 +59,7 @@ $(OBJS_DIR)client_main.o : client_main.cc
 
 $(OBJS_DIR)test_infiniband.o: test_infiniband.cc infiniband.h
 	$(CXX) $(CXXFLAGS) $(GTEST_FLAGS) -o $@ -c test_infiniband.cc
-test_infiniband: $(OBJS_DIR)test_infiniband.o $(OBJS_DIR)infiniband.o $(OBJS_DIR)libgtest.a
+test_infiniband: $(OBJS_DIR)test_infiniband.o $(OBJS_DIR)infiniband.o $(OBJS_DIR)common.o $(OBJS_DIR)libgtest.a
 	$(LD) $(LDFLAGS) $(GTEST_FLAGS) -o $(OBJS_DIR)$@ $^ $(LDLIBS)
 
 $(OBJS_DIR)test_allocator.o: test_allocator.cc allocator.h
