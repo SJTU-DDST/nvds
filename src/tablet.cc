@@ -18,22 +18,18 @@ Tablet::Tablet(const IndexManager& index_manager,
   
   // Memory region
   // FIXME(wgtdkp): how to simulate latency of RDMA read/write to NVM?
-  mr_ = ibv_reg_mr(ib_.pd().pd(), nvm_tablet_.ptr(), kNVMTabletSize,
+  mr_ = ibv_reg_mr(ib_.pd(), nvm_tablet_.ptr(), kNVMTabletSize,
                    IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_WRITE);
   assert(mr_ != nullptr);
 
-  //scq_ = ib_.CreateCQ(kMaxIBQueueDepth);
-  //rcq_ = ib_.CreateCQ(kMaxIBQueueDepth);
   for (size_t i = 0; i < kNumReplicas; ++i) {
-    scq_ = ib_.CreateCQ(kMaxIBQueueDepth);
-    rcq_ = ib_.CreateCQ(kMaxIBQueueDepth);
-    qps_[i] = new Infiniband::QueuePair(ib_, IBV_QPT_RC, Infiniband::kPort,
-        nullptr, scq_, rcq_, kMaxIBQueueDepth, kMaxIBQueueDepth);
+    qps_[i] = new Infiniband::QueuePair(ib_, IBV_QPT_RC,
+        kMaxIBQueueDepth, kMaxIBQueueDepth);
     //qps_[i]->Plumb();
     info_.qpis[i] = {
       ib_.GetLid(Infiniband::kPort),
       qps_[i]->GetLocalQPNum(),
-      kQPPsn,
+      Infiniband::QueuePair::kDefaultPsn,
       mr_->rkey,
       reinterpret_cast<uint64_t>(nvm_tablet_.ptr())
     };
@@ -44,9 +40,8 @@ Tablet::~Tablet() {
   for (ssize_t i = kNumReplicas - 1; i >= 0; --i) {
     delete qps_[i];
   }
-  ib_.DestroyCQ(rcq_);
-  ib_.DestroyCQ(scq_);
-  ibv_dereg_mr(mr_);  
+  int err = ibv_dereg_mr(mr_);
+  assert(err == 0);
 }
 
 Status Tablet::Put(const Request* r,
@@ -145,7 +140,7 @@ void Tablet::SettingupQPConnect(TabletId id, const IndexManager& index_manager) 
     assert(!master_info.is_backup);
     for (uint32_t i = 0; i < kNumReplicas; ++i) {
       if (master_info.backups[i] == id) {
-        qps_[0]->Plumb(IBV_QPS_RTR, master_info.qpis[i]);
+        qps_[0]->SetStateRTR(master_info.qpis[i]);
         std::cout << "backup pairing queue pair:" << std::endl;
         info_.qpis[0].Print();
         master_info.qpis[i].Print();
@@ -158,7 +153,7 @@ void Tablet::SettingupQPConnect(TabletId id, const IndexManager& index_manager) 
       auto backup_id = info_.backups[i];
       auto backup_info = index_manager.GetTablet(backup_id);
       assert(backup_info.is_backup);
-      qps_[i]->Plumb(IBV_QPS_RTS, backup_info.qpis[0]);
+      qps_[i]->SetStateRTS(backup_info.qpis[0]);
       std::cout << "master pairing queue pair:" << std::endl;
       info_.qpis[i].Print();
       backup_info.qpis[0].Print();

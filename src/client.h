@@ -32,9 +32,6 @@ class Client {
   void Close() {}
   void Join();
   
-  // Init infiniband devices
-  void InitIB();
-
   boost::asio::io_service tcp_service_;
   Session session_;
   IndexManager index_manager_;
@@ -44,8 +41,6 @@ class Client {
   Infiniband::RegisteredBuffers send_bufs_;
   Infiniband::RegisteredBuffers recv_bufs_;
   Infiniband::QueuePair* qp_;
-  ibv_cq* rcq_;
-  ibv_cq* scq_;
 };
 
 } // namespace nvds

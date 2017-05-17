@@ -94,6 +94,14 @@ static void copy_info_to_conn(nvds_ib_connection_t* conn, Infiniband::QueuePairI
   conn->vaddr = info->vaddr;
 }
 
+static void copy_conn_to_info(Infiniband::QueuePairInfo* info, nvds_ib_connection_t* conn) {
+  info->lid = conn->lid;
+  info->qpn = conn->qpn;
+  info->psn = conn->psn;
+  info->rkey = conn->rkey;
+  info->vaddr = conn->vaddr;
+}
+
 static void nvds_print_ib_connection(nvds_ib_connection_t* c) {
   printf("lid: %d\n", c->lid);
   printf("qpn: %d\n", c->qpn);
@@ -322,6 +330,8 @@ static void nvds_run_client(nvds_context_t* ctx, nvds_ib_connection_t* remote_co
   // Dump statistic info
 }
 
+Infiniband::QueuePairInfo qpis[2];
+
 int nvds_main(int argc, const char* argv[]) {
   nvds_context_t ctx;
 
@@ -335,25 +345,22 @@ int nvds_main(int argc, const char* argv[]) {
   nvds_init_ctx(&ctx);
   if (is_client) {
     nvds_init_local_ib_connection(&ctx, &conn[0]);
+    copy_conn_to_info(&qpis[0], &conn[0]);
     nvds_run_client(&ctx, &conn[1]);
   } else {
-    nvds_init_local_ib_connection(&ctx, &conn[1]);    
+    nvds_init_local_ib_connection(&ctx, &conn[1]);
+    copy_conn_to_info(&qpis[1], &conn[1]);
     nvds_run_server(&ctx, &conn[0]);
   }
 
   return 0;
 }
 
-Infiniband::QueuePairInfo qpis[2];
 
 static void RunClient() {
   try {
     Infiniband ib {1024};
-
-    auto scq = ibv_create_cq(ib.ctx(), 128, NULL, NULL, 0);
-    auto rcq = ibv_create_cq(ib.ctx(), 128, NULL, NULL, 0);
-    assert(scq != nullptr && rcq != nullptr);
-    Infiniband::QueuePair qp(ib, IBV_QPT_RC, nullptr, scq, rcq, 128, 128);
+    Infiniband::QueuePair qp(ib, IBV_QPT_RC, 128, 128);
 
     qpis[0] = {
       ib.GetLid(Infiniband::kPort),
@@ -382,11 +389,7 @@ static void RunClient() {
 static void RunServer() {
   try {
     Infiniband ib {1024};
-    
-    auto scq = ibv_create_cq(ib.ctx(), 128, NULL, NULL, 0);
-    auto rcq = ibv_create_cq(ib.ctx(), 128, NULL, NULL, 0);
-    assert(scq != nullptr && rcq != nullptr);
-    Infiniband::QueuePair qp(ib, IBV_QPT_RC, nullptr, scq, rcq, 128, 128);
+    Infiniband::QueuePair qp(ib, IBV_QPT_RC, 128, 128);
 
     qpis[1] = {
       ib.GetLid(Infiniband::kPort),
@@ -409,15 +412,13 @@ static void RunServer() {
   }
 }
 
-
-
 ///*
 TEST (InfinibandTest, RDMAWrite) {
   const char* argv[] {"a.out", "192.168.99.14"};
   //thread server(bind(nvds_main, 1, argv));
   thread server(RunServer);
-  //thread client(bind(nvds_main, 2, argv));
-  thread client(RunClient);
+  thread client(bind(nvds_main, 2, argv));
+  //thread client(RunClient);
   
   client.join();
   server.join();

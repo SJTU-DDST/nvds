@@ -151,8 +151,6 @@ class Server : public BasicServer {
   Infiniband::RegisteredBuffers send_bufs_;
   Infiniband::RegisteredBuffers recv_bufs_;
   Infiniband::QueuePair* qp_;
-  ibv_cq* rcq_;
-  ibv_cq* scq_;
 
   // Worker
   std::array<Worker*, kNumTabletsPerServer> workers_;

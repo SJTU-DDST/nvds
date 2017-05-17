@@ -67,8 +67,6 @@ class Tablet {
   ibv_mr* mr_;
   std::array<Infiniband::QueuePair*, kNumReplicas> qps_;
   // `kNumReplica` queue pairs share this `rcq_` and `scq_`
-  ibv_cq* rcq_;
-  ibv_cq* scq_;
 
   static const uint32_t kNumScatters = 16;
   std::array<struct ibv_sge, kNumScatters> sges;

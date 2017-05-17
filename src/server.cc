@@ -18,10 +18,8 @@ Server::Server(uint16_t port, NVMPtr<NVMDevice> nvm, uint64_t nvm_size)
       send_bufs_(ib_.pd(), kSendBufSize, kMaxIBQueueDepth, false),
       recv_bufs_(ib_.pd(), kRecvBufSize, kMaxIBQueueDepth, true) {
   // Infiniband
-  scq_ = ib_.CreateCQ(kMaxIBQueueDepth);
-  rcq_ = ib_.CreateCQ(kMaxIBQueueDepth);
-  qp_ = new Infiniband::QueuePair(ib_, IBV_QPT_UD, Infiniband::kPort, nullptr,
-      scq_, rcq_, kMaxIBQueueDepth, kMaxIBQueueDepth);
+  qp_ = new Infiniband::QueuePair(ib_, IBV_QPT_UD,
+      kMaxIBQueueDepth, kMaxIBQueueDepth);
   qp_->Activate();
   
   ib_addr_ = {
@@ -51,8 +49,6 @@ Server::~Server() {
     }
   }
   delete qp_;
-  ib_.DestroyCQ(scq_);
-  ib_.DestroyCQ(rcq_);
 }
 
 void Server::Run() {
