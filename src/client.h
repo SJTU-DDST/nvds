@@ -23,6 +23,8 @@ class Client {
   // Delete item indexed by the key
   bool Del(const std::string& key);
 
+  size_t num_send() const { return num_send_; }
+
  private:
   static const uint32_t kMaxIBQueueDepth = 128;
   static const uint32_t kSendBufSize = 1024 * 2 + 128;
@@ -41,6 +43,9 @@ class Client {
   Infiniband::RegisteredBuffers send_bufs_;
   Infiniband::RegisteredBuffers recv_bufs_;
   Infiniband::QueuePair* qp_;
+
+  // Statistic 
+  size_t num_send_ {0};
 };
 
 } // namespace nvds

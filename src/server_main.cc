@@ -7,12 +7,21 @@
 
 using namespace nvds;
 
+static Server* server;
+
+static void SigInt(int signo) {
+  std::cout << std::endl << "num_recv: " << server->num_recv() << std::endl;
+  std::cout << std::flush;
+  exit(0);
+}
+
 static void Usage(int argc, const char* argv[]) {
     std::cout << "Usage:" << std::endl
               << "    " << argv[0] << " <port> <config_file>" << std::endl;
 }
 
 int main(int argc, const char* argv[]) {
+  signal(SIGINT, SigInt);
   // -2. Argument parsing.
   if (argc < 3) {
     Usage(argc, argv);
@@ -33,7 +42,7 @@ int main(int argc, const char* argv[]) {
   }
   try {
     Server s(server_port, nvm, kNVMDeviceSize);
-
+    server = &s;
     // Step 1: request to the coordinator for joining in.
     if (!s.Join()) {
       NVDS_ERR("join cluster failed");

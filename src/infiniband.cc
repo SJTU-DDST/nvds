@@ -9,17 +9,14 @@ Infiniband::Infiniband(uint32_t registered_mem_size)
     : ctx_(nullptr), pd_(nullptr), mr_(nullptr),
       raw_mem_(nullptr), raw_mem_size_(registered_mem_size) {
   struct ibv_device** dev_list = ibv_get_device_list(NULL);
-  if (dev_list == nullptr) {
-    throw TransportException(HERE, "get IB device list failed", errno);
-  }
+  assert(dev_list != nullptr);
   ctx_ = ibv_open_device(dev_list[0]);
-  if (ctx_ == nullptr) {
-    throw TransportException(HERE, "open IB device 0 failed", errno);
-  }
+  assert(ctx_ != nullptr);
+  ibv_free_device_list(dev_list);
+
   pd_ = ibv_alloc_pd(ctx_);
-  if (pd_ == nullptr) {
-    throw TransportException(HERE, "alloc protection domain failed", errno);
-  }
+  assert(pd_ != nullptr);
+
   raw_mem_ = reinterpret_cast<char*>(memalign(4096, raw_mem_size_));
   assert(raw_mem_ != nullptr);
 
@@ -27,14 +24,20 @@ Infiniband::Infiniband(uint32_t registered_mem_size)
                IBV_ACCESS_REMOTE_READ |
                IBV_ACCESS_REMOTE_WRITE;
   mr_ = ibv_reg_mr(pd_, raw_mem_, raw_mem_size_, access);
-  if (mr_ == nullptr) {
-    throw TransportException(HERE, "register memory failed", errno);
-  }
+  assert(mr_ != nullptr);
+
+  std::fill(addr_handlers_.begin(), addr_handlers_.end(), nullptr);
 }
 
 Infiniband::~Infiniband() {
   // Release in reverse order
   int err;
+  for (auto ah : addr_handlers_) {
+    if (ah != nullptr) {
+      err = ibv_destroy_ah(ah);
+      assert(err == 0);
+    }
+  }
   err = ibv_dereg_mr(mr_);
   assert(err == 0);
   free(raw_mem_);
@@ -63,6 +66,7 @@ Infiniband::QueuePair::QueuePair(Infiniband& ib, ibv_qp_type type,
   assert(scq != nullptr && rcq != nullptr);
 
   ibv_qp_init_attr init_attr;
+  memset(&init_attr, 0, sizeof(init_attr));
   init_attr.srq     = nullptr;
   init_attr.send_cq = scq;
   init_attr.recv_cq = rcq;
@@ -72,6 +76,7 @@ Infiniband::QueuePair::QueuePair(Infiniband& ib, ibv_qp_type type,
   init_attr.cap.max_send_sge = Infiniband::kMaxSendSge;
   init_attr.cap.max_recv_sge = Infiniband::kMaxRecvSge;
   init_attr.cap.max_inline_data = Infiniband::kMaxInlineData;
+  init_attr.sq_sig_all = 0; // Related to unsignaled completion
 
   qp = ibv_create_qp(ib.pd(), &init_attr);
   if (qp == nullptr) {
@@ -82,11 +87,12 @@ Infiniband::QueuePair::QueuePair(Infiniband& ib, ibv_qp_type type,
   attr.qp_state = IBV_QPS_INIT;
   attr.pkey_index = 0;
   attr.port_num = Infiniband::kPort;
+  attr.qkey = 0;
   attr.qp_access_flags = IBV_ACCESS_LOCAL_WRITE |
                          IBV_ACCESS_REMOTE_READ |
                          IBV_ACCESS_REMOTE_WRITE;
-  int modify = IBV_QP_STATE | IBV_QP_PKEY_INDEX |
-               IBV_QP_PORT | IBV_QP_ACCESS_FLAGS;
+  int modify = IBV_QP_STATE | IBV_QP_PORT | IBV_QP_PKEY_INDEX;
+  modify |= type == IBV_QPT_RC ? IBV_QP_ACCESS_FLAGS : IBV_QP_QKEY;
   int ret = ibv_modify_qp(qp, &attr, modify);
   if (ret != 0) {
     ibv_destroy_qp(qp);
@@ -96,6 +102,10 @@ Infiniband::QueuePair::QueuePair(Infiniband& ib, ibv_qp_type type,
 
 Infiniband::QueuePair::~QueuePair() {
   int err = ibv_destroy_qp(qp);
+  assert(err == 0);
+  err = ibv_destroy_cq(rcq);
+  assert(err == 0);
+  err = ibv_destroy_cq(scq);
   assert(err == 0);
 }
 

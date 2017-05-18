@@ -102,7 +102,7 @@ bool Server::Join() {
       id_ = j_body["id"];
       index_manager_ = j_body["index_manager"];
       active_ = true;
-      index_manager_.PrintTablets();
+
       auto& server_info = index_manager_.GetServer(id_);
       for (uint32_t i = 0; i < kNumTabletAndBackupsPerServer; ++i) {
         auto tablet_id = server_info.tablets[i];
@@ -195,6 +195,7 @@ void Server::Dispatch(Work* work) {
   //std::cout << "tablet id: " << id << std::endl;
   //std::cout << std::flush;
   workers_[id % kNumTabletAndBackupsPerServer]->Enqueue(work);
+  ++num_recv_;
 }
 
 void Server::Worker::Serve() {
@@ -205,9 +206,9 @@ void Server::Worker::Serve() {
     Infiniband::Buffer* sb = nullptr;
     std::unique_lock<std::mutex> lock(mtx_);
     cond_var_.wait(lock, [&work, &sb, this]() -> bool {
-        return (work || (work = wq_.Dequeue())) &&
-               (sb || (sb = server_->send_bufs_.Alloc()));
+        return (work = wq_.Dequeue());
       });
+    sb = server_->send_bufs_.Alloc();
     assert(work != nullptr && sb != nullptr);
 
     // Do the work
@@ -225,12 +226,13 @@ void Server::Worker::Serve() {
       resp->status = tablet_->Get(resp, r, modifications);
       break;
     }
-    // TODO(wgtdkp): collect nvm writes
-    r->Print();
-    std::cout << modifications.size() << std::endl;
+    
     try {
       tablet_->Sync(modifications);
     } catch (TransportException& e) {
+      r->Print();
+      tablet_->info().Print();
+      server_->index_manager_.PrintTablets();
       NVDS_ERR(e.ToString().c_str());
     }
 

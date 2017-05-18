@@ -378,7 +378,9 @@ static void RunClient() {
     
     snprintf(ib.raw_mem(), RDMA_WRITE_LEN, "hello rdma\n");
     
-    ib.PostWriteAndWait(qp, qpis[1]);
+    for (size_t i = 0; i < 10000; ++i) {
+      ib.PostWriteAndWait(qp, qpis[1]);
+    }
 
     std::cout << "finally, you bitch!" << std::endl;
   } catch (TransportException& e) {
@@ -417,8 +419,8 @@ TEST (InfinibandTest, RDMAWrite) {
   const char* argv[] {"a.out", "192.168.99.14"};
   //thread server(bind(nvds_main, 1, argv));
   thread server(RunServer);
-  thread client(bind(nvds_main, 2, argv));
-  //thread client(RunClient);
+  //thread client(bind(nvds_main, 2, argv));
+  thread client(RunClient);
   
   client.join();
   server.join();

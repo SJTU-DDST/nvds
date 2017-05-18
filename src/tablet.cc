@@ -141,9 +141,6 @@ void Tablet::SettingupQPConnect(TabletId id, const IndexManager& index_manager) 
     for (uint32_t i = 0; i < kNumReplicas; ++i) {
       if (master_info.backups[i] == id) {
         qps_[0]->SetStateRTR(master_info.qpis[i]);
-        std::cout << "backup pairing queue pair:" << std::endl;
-        info_.qpis[0].Print();
-        master_info.qpis[i].Print();
         break;
       }
       assert(i < kNumReplicas - 1);
@@ -154,9 +151,6 @@ void Tablet::SettingupQPConnect(TabletId id, const IndexManager& index_manager) 
       auto backup_info = index_manager.GetTablet(backup_id);
       assert(backup_info.is_backup);
       qps_[i]->SetStateRTS(backup_info.qpis[0]);
-      std::cout << "master pairing queue pair:" << std::endl;
-      info_.qpis[i].Print();
-      backup_info.qpis[0].Print();
     }
   }
 }
@@ -182,12 +176,11 @@ int Tablet::Sync(ModificationList& modifications) {
       wrs[i].num_sge             = 1;
       wrs[i].opcode              = IBV_WR_RDMA_WRITE;
       // TODO(wgtdkp): do we really need to signal each send?
-      wrs[i].send_flags          = IBV_SEND_SIGNALED;
+      wrs[i].send_flags          = 0;
       wrs[i].next                = &wrs[i+1];
       ++i;
-
       // DEBUG
-      break;
+      //break;
     }
     wrs[i-1].next = nullptr;
     wrs[i-1].send_flags = IBV_SEND_SIGNALED;
@@ -195,12 +188,8 @@ int Tablet::Sync(ModificationList& modifications) {
     struct ibv_send_wr* bad_wr;
     int err = ibv_post_send(qps_[k]->qp, &wrs[0], &bad_wr);
     if (err != 0) {
-      std::cerr << "k: " << k << std::endl << std::flush;
       throw TransportException(HERE, "ibv_post_send failed", err);
     }
-
-    // DEBUG
-    break;
   }
 
   for (auto& qp : qps_) {
@@ -210,7 +199,7 @@ int Tablet::Sync(ModificationList& modifications) {
     if (wc.status != IBV_WC_SUCCESS) {
       throw TransportException(HERE, wc.status);
     } else {
-      std::clog << "success" << std::endl << std::flush;
+      // std::clog << "success" << std::endl << std::flush;
     }
   }
   return 0;

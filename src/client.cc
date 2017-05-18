@@ -88,6 +88,10 @@ bool Client::Put(const std::string& key, const std::string& val) {
   ib_.PostSendAndWait(qp_, sb, r->Len(), &server.ib_addr);
   Request::Del(r);
   send_bufs_.Free(sb);
+    
+  // Statistic 
+  ++num_send_;
+
   assert(rb == ib_.Receive(qp_));
   auto resp = rb->MakeResponse();
   //resp->Print();

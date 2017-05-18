@@ -10,6 +10,13 @@ using namespace nvds;
 
 using VecStr = std::vector<std::string>;
 
+static Client* client;
+
+static void SigInt(int signo) {
+  std::cout << std::endl << "num_send: " << client->num_send() << std::endl;
+  exit(0);
+}
+
 static void Usage() {
   std::cout << "usage: " << std::endl;
   std::cout << "client  <coordinator_addr> <item number per thread> <thread numer>" << std::endl;
@@ -32,6 +39,7 @@ static void Work(double* qps, const std::string& coord_addr, size_t n) {
   using namespace std::chrono;
   try {
     Client c {coord_addr};
+    client = &c;
     auto keys = GenRandomStrings(16, n);
     auto vals = std::vector<std::string>(n, std::string(16, 'a'));
     auto begin = high_resolution_clock::now();
@@ -80,6 +88,7 @@ static int function_test_main(int argc, const char* argv[]) {
   std::string coord_addr {argv[1]};
   try {
     Client c {coord_addr};
+    client = &c;
     std::string author = "DDST-SJTU";
     std::string version = "0.1.0";
     c.Put("author", "DDST-SJTU");
@@ -106,6 +115,7 @@ static int function_test_main(int argc, const char* argv[]) {
 }
 
 int main(int argc, const char* argv[]) {
-  return function_test_main(argc, argv);
+  signal(SIGINT, SigInt);
+  //return function_test_main(argc, argv);
   return bench_main(argc, argv);
 }
