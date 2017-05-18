@@ -54,6 +54,7 @@ class Server : public BasicServer {
   bool active() const { return active_; }  
   uint64_t nvm_size() const { return nvm_size_; }
   NVMPtr<NVMDevice> nvm() const { return nvm_; }
+  size_t num_recv() const { return num_recv_; }
 
   void Run() override;
   bool Join();
@@ -78,41 +79,35 @@ class Server : public BasicServer {
     // Made Thread safe
     void Enqueue(Work* work) {
       std::lock_guard<Spinlock> _(spinlock_);
-      if (head == nullptr) {
+      if (head_ == nullptr) {
         //std::lock_guard<Spinlock> _(spinlock_);
-        tail = work;
-        head = work;
-      } else if (head == tail) {
-        //std::lock_guard<Spinlock> _(spinlock_);
-        // FIXME(wgtdkp): tail COULD BE nullptr !!!
-        tail->next = work;
-        tail = work;
+        tail_ = work;
+        head_ = work;
       } else {
-        tail->next = work;
-        tail = work;
+        tail_->next = work;
+        tail_ = work;
       }
     }
     // Made Thread safe
     Work* Dequeue() {
       std::lock_guard<Spinlock> _(spinlock_);
-      if (head == nullptr) {
+      if (head_ == nullptr) {
         return nullptr;
-      } else if (head == tail) {
-        //std::lock_guard<Spinlock> _(spinlock_);
-        auto ans = head;
-        head = nullptr;
-        tail = nullptr;
+      } else if (head_ == tail_) {
+        auto ans = head_;
+        head_ = nullptr;
+        tail_ = nullptr;
         return ans;
       } else {
-        auto ans = head;
-        head = head->next;
+        auto ans = head_;
+        head_ = head_->next;
         return ans;
       }
     }
 
    private:
-    Work* head = nullptr;
-    Work* tail = nullptr;
+    Work* head_ = nullptr;
+    Work* tail_ = nullptr;
     Spinlock spinlock_;
   };
 
@@ -122,6 +117,7 @@ class Server : public BasicServer {
         : server_(server), tablet_(tablet),
           slave_(std::bind(&Worker::Serve, this)) {}
     void Enqueue(Work* work) {
+      std::unique_lock<std::mutex> lock(mtx_);
       wq_.Enqueue(work);
       cond_var_.notify_one();
     }
@@ -155,6 +151,9 @@ class Server : public BasicServer {
   // Worker
   std::array<Worker*, kNumTabletsPerServer> workers_;
   std::array<Tablet*, kNumTabletAndBackupsPerServer> tablets_;
+
+  // Statistic
+  size_t num_recv_ {0};
 };
 
 } // namespace nvds
