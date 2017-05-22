@@ -4,7 +4,7 @@
 
 # NVDS
 
-Non-volatile Memory Based Distributed Storage
+Fast replication over RDMA fabric for NVM-based storage system.
 
 ## DEPENDECY
 
