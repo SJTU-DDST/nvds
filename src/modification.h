@@ -37,6 +37,6 @@ struct ModificationLog {
   ModificationLog() = delete;
 };
 
-}
+} // namespace nvds
 
-#endif
+#endif // _NVDS_MODIFICATION_H_
