@@ -160,7 +160,7 @@ int Tablet::Sync(ModificationList& modifications) {
     return 0;
   }
   MergeModifications(modifications);
-  
+
   for (size_t k = 0; k < info_.backups.size(); ++k) {
     auto backup = index_manager_.GetTablet(info_.backups[k]);
     assert(backup.is_backup);
@@ -176,14 +176,14 @@ int Tablet::Sync(ModificationList& modifications) {
       wrs[i].num_sge             = 1;
       wrs[i].opcode              = IBV_WR_RDMA_WRITE;
       // TODO(wgtdkp): do we really need to signal each send?
-      wrs[i].send_flags          = 0;
+      wrs[i].send_flags          = IBV_SEND_INLINE;
       wrs[i].next                = &wrs[i+1];
       ++i;
       // DEBUG
-      //break;
+      break;
     }
     wrs[i-1].next = nullptr;
-    wrs[i-1].send_flags = IBV_SEND_SIGNALED;
+    wrs[i-1].send_flags |= IBV_SEND_SIGNALED;
 
     struct ibv_send_wr* bad_wr;
     int err = ibv_post_send(qps_[k]->qp, &wrs[0], &bad_wr);
@@ -205,9 +205,19 @@ int Tablet::Sync(ModificationList& modifications) {
   return 0;
 }
 
+// DEBUG
+static void PrintModifications(const Tablet::ModificationList& modifications) {
+  for (const auto& m : modifications) {
+    m.Print();
+  }
+  std::cout << std::endl << std::flush;
+}
+
 void Tablet::MergeModifications(ModificationList& modifications) {
   auto n = modifications.size();
   assert(n > 0);
+
+  //PrintModifications(modifications);
 
   // Baby, don't worry, n <= 12.
   // This simple algorithm should be faster than `union-find`;
@@ -218,19 +228,27 @@ void Tablet::MergeModifications(ModificationList& modifications) {
     }
   }
 
-  size_t i = 0, j = 0;
+  //PrintModifications(modifications);
+
+  static const size_t gap = 16;
+  size_t i = 0;
+  uint64_t src = modifications[0].src;
+  uint32_t begin = modifications[0].des; 
   uint32_t end = modifications[0].des + modifications[0].len;
-  for (size_t k = 1; k < n; ++k) {
-    if (end != modifications[k].des) {
-      modifications[i++] = modifications[j];
-      j = k;
+  for (const auto& m : modifications) {
+    if (m.des > end + gap) {
+      modifications[i++] = {begin, src, end - begin};
+      begin = m.des;
+      end = m.des + m.len;
+      src = m.src;
     } else {
-      modifications[j].len += modifications[k].len;
+      end = std::max(end, m.des + m.len);
     }
-    end = modifications[k].des + modifications[k].len;
   }
-  modifications[i++] = modifications[j];
+  modifications[i++] = {begin, src, end - begin};
   modifications.resize(i);
+
+  //PrintModifications(modifications);
 }
 
 } // namespace nvds

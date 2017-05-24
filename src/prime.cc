@@ -10,7 +10,7 @@ bool is_prime(int x) {
 }
 
 int main() {
-  for (int i = 10000; i < 100000; ++i) {
+  for (int i = 999900; i < 1000100; ++i) {
     if (is_prime(i)) {
       cout << i << endl;
     }

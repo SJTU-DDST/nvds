@@ -5,6 +5,7 @@
 #include "common.h"
 #include "index.h"
 #include "infiniband.h"
+#include "measurement.h"
 #include "message.h"
 #include "spinlock.h"
 #include "tablet.h"
@@ -14,6 +15,8 @@
 #include <condition_variable>
 #include <mutex>
 #include <thread>
+
+#define ENABLE_MEASUREMENT
 
 namespace nvds {
 
@@ -42,6 +45,14 @@ static const uint64_t kNVMDeviceSize = sizeof(NVMDevice) +
                                        kNVMTabletSize * kNumTabletAndBackupsPerServer;
 
 class Server : public BasicServer {
+ // For convenience
+ public:
+  Measurement alloc_measurement;
+  Measurement sync_measurement;
+  Measurement thread_measurement;
+  Measurement send_measurement;
+  Measurement recv_measurement;
+
  public:
   // Workers & tablets
   friend class Worker;
@@ -95,18 +106,28 @@ class Server : public BasicServer {
         return nullptr;
       } else if (head_ == tail_) {
         auto ans = head_;
-        head_ = nullptr;
         tail_ = nullptr;
-        return ans;
+        head_ = nullptr;
+        return const_cast<Work*>(ans);
       } else {
         auto ans = head_;
         head_ = head_->next;
-        return ans;
+        return const_cast<Work*>(ans);
       }
     }
 
+    Work* TryPollWork() {
+      Measurement m;
+      m.begin();
+      auto ans = Dequeue();
+      while (ans == nullptr && m.cur_period() < 50) {
+        ans = Dequeue();
+      }
+      return const_cast<Work*>(ans);
+    }
+
    private:
-    Work* head_ = nullptr;
+    volatile Work* head_ = nullptr;
     Work* tail_ = nullptr;
     Spinlock spinlock_;
   };
@@ -119,6 +140,9 @@ class Server : public BasicServer {
     void Enqueue(Work* work) {
       std::unique_lock<std::mutex> lock(mtx_);
       wq_.Enqueue(work);
+      #ifdef ENABLE_MEASUREMENT
+        server_->thread_measurement.begin();
+      #endif
       cond_var_.notify_one();
     }
 

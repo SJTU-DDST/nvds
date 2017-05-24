@@ -3,6 +3,8 @@
 
 #include "MurmurHash2.h"
 
+#include <string>
+
 namespace nvds {
 
 using KeyHash = uint64_t;

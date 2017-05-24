@@ -11,6 +11,26 @@ static Server* server;
 
 static void SigInt(int signo) {
   std::cout << std::endl << "num_recv: " << server->num_recv() << std::endl;
+  std::cout << "alloc measurement: " << std::endl;
+  server->alloc_measurement.Print();
+  std::cout << std::endl;
+
+  std::cout << "sync measurement: " << std::endl;
+  server->sync_measurement.Print();
+  std::cout << std::endl;
+
+  std::cout << "thread measurement: " << std::endl;
+  server->thread_measurement.Print();
+  std::cout << std::endl;
+
+  std::cout << "send measurement: " << std::endl;
+  server->send_measurement.Print();
+  std::cout << std::endl;
+
+  std::cout << "recv measurement: " << std::endl;
+  server->recv_measurement.Print();
+  std::cout << std::endl;
+
   std::cout << std::flush;
   exit(0);
 }

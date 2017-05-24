@@ -14,6 +14,8 @@ namespace nvds {
 
 class Allocator {
  public:
+  static const uint32_t kMaxBlockSize = 1024 + 128;
+  static const uint32_t kSize = 64 * 1024 * 1024;
   struct Modification {
     uint32_t des;
     uint32_t len;
@@ -25,11 +27,15 @@ class Allocator {
     bool operator<(const Modification& other) const {
       return des < other.des;
     }
+    // DEBUG
+    void Print() const {
+      std::cout << "des: " << des << "; ";
+      std::cout << "len: " << len << "; ";
+      std::cout << "src: " << src << std::endl;
+    }
   };
   using ModificationList = std::vector<Modification>;
 
-  static const uint32_t kMaxBlockSize = 1024 + 128;
-  static const uint32_t kSize = 64 * 1024 * 1024;
   Allocator(void* base) : Allocator(reinterpret_cast<uintptr_t>(base)) {
     Format();
   }
@@ -64,7 +70,6 @@ class Allocator {
     assert(offset != 0);
     auto ptr = OffsetToPtr<T>(offset);
     *ptr = val;
-    // TODO(wgtdkp): Collect
     modifications_->emplace_back(offset,
         base_ + offset, static_cast<uint32_t>(sizeof(T)));
     ++cnt_writes_;

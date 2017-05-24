@@ -1,4 +1,4 @@
-CXX = g++ -std=c++14 -O0
+CXX = g++ -std=c++14 -O3
 LD = g++
 CXXINC = -I./ -I../json/src/
 CXXFLAGS = -g -fsanitize=address -Wall -D_XOPEN_SOURCE -D_GNU_SOURCE $(CXXINC)
@@ -65,6 +65,11 @@ test_infiniband: $(OBJS_DIR)test_infiniband.o $(OBJS_DIR)infiniband.o $(OBJS_DIR
 $(OBJS_DIR)test_allocator.o: test_allocator.cc allocator.h
 	$(CXX) $(CXXFLAGS) $(GTEST_FLAGS) -o $@ -c test_allocator.cc
 test_allocator: $(OBJS_DIR)test_allocator.o $(OBJS_DIR)allocator.o $(OBJS_DIR)libgtest.a
+	$(LD) $(LDFLAGS) $(GTEST_FLAGS) -o $(OBJS_DIR)$@ $^ $(LDLIBS)
+
+$(OBJS_DIR)test_stl_map.o: test_stl_map.cc hash.h
+	$(CXX) $(CXXFLAGS) $(GTEST_FLAGS) -o $@ -c test_stl_map.cc
+test_stl_map: $(OBJS_DIR)test_stl_map.o $(OBJS_DIR)MurmurHash2.o $(OBJS_DIR)libgtest.a
 	$(LD) $(LDFLAGS) $(GTEST_FLAGS) -o $(OBJS_DIR)$@ $^ $(LDLIBS)
 
 $(OBJS_DIR)test_message.o: test_message.cc message.h

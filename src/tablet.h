@@ -13,7 +13,7 @@ struct Request;
 class IndexManager;
 
 // A reasonable prime number
-static const uint32_t kHashTableSize = 99871;
+static const uint32_t kHashTableSize = 1000003;
 
 struct NVMObject {
   uint32_t next;

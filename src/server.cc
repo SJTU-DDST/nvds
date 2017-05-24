@@ -158,9 +158,20 @@ void Server::Poll() {
       // Dispatch to worker's queue, then worker get work from it's queue.
       // The buffer `b` will be freed by the worker. Thus, the buffer pool
       // must made thread safe.
+      #ifdef ENABLE_MEASUREMENT
+        static bool enable = false;
+        if (enable) {
+          recv_measurement.end();
+        }
+        enable = true;
+      #endif
       Dispatch(b);
     }
     if ((b = ib_.TrySend(qp_)) != nullptr) {
+      #ifdef ENABLE_MEASUREMENT
+        send_measurement.end();
+        recv_measurement.begin();
+      #endif
       send_bufs_.Free(b);
     }
 
@@ -202,12 +213,17 @@ void Server::Worker::Serve() {
   ModificationList modifications;
   while (true) {
     // Get request
-    Work* work = nullptr;
+    auto work = wq_.TryPollWork();
     Infiniband::Buffer* sb = nullptr;
-    std::unique_lock<std::mutex> lock(mtx_);
-    cond_var_.wait(lock, [&work, &sb, this]() -> bool {
-        return (work = wq_.Dequeue());
-      });
+    if (work == nullptr) {
+      std::unique_lock<std::mutex> lock(mtx_);
+      cond_var_.wait(lock, [&work, &sb, this]() -> bool {
+          return (work || (work = wq_.Dequeue()));
+        });
+    }
+    #ifdef ENABLE_MEASUREMENT
+      server_->thread_measurement.end();
+    #endif
     sb = server_->send_bufs_.Alloc();
     assert(work != nullptr && sb != nullptr);
 
@@ -215,6 +231,10 @@ void Server::Worker::Serve() {
     auto r = work->MakeRequest();
     auto resp = Response::New(sb, r->type, Response::Status::OK);
     modifications.clear();
+    
+    #ifdef ENABLE_MEASUREMENT
+      server_->alloc_measurement.begin();
+    #endif
     switch (r->type) {
     case Request::Type::PUT:
       resp->status = tablet_->Put(r, modifications);
@@ -226,9 +246,18 @@ void Server::Worker::Serve() {
       resp->status = tablet_->Get(resp, r, modifications);
       break;
     }
-    
+    #ifdef ENABLE_MEASUREMENT
+      server_->alloc_measurement.end();
+    #endif
+
     try {
+      #ifdef ENABLE_MEASUREMENT
+        server_->sync_measurement.begin();
+      #endif
       tablet_->Sync(modifications);
+      #ifdef ENABLE_MEASUREMENT
+        server_->sync_measurement.end();
+      #endif
     } catch (TransportException& e) {
       r->Print();
       tablet_->info().Print();
@@ -236,6 +265,9 @@ void Server::Worker::Serve() {
       NVDS_ERR(e.ToString().c_str());
     }
 
+    #ifdef ENABLE_MEASUREMENT
+      server_->send_measurement.begin();
+    #endif
     server_->ib_.PostSend(server_->qp_, sb, resp->Len(), &work->peer_addr);
     server_->recv_bufs_.Free(work);
   }

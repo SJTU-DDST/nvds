@@ -21,7 +21,7 @@ class Infiniband {
   static const uint16_t kPort = 1;
   static const uint32_t kMaxSendSge = 12;
   static const uint32_t kMaxRecvSge = 12;
-  static const uint32_t kMaxInlineData = 64;
+  static const uint32_t kMaxInlineData = 128;
 
   Infiniband(uint32_t registered_mem_size=1024);
   ~Infiniband();

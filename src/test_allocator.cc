@@ -1,4 +1,6 @@
 #include "allocator.h"
+#include "measurement.h"
+
 #include <gtest/gtest.h>
 
 #include <cstdlib>
@@ -8,6 +10,30 @@
 using namespace std;
 using namespace nvds;
 
+TEST (AllocatorTest, Alloc) {
+  auto base = malloc(Allocator::kSize);
+  assert(base != nullptr);
+
+  Allocator a(base);
+  Allocator::ModificationList modifications;
+  modifications.reserve(20);
+  a.set_modifications(&modifications);
+
+  std::vector<uint32_t> collector;
+
+  Measurement alloc_measurement;
+  alloc_measurement.begin();
+  for (size_t i = 0; i < 1000 * 1000; ++i) {
+    modifications.clear();
+    auto ptr = a.Alloc(40);
+    collector.push_back(ptr);
+  }
+  alloc_measurement.end();
+  alloc_measurement.Print();
+  free(base);
+}
+
+/*
 TEST (AllocatorTest, Init) {
   auto mem = malloc(Allocator::kSize);
 
@@ -134,6 +160,7 @@ TEST (AllocatorTest, UsageRate) {
 
   free(mem);
 }
+*/
 
 int main(int argc, char* argv[]) {
   testing::InitGoogleTest(&argc, argv);
