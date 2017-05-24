@@ -7,6 +7,7 @@
 #define _NVDS_ALLOCATOR_H_
 
 #include "common.h"
+#include "modification.h"
 
 #include <memory.h>
 
@@ -16,25 +17,6 @@ class Allocator {
  public:
   static const uint32_t kMaxBlockSize = 1024 + 128;
   static const uint32_t kSize = 64 * 1024 * 1024;
-  struct Modification {
-    uint32_t des;
-    uint32_t len;
-    uint64_t src;
-    Modification(uint32_t des, uint64_t src, uint32_t len)
-        : des(des), len(len), src(src) {}
-    // For STL
-    Modification() : des(0), len(0), src(0) {}
-    bool operator<(const Modification& other) const {
-      return des < other.des;
-    }
-    // DEBUG
-    void Print() const {
-      std::cout << "des: " << des << "; ";
-      std::cout << "len: " << len << "; ";
-      std::cout << "src: " << src << std::endl;
-    }
-  };
-  using ModificationList = std::vector<Modification>;
 
   Allocator(void* base) : Allocator(reinterpret_cast<uintptr_t>(base)) {
     Format();

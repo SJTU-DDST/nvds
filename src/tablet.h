@@ -5,6 +5,7 @@
 #include "common.h"
 #include "hash.h"
 #include "message.h"
+#include "modification.h"
 #include "response.h"
 
 namespace nvds {
@@ -34,7 +35,6 @@ static const uint32_t kNVMTabletSize = sizeof(NVMTablet);
 
 class Tablet {
  public:
-  using ModificationList = Allocator::ModificationList;
   //Tablet(const TabletInfo& info, NVMPtr<NVMTablet> nvm_tablet);
   Tablet(const IndexManager& index_manager,
          NVMPtr<NVMTablet> nvm_tablet,
@@ -44,11 +44,11 @@ class Tablet {
 
   const TabletInfo& info() const { return info_; }
   Response::Status Get(Response* resp, const Request* r,
-                       Allocator::ModificationList& modifications);
+                       ModificationList& modifications);
   Response::Status Del(const Request* r,
-                       Allocator::ModificationList& modifications);
+                       ModificationList& modifications);
   Response::Status Put(const Request* r,
-                       Allocator::ModificationList& modifications);
+                       ModificationList& modifications);
   void SettingupQPConnect(TabletId id, const IndexManager& index_manager);
   int Sync(ModificationList& modifications);
 

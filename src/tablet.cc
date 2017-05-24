@@ -44,8 +44,7 @@ Tablet::~Tablet() {
   assert(err == 0);
 }
 
-Status Tablet::Put(const Request* r,
-                   Allocator::ModificationList& modifications) {
+Status Tablet::Put(const Request* r, ModificationList& modifications) {
   allocator_.set_modifications(&modifications);
 
   assert(r->type == Request::Type::PUT);
@@ -92,7 +91,7 @@ Status Tablet::Put(const Request* r,
 }
 
 Status Tablet::Get(Response* resp, const Request* r,
-                   Allocator::ModificationList& modifications) {
+                   ModificationList& modifications) {
   allocator_.set_modifications(&modifications);
 
   assert(r->type == Request::Type::GET);
@@ -113,8 +112,7 @@ Status Tablet::Get(Response* resp, const Request* r,
   return Status::ERROR;
 }
 
-Status Tablet::Del(const Request* r,
-                   Allocator::ModificationList& modifications) {
+Status Tablet::Del(const Request* r, ModificationList& modifications) {
   allocator_.set_modifications(&modifications);
 
   assert(r->type == Request::Type::DEL);
@@ -206,7 +204,7 @@ int Tablet::Sync(ModificationList& modifications) {
 }
 
 // DEBUG
-static void PrintModifications(const Tablet::ModificationList& modifications) {
+static void PrintModifications(const ModificationList& modifications) {
   for (const auto& m : modifications) {
     m.Print();
   }

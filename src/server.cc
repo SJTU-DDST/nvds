@@ -10,7 +10,6 @@
 namespace nvds {
 
 using json = nlohmann::json;
-using ModificationList = Allocator::ModificationList;
 
 Server::Server(uint16_t port, NVMPtr<NVMDevice> nvm, uint64_t nvm_size)
     : BasicServer(port), id_(0),

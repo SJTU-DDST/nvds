@@ -102,8 +102,7 @@ void Allocator::RemoveBlock(uint32_t blk, uint32_t blk_size) {
   }
 }
 
-uint32_t Allocator::SplitBlock(uint32_t blk,
-                               uint32_t blk_size,
+uint32_t Allocator::SplitBlock(uint32_t blk, uint32_t blk_size,
                                uint32_t needed_size) {
   auto next_blk  = Read<uint32_t>(blk + offsetof(BlockHeader, next));
   auto free_list = GetFreeListByBlockSize(blk_size);
