@@ -3,6 +3,8 @@
 #include "index.h"
 #include "request.h"
 
+#include <algorithm>
+
 #define OFFSETOF_NVMOBJECT(obj, member) \
     offsetof(NVMObject, member) + obj
 
@@ -167,7 +169,12 @@ int Tablet::Sync(Infiniband::Buffer* b, ModificationList& modifications) {
     
     auto log = reinterpret_cast<ModificationLog*>(b->buf);
     MakeLog(log, modifications);
+  
     auto num_sge = MakeSGEs(&sges_[0], b->mr, log, modifications);
+    auto len_log = std::accumulate(sges_.begin(), sges_.begin() + num_sge, 0,
+        [](size_t acc, struct ibv_sge& x) { return acc + x.length; });
+    // DEBUG
+    //std::cout << "len_log: " << len_log << std::endl;
 
     auto& wr = wrs_[0];
     wr.wr.rdma.remote_addr = backup.qpis[0].vaddr + offsetof(NVMTablet, log) + log_offsets_[k];
@@ -183,6 +190,11 @@ int Tablet::Sync(Infiniband::Buffer* b, ModificationList& modifications) {
     int err = ibv_post_send(qps_[k]->qp, &wr, &bad_wr);
     if (err != 0) {
       throw TransportException(HERE, "ibv_post_send failed", err);
+    }
+
+    log_offsets_[k] += len_log;
+    if (log_offsets_[k] > kLogSize) {
+      log_offsets_[k] = 0;
     }
   }
 
@@ -242,7 +254,7 @@ void Tablet::MergeModifications(ModificationList& modifications) {
   modifications[i++] = {begin, src, end - begin};
   modifications.resize(i);
 
-  //PrintModifications(modifications);
+  // PrintModifications(modifications);
 }
 
 void Tablet::MakeLog(ModificationLog* log, const ModificationList& modifications) {
