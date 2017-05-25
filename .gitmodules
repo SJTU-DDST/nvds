@@ -3,4 +3,4 @@
 	url = https://github.com/google/googletest
 [submodule "json"]
 	path = json
-	url = https://github.com/nlohmann/json
+	url = https://github.com/SJTU-DDST/json
