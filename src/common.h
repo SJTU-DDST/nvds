@@ -63,6 +63,13 @@ static const uint32_t kIBUDPadding = 40;
 std::string Format(const char* format, ...);
 std::string Demangle(const char* name);
 
+static inline void memset_volatile(volatile char* ptr, char v, size_t size) {
+  auto end = ptr + size;
+  while (ptr != end) {
+    *ptr++ = v;
+  }
+}
+
 } // namespace nvds
 
 #endif // _NVDS_COMMON_H_

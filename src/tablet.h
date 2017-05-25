@@ -15,6 +15,7 @@ class IndexManager;
 
 // A reasonable prime number
 static const uint32_t kHashTableSize = 1000003;
+static const uint32_t kLogSize = 64 * 1024;
 
 struct NVMObject {
   uint32_t next;
@@ -27,8 +28,10 @@ struct NVMObject {
 struct NVMTablet {
   char data[Allocator::kSize];
   std::array<uint32_t, kHashTableSize> hash_table;
+  volatile char log[kLogSize + 2048];
   NVMTablet() {
     hash_table.fill(0);
+    memset_volatile(log, 0, sizeof(log));
   }
 };
 static const uint32_t kNVMTabletSize = sizeof(NVMTablet);
@@ -50,10 +53,15 @@ class Tablet {
   Response::Status Put(const Request* r,
                        ModificationList& modifications);
   void SettingupQPConnect(TabletId id, const IndexManager& index_manager);
-  int Sync(ModificationList& modifications);
+  int Sync(Infiniband::Buffer* b, ModificationList& modifications);
 
  private:
   static void MergeModifications(ModificationList& modifications);
+  static void MakeLog(ModificationLog* log,
+                      const ModificationList& modifications);
+  size_t MakeSGEs(struct ibv_sge* sges, struct ibv_mr* mr,
+                  const ModificationLog* log,
+                  const ModificationList& modifications);
 
   const IndexManager& index_manager_;  
   TabletInfo info_;
@@ -68,9 +76,10 @@ class Tablet {
   std::array<Infiniband::QueuePair*, kNumReplicas> qps_;
   // `kNumReplica` queue pairs share this `rcq_` and `scq_`
 
+  std::array<uint32_t, kNumReplicas> log_offsets_;
   static const uint32_t kNumScatters = 16;
-  std::array<struct ibv_sge, kNumScatters> sges;
-  std::array<struct ibv_send_wr, kNumScatters> wrs;
+  std::array<struct ibv_sge, kNumScatters> sges_;
+  std::array<struct ibv_send_wr, kNumScatters> wrs_;
 };
 
 } // namespace nvds
