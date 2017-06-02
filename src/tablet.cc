@@ -211,6 +211,7 @@ int Tablet::Sync(Infiniband::Buffer* b, ModificationList& modifications) {
   return 0;
 }
 
+/*
 // DEBUG
 static void PrintModifications(const ModificationList& modifications) {
   for (const auto& m : modifications) {
@@ -218,6 +219,7 @@ static void PrintModifications(const ModificationList& modifications) {
   }
   std::cout << std::endl << std::flush;
 }
+*/
 
 void Tablet::MergeModifications(ModificationList& modifications) {
   auto n = modifications.size();
@@ -271,7 +273,7 @@ size_t Tablet::MakeSGEs(struct ibv_sge* sges, struct ibv_mr* mr,
   size_t i = 0;
   sges[i++] = {
     reinterpret_cast<uint64_t>(log),
-    sizeof(ModificationLog) + log->cnt * sizeof(Position),
+    static_cast<uint32_t>(sizeof(ModificationLog) + log->cnt * sizeof(Position)),
     mr->lkey
   };
   for (const auto& m : modifications) {

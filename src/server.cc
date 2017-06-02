@@ -154,9 +154,6 @@ void Server::Poll() {
   while (true) {
     auto b = ib_.TryReceive(qp_);
     if (b != nullptr) {
-      // Dispatch to worker's queue, then worker get work from it's queue.
-      // The buffer `b` will be freed by the worker. Thus, the buffer pool
-      // must made thread safe.
       #ifdef ENABLE_MEASUREMENT
         static bool enable = false;
         if (enable) {
@@ -164,6 +161,9 @@ void Server::Poll() {
         }
         enable = true;
       #endif
+      // Dispatch to worker's queue, then worker get work from it's queue.
+      // The buffer `b` will be freed by the worker. Thus, the buffer pool
+      // must made thread safe.
       Dispatch(b);
     }
     if ((b = ib_.TrySend(qp_)) != nullptr) {
@@ -180,30 +180,12 @@ void Server::Poll() {
       // Try posting receive if we could
       ib_.PostReceive(qp_, b);
     }
-    
-    // Performance measurement
-    /*
-    if (cnt == 0) {
-      begin = high_resolution_clock::now();
-    }
-    if (++cnt == 500 * 1000) {
-      auto end = high_resolution_clock::now();
-      double t = duration_cast<duration<double>>(end - begin).count();
-      NVDS_LOG("server %d QPS: %.2f, time: %.2f", id_, cnt / t, t);
-      cnt = 0;
-    }
-    */
   }
 }
 
 void Server::Dispatch(Work* work) {
   auto r = work->MakeRequest();
   auto id = index_manager_.GetTabletId(r->key_hash);
-  // DEBUG
-  //r->Print();
-  //std::cout << "server id: " << id_ << std::endl;
-  //std::cout << "tablet id: " << id << std::endl;
-  //std::cout << std::flush;
   workers_[id % kNumTabletAndBackupsPerServer]->Enqueue(work);
   ++num_recv_;
 }

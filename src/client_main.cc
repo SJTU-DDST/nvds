@@ -83,6 +83,7 @@ static int bench_main(int argc, const char* argv[]) {
   return 0;
 }
 
+/*
 static int function_test_main(int argc, const char* argv[]) {
   assert(argc >= 2);
   std::string coord_addr {argv[1]};
@@ -113,6 +114,7 @@ static int function_test_main(int argc, const char* argv[]) {
   }
   return 0;
 }
+*/
 
 int main(int argc, const char* argv[]) {
   signal(SIGINT, SigInt);
