@@ -1,6 +1,8 @@
 #!/bin/bash
+
 ../src/build/coordinator ./config.json > coordinator.txt &
-# Waiting for coordinator startup
+
+# Waiting for coordinator
 sleep 0.1s
 
 for ((i = 5050; i < 5050 + $1; i = i + 1)) do
