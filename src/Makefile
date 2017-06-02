@@ -9,7 +9,6 @@ SRCS = allocator.cc         \
 	   basic_server.cc		\
        client.cc			\
 	   common.cc			\
-	   config.cc			\
 	   coordinator.cc		\
 	   index.cc				\
 	   infiniband.cc		\

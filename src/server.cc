@@ -1,6 +1,5 @@
 #include "server.h"
 
-#include "config.h"
 #include "json.hpp"
 #include "request.h"
 
@@ -62,10 +61,10 @@ void Server::Run() {
   poller.join();
 }
 
-bool Server::Join() {
+bool Server::Join(const std::string& coord_addr) {
   using boost::asio::ip::tcp;
   tcp::resolver resolver(tcp_service_);
-  tcp::resolver::query query(Config::coord_addr(), std::to_string(kCoordPort));
+  tcp::resolver::query query(coord_addr, std::to_string(kCoordPort));
   auto ep = resolver.resolve(query);
   try {
     boost::asio::connect(conn_sock_, ep);
@@ -115,7 +114,7 @@ bool Server::Join() {
     }
   } catch (boost::system::system_error& err) {
     NVDS_ERR("connect to coordinator: %s: %" PRIu16 " failed",
-             Config::coord_addr().c_str(), kCoordPort);
+             coord_addr.c_str(), kCoordPort);
     return false;
   }
   return true;

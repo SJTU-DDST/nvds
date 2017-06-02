@@ -3,7 +3,6 @@
  */
 
 #include "server.h"
-#include "config.h"
 
 using namespace nvds;
 
@@ -37,7 +36,7 @@ static void SigInt(int signo) {
 
 static void Usage(int argc, const char* argv[]) {
     std::cout << "Usage:" << std::endl
-              << "    " << argv[0] << " <port> <config_file>" << std::endl;
+              << "    " << argv[0] << " <port> <coord addr>" << std::endl;
 }
 
 int main(int argc, const char* argv[]) {
@@ -49,9 +48,7 @@ int main(int argc, const char* argv[]) {
   }
 
   uint16_t server_port = std::stoi(argv[1]);
-
-  // -1. Load config file.
-  Config::GetInst()->Load(argv[2]);
+  std::string coord_addr = argv[2];
 
   // Step 0, self initialization, including formatting nvm storage.
   // DRAM emulated NVM.
@@ -64,7 +61,7 @@ int main(int argc, const char* argv[]) {
     Server s(server_port, nvm, kNVMDeviceSize);
     server = &s;
     // Step 1: request to the coordinator for joining in.
-    if (!s.Join()) {
+    if (!s.Join(coord_addr)) {
       NVDS_ERR("join cluster failed");
       return -1;
     }

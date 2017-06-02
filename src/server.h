@@ -68,7 +68,7 @@ class Server : public BasicServer {
   size_t num_recv() const { return num_recv_; }
 
   void Run() override;
-  bool Join();
+  bool Join(const std::string& coord_addr);
   void Leave();
   void Listening();
   void Poll();
