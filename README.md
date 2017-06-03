@@ -52,7 +52,7 @@ Parameters below are defined in header file `common.h`, recompilation and reinst
 The volume of the whole cluster equals to: kNumServers * kNumTabletsPerServer * 64MB;
 
 ### servers
-Specify server addresses in file `script/servers`. The total number of servers
+Specify server addresses in file `script/servers.txt`. The total number of servers
 should equals to parameter `kNumServers`. The file format: a line for a server address(ip address and port number separated by space). An example of two servers:
 
 ```text
@@ -60,5 +60,5 @@ should equals to parameter `kNumServers`. The file format: a line for a server a
 192.168.99.14 5051
 ```
 
-## USAGE
+## PROGRAMMING
 

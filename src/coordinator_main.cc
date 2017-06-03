@@ -39,7 +39,7 @@ int main(int argc, const char* argv[]) {
 
   // 1. Self initialization
   Coordinator coordinator;
-  
+
   // 2. Listening for joining request from nodes and request from clients
   NVDS_LOG("Coordinator at: %s", GetLocalAddr().c_str());
   NVDS_LOG("Listening at: %u", kCoordPort);
