@@ -1,15 +1,17 @@
 CXX = g++ -std=c++14 -O3
 LD = g++
 CXXINC = -I./ -I../json/src/
-CXXFLAGS = -g -fsanitize=address -Wall -D_XOPEN_SOURCE -D_GNU_SOURCE $(CXXINC)
+#CXXFLAGS = -g -fsanitize=address -Wall -D_XOPEN_SOURCE -D_GNU_SOURCE $(CXXINC)
+CXXFLAGS = -g -Wall -D_XOPEN_SOURCE -D_GNU_SOURCE $(CXXINC)
 LDFLAGS = 
-LDLIBS = -lasan -libverbs -lboost_system -lboost_thread -lrt -lpthread -lssl -lcrypto
+#LDLIBS = -lasan -libverbs -lboost_system -lboost_thread -lrt -lpthread -lssl -lcrypto
+LDLIBS = -libverbs -lboost_system -lboost_thread -lrt -lpthread -lssl -lcrypto
+
 
 SRCS = allocator.cc         \
 	   basic_server.cc		\
        client.cc			\
 	   common.cc			\
-	   config.cc			\
 	   coordinator.cc		\
 	   index.cc				\
 	   infiniband.cc		\
@@ -32,18 +34,19 @@ default: all
 
 all:
 	@mkdir -p $(OBJS_DIR)
-	@make coordinator
-	@make server
-	@make client
+	@make coordinator server client library
 
-client: $(OBJS) $(OBJS_DIR)client_main.o
+coordinator: $(OBJS) $(OBJS_DIR)coordinator_main.o
 	$(LD) $(LDFLAGS) -o $(OBJS_DIR)$@ $^ $(LDLIBS)
 
 server: $(OBJS) $(OBJS_DIR)server_main.o
 	$(LD) $(LDFLAGS) -o $(OBJS_DIR)$@ $^ $(LDLIBS)
 
-coordinator: $(OBJS) $(OBJS_DIR)coordinator_main.o
+client: $(OBJS) $(OBJS_DIR)client_main.o
 	$(LD) $(LDFLAGS) -o $(OBJS_DIR)$@ $^ $(LDLIBS)
+
+library: $(OBJS)
+	ar rcs $(OBJS_DIR)libnvds.a $(OBJS)
 
 $(OBJS_DIR)%.o: %.cc
 	$(CXX) $(CXXFLAGS) -o $@ -c $^
@@ -76,6 +79,12 @@ $(OBJS_DIR)test_message.o: test_message.cc message.h
 	$(CXX) $(CXXFLAGS) $(GTEST_FLAGS) -o $@ -c test_message.cc
 test_message: $(OBJS_DIR)test_message.o $(OBJS_DIR)message.o $(OBJS_DIR)libgtest.a
 	$(LD) $(LDFLAGS) $(GTEST_FLAGS) -o $(OBJS_DIR)$@ $^ $(LDLIBS)
+
+install:
+	@sudo mkdir -p /usr/include/nvds/
+	@sudo cp ./*.h /usr/include/nvds/
+	@sudo cp ../json/src/json.hpp /usr/include/nvds/
+	@sudo cp ./build/libnvds.a /usr/lib/
 
 .PHONY: clean
 

@@ -1,6 +1,5 @@
 #include "basic_server.h"
 
-#include "config.h"
 #include "session.h"
 
 using boost::asio::ip::tcp;

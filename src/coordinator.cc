@@ -1,6 +1,5 @@
 #include "coordinator.h"
 
-#include "config.h"
 #include "json.hpp"
 #include "message.h"
 #include "session.h"

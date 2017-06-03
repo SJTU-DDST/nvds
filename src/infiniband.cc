@@ -211,7 +211,7 @@ Infiniband::RegisteredBuffers::RegisteredBuffers(ibv_pd* pd,
     : buf_size_(buf_size), buf_num_(buf_num),
       ptr_(nullptr), bufs_(nullptr), root_(nullptr) {
   const size_t bytes = buf_size * buf_num;
-  ptr_ = memalign(kPageSize, bytes);
+  ptr_ = memalign(sysconf(_SC_PAGESIZE), bytes);
   assert(ptr_ != nullptr);
   int access = IBV_ACCESS_REMOTE_WRITE | IBV_ACCESS_LOCAL_WRITE;
   auto mr = ibv_reg_mr(pd, ptr_, bytes, access);
