@@ -1,5 +1,5 @@
 /*
- * Compile: g++ -std=c++11 -Wall -g test_client.cc -lnvds -lboost_system -pthread -libverbs
+ * Compile: g++ -std=c++11 -Wall -g test_client.cc -lnvds -lboost_system -lboost_thread -pthread -libverbs
  */
 
 #include "nvds/client.h"
