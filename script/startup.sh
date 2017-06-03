@@ -7,7 +7,10 @@ sleep 0.1s
 
 first_line=$(head -n 1 coordinator.txt)
 first_line_arr=($first_line)
-coord_addr=${first_line_arr[-1]}
+
+# Compatible with the server's bash
+#coord_addr=${first_line_arr[-1]}
+coord_addr=${first_line_arr[2]}
 
 while read line; do
     server=($line)
