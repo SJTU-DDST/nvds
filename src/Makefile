@@ -80,6 +80,7 @@ test_message: $(OBJS_DIR)test_message.o $(OBJS_DIR)message.o $(OBJS_DIR)libgtest
 install:
 	@sudo mkdir -p /usr/include/nvds/
 	@sudo cp ./*.h /usr/include/nvds/
+	@sudo cp ../json/src/json.hpp /usr/include/nvds/
 	@sudo cp ./build/libnvds.a /usr/lib/
 
 .PHONY: clean
