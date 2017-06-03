@@ -15,8 +15,6 @@
 #include <string>
 #include <vector>
 
-namespace nvds {
-
 #define PACKED(s) s __attribute__((packed))
 
 #ifndef DISALLOW_COPY_AND_ASSIGN
@@ -25,15 +23,17 @@ namespace nvds {
   TypeName& operator=(const TypeName&) = delete;
 #endif
 
-#define NVDS_ERR(format, args...) {     \
-  std::cerr << "error: "                \
-            << Format(format, ##args)   \
-            << std::endl;               \
+#define NVDS_ERR(format, args...) {         \
+  std::cerr << "error: "                    \
+            << nvds::Format(format, ##args) \
+            << std::endl;                   \
 }
 
-#define NVDS_LOG(format, args...) {                 \
-  std::cout << Format(format, ##args) << std::endl; \
+#define NVDS_LOG(format, args...) {                       \
+  std::cout << nvds::Format(format, ##args) << std::endl; \
 }
+
+namespace nvds {
 
 using ServerId = uint32_t;
 using TabletId = uint32_t;
