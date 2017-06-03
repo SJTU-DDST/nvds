@@ -5,7 +5,10 @@
 # Waiting for coordinator
 sleep 0.1s
 
-for ((i = 5050; i < 5050 + $1; i = i + 1)) do
-    ../src/build/server $i ./config.json > "server_$i.txt" &
-    sleep 0.1s
-done
+first_line=$(head -n 1 coordinator.txt)
+coord_addr=$(first_line)[-1]
+
+while read line; do
+    server=($line)
+    ssh root@${server[0]} '/home/wgtdkp/nvds/build/server ${server[1]} ${coord_addr} > server_${server[1]}.txt &'
+done < servers.txt
