@@ -14,10 +14,11 @@ coord_addr=${first_line_arr[2]}
 
 while read line; do
     server=($line)
+    echo "starting server [${server[0]}:${server[1]}]"
     dir="/home/wgtdkp/nvds/"
     bin="./src/build/server"
     out="./script/server_${server[1]}.txt"
     err="./script/err_server_${server[1]}.txt"
     in="/dev/null"
-    ssh root@${server[0]} "cd ${dir}; nohup ${bin} ${server[1]} ${coord_addr} > ${out} 2> ${err} < ${in} &"
+    ssh root@${server[0]} "cd ${dir}; nohup ${bin} ${server[1]} ${coord_addr} > ${out} 2> ${err} < ${in} &" < /dev/null
 done < servers.txt
