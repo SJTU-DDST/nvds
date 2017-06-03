@@ -1,12 +1,12 @@
 #!/bin/bash
 
-../src/build/coordinator ./config.json > coordinator.txt &
+../src/build/coordinator > coordinator.txt &
 
 # Waiting for coordinator
 sleep 0.1s
 
 first_line=$(head -n 1 coordinator.txt)
-coord_addr=$(first_line)[-1]
+coord_addr=($first_line)[-1]
 
 while read line; do
     server=($line)
