@@ -43,7 +43,7 @@ using TabletId = uint32_t;
  */
 // Configurable
 static const uint32_t kNumReplicas = 1;
-static const uint32_t kNumServers = 1;
+static const uint32_t kNumServers = 2;
 static const uint32_t kNumTabletsPerServer = 1;
 
 static const uint16_t kCoordPort = 9090;
