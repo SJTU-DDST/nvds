@@ -14,15 +14,16 @@ class Client {
   ~Client();
   DISALLOW_COPY_AND_ASSIGN(Client);
 
-  // Get value by the key
+  // Get value by the key, return empty string if error occurs.
   std::string Get(const std::string& key);
 
-  // Store key/value pair to the cluster
+  // Store key/value pair to the cluster, return if operation succeed.
   bool Put(const std::string& key, const std::string& value);
   
-  // Delete item indexed by the key
+  // Delete item indexed by the key, return if operation succeed.
   bool Del(const std::string& key);
 
+  // Statistic
   size_t num_send() const { return num_send_; }
 
  private:
