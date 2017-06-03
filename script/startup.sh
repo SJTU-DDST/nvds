@@ -1,6 +1,6 @@
 #!/bin/bash
 
-../src/build/coordinator > coordinator.txt &
+../src/build/coordinator > coordinator.txt 2> err_coordinator.txt < /dev/null &
 
 # Waiting for coordinator
 sleep 0.1s
@@ -10,5 +10,10 @@ coord_addr=($first_line)[-1]
 
 while read line; do
     server=($line)
-    ssh root@${server[0]} '/home/wgtdkp/nvds/build/server ${server[1]} ${coord_addr} > server_${server[1]}.txt &'
+    dir='/home/wgtdkp/nvds/'
+    bin='./src/build/server'
+    out='./script/server_${server[1]}.txt'
+    err='./script/err_server_${server[1]}.txt'
+    in='/dev/null'
+    ssh root@${server[0]} 'cd ${dir}; nohup ${bin} ${server[1]} ${coord_addr} > ${out} 2> ${err} < ${in} &'
 done < servers.txt
