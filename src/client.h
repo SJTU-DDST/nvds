@@ -16,12 +16,15 @@ class Client {
 
   // Get value by the key, return empty string if error occurs.
   std::string Get(const std::string& key);
+  std::string Get(const char* key, size_t key_len);
 
   // Store key/value pair to the cluster, return if operation succeed.
-  bool Put(const std::string& key, const std::string& value);
+  bool Put(const std::string& key, const std::string& val);
+  bool Put(const char* key, size_t ley_len, const char* val, size_t val_len);
   
   // Delete item indexed by the key, return if operation succeed.
   bool Del(const std::string& key);
+  bool Del(const char* key, size_t key_len);
 
   // Statistic
   size_t num_send() const { return num_send_; }

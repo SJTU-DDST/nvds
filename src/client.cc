@@ -47,8 +47,12 @@ tcp::socket Client::Connect(const std::string& coord_addr) {
 }
 
 std::string Client::Get(const std::string& key) {
+  return Get(key.c_str(), key.size());
+}
+
+std::string Client::Get(const char* key, size_t key_len) {
   // 0. compute key hash
-  auto hash = Hash(key);
+  auto hash = Hash(key, key_len);
   
   // 1. get tablet and server info
   //auto& tablet = index_manager_.GetTablet(hash);
@@ -56,7 +60,7 @@ std::string Client::Get(const std::string& key) {
   // 2. post ib send and recv
   auto sb = send_bufs_.Alloc();
   assert(sb != nullptr);
-  auto r = Request::New(sb, Request::Type::GET, key, "", hash);
+  auto r = Request::New(sb, Request::Type::GET, key, key_len, hash);
   auto rb = recv_bufs_.Alloc();
   assert(rb != nullptr);
   ib_.PostReceive(qp_, rb);
@@ -72,8 +76,13 @@ std::string Client::Get(const std::string& key) {
 }
 
 bool Client::Put(const std::string& key, const std::string& val) {
+  return Put(key.c_str(), key.size(), val.c_str(), val.size());
+}
+
+bool Client::Put(const char* key, size_t key_len,
+                 const char* val, size_t val_len) {
   // 0. compute key hash
-  auto hash = Hash(key);
+  auto hash = Hash(key, key_len);
   
   // 1. get tablet and server info
   //auto& tablet = index_manager_.GetTablet(hash);
@@ -81,7 +90,8 @@ bool Client::Put(const std::string& key, const std::string& val) {
   // 2. post ib send and recv
   auto sb = send_bufs_.Alloc();
   assert(sb != nullptr);
-  auto r = Request::New(sb, Request::Type::PUT, key, val, hash);
+  auto r = Request::New(sb, Request::Type::PUT,
+                        key, key_len, val, val_len, hash);
   auto rb = recv_bufs_.Alloc();
   assert(rb != nullptr);
   ib_.PostReceive(qp_, rb);
@@ -101,8 +111,12 @@ bool Client::Put(const std::string& key, const std::string& val) {
 }
 
 bool Client::Del(const std::string& key) {
+  return Del(key.c_str(), key.size());
+}
+
+bool Client::Del(const char* key, size_t key_len) {
   // 0. compute key hash
-  auto hash = Hash(key);
+  auto hash = Hash(key, key_len);
 
   // 1. get tablet and server info
   //auto& tablet = index_manager_.GetTablet(hash);
@@ -110,7 +124,7 @@ bool Client::Del(const std::string& key) {
   // 2. post ib send and recv
   auto sb = send_bufs_.Alloc();
   assert(sb != nullptr);
-  auto r = Request::New(sb, Request::Type::DEL, key, "", hash);
+  auto r = Request::New(sb, Request::Type::DEL, key, key_len, hash);
   auto rb = recv_bufs_.Alloc();
   assert(rb != nullptr);
   ib_.PostReceive(qp_, rb);

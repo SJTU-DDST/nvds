@@ -19,6 +19,10 @@ static inline KeyHash Hash(const std::string& key) {
   return MurmurHash64B(key.c_str(), key.size(), 103);
 }
 
+static inline KeyHash Hash(const char* key, size_t key_len) {
+  return MurmurHash64B(key, key_len, 103);
+}
+
 } // namespace nvds
 
 #endif // _NVDS_HASH_H_
