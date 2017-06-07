@@ -15,14 +15,17 @@ class Client {
   DISALLOW_COPY_AND_ASSIGN(Client);
 
   // Get value by the key, return empty string if error occurs.
+  // Throw: TransportException
   std::string Get(const std::string& key);
   std::string Get(const char* key, size_t key_len);
 
   // Store key/value pair to the cluster, return if operation succeed.
+  // Throw: TransportException
   bool Put(const std::string& key, const std::string& val);
   bool Put(const char* key, size_t ley_len, const char* val, size_t val_len);
-  
+
   // Delete item indexed by the key, return if operation succeed.
+  // Throw: TransportException
   bool Del(const std::string& key);
   bool Del(const char* key, size_t key_len);
 
