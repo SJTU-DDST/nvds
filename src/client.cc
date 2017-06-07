@@ -46,41 +46,8 @@ tcp::socket Client::Connect(const std::string& coord_addr) {
   return conn_sock;
 }
 
-std::string Client::Get(const std::string& key) {
-  return Get(key.c_str(), key.size());
-}
-
-std::string Client::Get(const char* key, size_t key_len) {
-  // 0. compute key hash
-  auto hash = Hash(key, key_len);
-  
-  // 1. get tablet and server info
-  //auto& tablet = index_manager_.GetTablet(hash);
-  auto& server = index_manager_.GetServer(hash);
-  // 2. post ib send and recv
-  auto sb = send_bufs_.Alloc();
-  assert(sb != nullptr);
-  auto r = Request::New(sb, Request::Type::GET, key, key_len, hash);
-  auto rb = recv_bufs_.Alloc();
-  assert(rb != nullptr);
-  ib_.PostReceive(qp_, rb);
-  ib_.PostSendAndWait(qp_, sb, r->Len(), &server.ib_addr);
-  Request::Del(r);
-  send_bufs_.Free(sb);
-  assert(rb == ib_.Receive(qp_));
-  auto resp = rb->MakeResponse();
-  //resp->Print();
-  std::string ans(resp->val, resp->val_len);
-  recv_bufs_.Free(rb);
-  return ans;
-}
-
-bool Client::Put(const std::string& key, const std::string& val) {
-  return Put(key.c_str(), key.size(), val.c_str(), val.size());
-}
-
-bool Client::Put(const char* key, size_t key_len,
-                 const char* val, size_t val_len) {
+const Response* Client::RequestAndWait(const char* key, size_t key_len,
+    const char* val, size_t val_len, Request::Type type) {
   assert(key_len + val_len <= kMaxItemSize);
   // 0. compute key hash
   auto hash = Hash(key, key_len);
@@ -91,41 +58,7 @@ bool Client::Put(const char* key, size_t key_len,
   // 2. post ib send and recv
   auto sb = send_bufs_.Alloc();
   assert(sb != nullptr);
-  auto r = Request::New(sb, Request::Type::PUT,
-                        key, key_len, val, val_len, hash);
-  auto rb = recv_bufs_.Alloc();
-  assert(rb != nullptr);
-  ib_.PostReceive(qp_, rb);
-  ib_.PostSendAndWait(qp_, sb, r->Len(), &server.ib_addr);
-  Request::Del(r);
-  send_bufs_.Free(sb);
-    
-  // Statistic 
-  ++num_send_;
-
-  assert(rb == ib_.Receive(qp_));
-  auto resp = rb->MakeResponse();
-  //resp->Print();
-  bool ans = resp->status == Response::Status::OK;
-  recv_bufs_.Free(rb);
-  return ans;
-}
-
-bool Client::Del(const std::string& key) {
-  return Del(key.c_str(), key.size());
-}
-
-bool Client::Del(const char* key, size_t key_len) {
-  // 0. compute key hash
-  auto hash = Hash(key, key_len);
-
-  // 1. get tablet and server info
-  //auto& tablet = index_manager_.GetTablet(hash);
-  auto& server = index_manager_.GetServer(hash);
-  // 2. post ib send and recv
-  auto sb = send_bufs_.Alloc();
-  assert(sb != nullptr);
-  auto r = Request::New(sb, Request::Type::DEL, key, key_len, hash);
+  auto r = Request::New(sb, type, key, key_len, val, val_len, hash);
   auto rb = recv_bufs_.Alloc();
   assert(rb != nullptr);
   ib_.PostReceive(qp_, rb);
@@ -133,11 +66,10 @@ bool Client::Del(const char* key, size_t key_len) {
   Request::Del(r);
   send_bufs_.Free(sb);
   assert(rb == ib_.Receive(qp_));
-  auto resp = rb->MakeResponse();
-  //resp->Print();
-  bool ans = resp->status == Response::Status::OK;
-  recv_bufs_.Free(rb);
-  return ans;
+  return rb->MakeResponse();
+  //std::string ans(resp->val, resp->val_len);
+  //recv_bufs_.Free(rb);
+  //return ans;
 }
 
 } // namespace nvds

@@ -209,7 +209,7 @@ void Server::Worker::Serve() {
 
     // Do the work
     auto r = work->MakeRequest();
-    auto resp = Response::New(sb, r->type, Response::Status::OK);
+    auto resp = Response::New(sb, r->type, Status::OK);
     modifications.clear();
     
     #ifdef ENABLE_MEASUREMENT
@@ -218,6 +218,9 @@ void Server::Worker::Serve() {
     switch (r->type) {
     case Request::Type::PUT:
       resp->status = tablet_->Put(r, modifications);
+      break;
+    case Request::Type::ADD:
+      resp->status = tablet_->Add(r, modifications);
       break;
     case Request::Type::DEL:
       resp->status = tablet_->Del(r, modifications);

@@ -4,14 +4,12 @@
 #include "common.h"
 #include "infiniband.h"
 #include "request.h"
+#include "status.h"
 
 namespace nvds {
 
 struct Response {
   using Type = Request::Type;
-  enum class Status : uint8_t {
-    OK, ERROR, NO_MEM,
-  };
   Type type;
   Status status;
   uint16_t val_len;

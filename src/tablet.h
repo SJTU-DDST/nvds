@@ -43,12 +43,12 @@ class Tablet {
   DISALLOW_COPY_AND_ASSIGN(Tablet);
 
   const TabletInfo& info() const { return info_; }
-  Response::Status Get(Response* resp, const Request* r,
+  Status Get(Response* resp, const Request* r,
                        ModificationList& modifications);
-  Response::Status Del(const Request* r,
-                       ModificationList& modifications);
-  Response::Status Put(const Request* r,
-                       ModificationList& modifications);
+  Status Del(const Request* r, ModificationList& modifications);
+  Status Put(const Request* r, ModificationList& modifications);
+  // Return: Status::ERROR, if there is already the same key; else, Status::OK;
+  Status Add(const Request* r, ModificationList& modifications);
   void SettingupQPConnect(TabletId id, const IndexManager& index_manager);
   int Sync(ModificationList& modifications);
 

@@ -2,13 +2,12 @@
 
 #include "index.h"
 #include "request.h"
+#include "status.h"
 
 #define OFFSETOF_NVMOBJECT(obj, member) \
     offsetof(NVMObject, member) + obj
 
 namespace nvds {
-
-using Status = Response::Status;
 
 Tablet::Tablet(const IndexManager& index_manager,
                NVMPtr<NVMTablet> nvm_tablet, bool is_backup)
@@ -59,6 +58,7 @@ Status Tablet::Put(const Request* r, ModificationList& modifications) {
       p = allocator_.Read<uint32_t>(OFFSETOF_NVMOBJECT(p, next));
       continue;
     }
+    // There is already the same key, overwrite it.
     if (r->val_len < allocator_.Read<uint16_t>(OFFSETOF_NVMOBJECT(p, val_len))) {
       // The new value is shorter than the older, store data at its original place.
       allocator_.Write(OFFSETOF_NVMOBJECT(p, val_len), r->val_len);
@@ -74,19 +74,48 @@ Status Tablet::Put(const Request* r, ModificationList& modifications) {
       allocator_.Memcpy(OFFSETOF_NVMOBJECT(p, data), r->data, r->key_len + r->val_len);
       allocator_.Write(OFFSETOF_NVMOBJECT(q, next), p);
     }
-    break;
+    return Status::OK;
   }
-  if (!p) {
-    auto size = sizeof(NVMObject) + r->key_len + r->val_len;
-    p = allocator_.Alloc(size);
-    // TODO(wgtdkp): handle the situation: `no space`.
-    assert(p != 0);
-    // TODO(wgtdkp): use single `memcpy`
-    allocator_.Write<NVMObject>(p, {head, r->key_len, r->val_len, r->key_hash});
-    allocator_.Memcpy(OFFSETOF_NVMOBJECT(p, data), r->data, r->key_len + r->val_len);
-    // Insert the new item to head of the bucket list
-    allocator_.Write(slot, p);
+
+  auto size = sizeof(NVMObject) + r->key_len + r->val_len;
+  p = allocator_.Alloc(size);
+  // TODO(wgtdkp): handle the situation: `no space`.
+  assert(p != 0);
+  // TODO(wgtdkp): use single `memcpy`
+  allocator_.Write<NVMObject>(p, {head, r->key_len, r->val_len, r->key_hash});
+  allocator_.Memcpy(OFFSETOF_NVMOBJECT(p, data), r->data, r->key_len + r->val_len);
+  // Insert the new item to head of the bucket list
+  allocator_.Write(slot, p);
+  return Status::OK;
+}
+
+Status Tablet::Add(const Request* r, ModificationList& modifications) {
+  allocator_.set_modifications(&modifications);
+
+  assert(r->type == Request::Type::PUT);
+  auto idx = r->key_hash % kHashTableSize;
+  uint32_t slot = offsetof(NVMTablet, hash_table) + sizeof(uint32_t) * idx;
+  auto head = allocator_.Read<uint32_t>(slot);
+  auto p = head;
+  while (p) {
+    if (r->key_len != allocator_.Read<uint16_t>(OFFSETOF_NVMOBJECT(p, key_len)) ||
+        allocator_.Memcmp(OFFSETOF_NVMOBJECT(p, data), r->Key(), r->key_len)) {
+      p = allocator_.Read<uint32_t>(OFFSETOF_NVMOBJECT(p, next));
+      continue;
+    }
+    // There is already the same key, return Status::ERROR.    
+    return Status::ERROR;
   }
+
+  auto size = sizeof(NVMObject) + r->key_len + r->val_len;
+  p = allocator_.Alloc(size);
+  // TODO(wgtdkp): handle the situation: `no space`.
+  assert(p != 0);
+  // TODO(wgtdkp): use single `memcpy`
+  allocator_.Write<NVMObject>(p, {head, r->key_len, r->val_len, r->key_hash});
+  allocator_.Memcpy(OFFSETOF_NVMOBJECT(p, data), r->data, r->key_len + r->val_len);
+  // Insert the new item to head of the bucket list
+  allocator_.Write(slot, p);
   return Status::OK;
 }
 

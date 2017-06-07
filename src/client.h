@@ -4,6 +4,8 @@
 #include "common.h"
 #include "index.h"
 #include "infiniband.h"
+#include "request.h"
+#include "response.h"
 #include "session.h"
 
 namespace nvds {
@@ -16,18 +18,45 @@ class Client {
 
   // Get value by the key, return empty string if error occurs.
   // Throw: TransportException
-  std::string Get(const std::string& key);
-  std::string Get(const char* key, size_t key_len);
+  std::string Get(const std::string& key) {
+    return Get(key.c_str(), key.size());
+  }
+  std::string Get(const char* key, size_t key_len) {
+    auto resp = RequestAndWait(key, key_len, nullptr, 0, Request::Type::GET);
+    return {resp->val, resp->val_len};
+  }
 
-  // Store key/value pair to the cluster, return if operation succeed.
+  // Insert key/value pair to the cluster, return if operation succeed.
   // Throw: TransportException
-  bool Put(const std::string& key, const std::string& val);
-  bool Put(const char* key, size_t ley_len, const char* val, size_t val_len);
+  bool Put(const std::string& key, const std::string& val) {
+    return Put(key.c_str(), key.size(), val.c_str(), val.size());
+  }
+  bool Put(const char* key, size_t key_len, const char* val, size_t val_len) {
+    auto resp = RequestAndWait(key, key_len, val, val_len, Request::Type::PUT);
+    return resp->status == Status::OK;
+  }
+
+  // Add key/value pair to the cluster,
+  // return false if there is already the same key;
+  // Throw: TransportException
+  bool Add(const std::string& key, const std::string& val) {
+    return Add(key.c_str(), key.size(), val.c_str(), val.size());
+  }
+  bool Add(const char* key, size_t key_len, const char* val, size_t val_len) {
+    auto resp = RequestAndWait(key, key_len, val, val_len, Request::Type::ADD);
+    // FIXME(wgtdkp): what about Status::NO_MEM?
+    return resp->status == Status::OK;
+  }
 
   // Delete item indexed by the key, return if operation succeed.
   // Throw: TransportException
-  bool Del(const std::string& key);
-  bool Del(const char* key, size_t key_len);
+  bool Del(const std::string& key) {
+    return Del(key.c_str(), key.size());
+  }
+  bool Del(const char* key, size_t key_len) {
+    auto resp = RequestAndWait(key, key_len, nullptr, 0, Request::Type::DEL);  
+    return resp->status == Status::OK;    
+  }
 
   // Statistic
   size_t num_send() const { return num_send_; }
@@ -40,7 +69,9 @@ class Client {
   tcp::socket Connect(const std::string& coord_addr);
   void Close() {}
   void Join();
-  
+  const Response* RequestAndWait(const char* key, size_t key_len,
+      const char* val, size_t val_len, Request::Type type);
+
   boost::asio::io_service tcp_service_;
   Session session_;
   IndexManager index_manager_;

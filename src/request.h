@@ -8,7 +8,7 @@ namespace nvds {
 
 struct Request {
   enum class Type : uint8_t {
-    PUT, GET, DEL
+    PUT, ADD, GET, DEL
   };
   Type type;
   uint16_t key_len;
@@ -23,10 +23,6 @@ struct Request {
                       const char* key, size_t key_len,
                       const char* val, size_t val_len, KeyHash key_hash) {
     return new (b->buf) Request(type, key, key_len, val, val_len, key_hash);
-  }
-  static Request* New(Infiniband::Buffer* b, Type type,
-                      const char* key, size_t key_len, KeyHash key_hash) {
-    return new (b->buf) Request(type, key, key_len, key_hash);
   }
   static void Del(const Request* r) {
     // Explicitly call destructor(only when pairing with placement new)
@@ -57,11 +53,9 @@ struct Request {
       const char* val, size_t val_len, KeyHash key_hash)
       : type(type), key_len(key_len), val_len(val_len), key_hash(key_hash) {
     memcpy(data, key, key_len);
-    memcpy(data + key_len, val, val_len);
-  }
-  Request(Type type, const char* key, size_t key_len, KeyHash key_hash)
-      : type(type), key_len(key_len), val_len(0), key_hash(key_hash) {
-    memcpy(data, key, key_len);
+    if (val != nullptr && val_len > 0) {
+      memcpy(data + key_len, val, val_len);
+    }
   }
 };
 
