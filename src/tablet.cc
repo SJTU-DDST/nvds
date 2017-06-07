@@ -92,7 +92,7 @@ Status Tablet::Put(const Request* r, ModificationList& modifications) {
 Status Tablet::Add(const Request* r, ModificationList& modifications) {
   allocator_.set_modifications(&modifications);
 
-  assert(r->type == Request::Type::PUT);
+  assert(r->type == Request::Type::ADD);
   auto idx = r->key_hash % kHashTableSize;
   uint32_t slot = offsetof(NVMTablet, hash_table) + sizeof(uint32_t) * idx;
   auto head = allocator_.Read<uint32_t>(slot);
