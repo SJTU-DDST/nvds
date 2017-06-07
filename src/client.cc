@@ -81,6 +81,7 @@ bool Client::Put(const std::string& key, const std::string& val) {
 
 bool Client::Put(const char* key, size_t key_len,
                  const char* val, size_t val_len) {
+  assert(key_len + val_len <= kMaxItemSize);
   // 0. compute key hash
   auto hash = Hash(key, key_len);
   
