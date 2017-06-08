@@ -11,6 +11,7 @@
 namespace nvds {
 
 class Client {
+  using Buffer = Infiniband::Buffer;
  public:
   Client(const std::string& coord_addr);
   ~Client();
@@ -22,8 +23,11 @@ class Client {
     return Get(key.c_str(), key.size());
   }
   std::string Get(const char* key, size_t key_len) {
-    auto resp = RequestAndWait(key, key_len, nullptr, 0, Request::Type::GET);
-    return {resp->val, resp->val_len};
+    auto rb = RequestAndWait(key, key_len, nullptr, 0, Request::Type::GET);
+    auto resp = rb->MakeResponse();
+    std::string ans {resp->val, resp->val_len};
+    recv_bufs_.Free(rb);
+    return ans;
   }
 
   // Insert key/value pair to the cluster, return if operation succeed.
@@ -32,8 +36,10 @@ class Client {
     return Put(key.c_str(), key.size(), val.c_str(), val.size());
   }
   bool Put(const char* key, size_t key_len, const char* val, size_t val_len) {
-    auto resp = RequestAndWait(key, key_len, val, val_len, Request::Type::PUT);
-    return resp->status == Status::OK;
+    auto rb = RequestAndWait(key, key_len, val, val_len, Request::Type::PUT);
+    bool ans = rb->MakeResponse()->status == Status::OK;
+    recv_bufs_.Free(rb);
+    return ans;
   }
 
   // Add key/value pair to the cluster,
@@ -43,9 +49,11 @@ class Client {
     return Add(key.c_str(), key.size(), val.c_str(), val.size());
   }
   bool Add(const char* key, size_t key_len, const char* val, size_t val_len) {
-    auto resp = RequestAndWait(key, key_len, val, val_len, Request::Type::ADD);
+    auto rb = RequestAndWait(key, key_len, val, val_len, Request::Type::ADD);
     // FIXME(wgtdkp): what about Status::NO_MEM?
-    return resp->status == Status::OK;
+    bool ans = rb->MakeResponse()->status == Status::OK;
+    recv_bufs_.Free(rb);
+    return ans;
   }
 
   // Delete item indexed by the key, return if operation succeed.
@@ -54,8 +62,10 @@ class Client {
     return Del(key.c_str(), key.size());
   }
   bool Del(const char* key, size_t key_len) {
-    auto resp = RequestAndWait(key, key_len, nullptr, 0, Request::Type::DEL);  
-    return resp->status == Status::OK;    
+    auto rb = RequestAndWait(key, key_len, nullptr, 0, Request::Type::DEL);  
+    bool ans = rb->MakeResponse()->status == Status::OK;
+    recv_bufs_.Free(rb);
+    return ans;
   }
 
   // Statistic
@@ -69,7 +79,7 @@ class Client {
   tcp::socket Connect(const std::string& coord_addr);
   void Close() {}
   void Join();
-  const Response* RequestAndWait(const char* key, size_t key_len,
+  Buffer* RequestAndWait(const char* key, size_t key_len,
       const char* val, size_t val_len, Request::Type type);
 
   boost::asio::io_service tcp_service_;

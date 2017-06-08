@@ -46,7 +46,7 @@ tcp::socket Client::Connect(const std::string& coord_addr) {
   return conn_sock;
 }
 
-const Response* Client::RequestAndWait(const char* key, size_t key_len,
+Client::Buffer* Client::RequestAndWait(const char* key, size_t key_len,
     const char* val, size_t val_len, Request::Type type) {
   assert(key_len + val_len <= kMaxItemSize);
   // 0. compute key hash
@@ -66,7 +66,7 @@ const Response* Client::RequestAndWait(const char* key, size_t key_len,
   Request::Del(r);
   send_bufs_.Free(sb);
   assert(rb == ib_.Receive(qp_));
-  return rb->MakeResponse();
+  return rb;
   //std::string ans(resp->val, resp->val_len);
   //recv_bufs_.Free(rb);
   //return ans;
