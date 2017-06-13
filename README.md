@@ -6,7 +6,7 @@
 
 Fast replication over RDMA fabric for NVM-based storage system.
 
-## DEPENDECY
+## DEPENDENCY
 
 + [Google Test]
 + [json]
