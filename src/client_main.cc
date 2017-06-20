@@ -41,7 +41,7 @@ static void Work(double* qps, const std::string& coord_addr, size_t n) {
     Client c {coord_addr};
     client = &c;
     auto keys = GenRandomStrings(16, n);
-    auto vals = std::vector<std::string>(n, std::string(16, 'a'));
+    auto vals = VecStr(n, std::string(16, 'a'));
     auto begin = high_resolution_clock::now();
     for (size_t i = 0; i < keys.size(); ++i) {
       c.Put(keys[i], vals[i]);

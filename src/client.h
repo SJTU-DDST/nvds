@@ -62,7 +62,7 @@ class Client {
     return Del(key.c_str(), key.size());
   }
   bool Del(const char* key, size_t key_len) {
-    auto rb = RequestAndWait(key, key_len, nullptr, 0, Request::Type::DEL);  
+    auto rb = RequestAndWait(key, key_len, nullptr, 0, Request::Type::DEL);
     bool ans = rb->MakeResponse()->status == Status::OK;
     recv_bufs_.Free(rb);
     return ans;
