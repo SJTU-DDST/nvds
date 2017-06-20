@@ -1,4 +1,3 @@
-
 [Google Test]: https://github.com/google/googletest
 [json]: https://github.com/nlohmann/json
 
@@ -92,5 +91,9 @@ g++ -std=c++11 -Wall test_client.cc -lnvds -lboost_system -lboost_thread -pthrea
 ```
 
 The whole code can be obtained in source file `src/test_client.cc`.
+
+## TROUBLESHOOTING
+
+1. If `ibv_create_ah` failed with `"Cannot allocate memory"`, first, checkout the infiniband port status by typing command `ibstatus`; it should show that the port state is `INIT`; it's caused by disabling of `opensm`, start `opensm` by command: `/etc/init.d/opensmd start`; make sure the port state transformed to `ACTIVE`. It should be fixed then. This problem usually occurs after reboot, just enable _opensm_ once started.
 
 Have fun then!
