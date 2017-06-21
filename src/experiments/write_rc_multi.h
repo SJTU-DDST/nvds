@@ -24,7 +24,6 @@
   fprintf(stderr, "error: %s: %d: ", __FILE__, __LINE__); \
   fprintf(stderr, format, ## __VA_ARGS__);                \
   fprintf(stderr, "\n");                                  \
-  perror("perror: ");                                     \
   exit(-1);                                               \
 }
 
@@ -34,8 +33,10 @@
   }                                   \
 }
 
-#define DEFAULT_PSN (33)
-#define QP_TYPE IBV_QPT_UD
+#ifndef NUM_QP
+#define NUM_QP  (4096)
+#endif
+#define QP_TYPE IBV_QPT_RC
 
 typedef struct nvds_context {
   struct ibv_context*       context;
@@ -46,7 +47,7 @@ typedef struct nvds_context {
 	struct ibv_qp*            qp;
 	struct ibv_comp_channel*  ch;
 	void*                     buf;
-	unsigned            	    size;
+	unsigned            	    buf_size;
 	int                 	    tx_depth;
 	struct ibv_sge      	    sge;
 	struct ibv_send_wr  	    wr;
