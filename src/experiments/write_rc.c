@@ -344,6 +344,7 @@ static void nvds_init_ctx(nvds_context_t* ctx, nvds_data_t* data) {
     .send_cq = ctx->scq,
     .recv_cq = ctx->rcq,
     .qp_type = QP_TYPE,
+    .sq_sig_all = 0,
     .cap = {
       .max_send_wr = ctx->tx_depth,
       .max_recv_wr = 1,

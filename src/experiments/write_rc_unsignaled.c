@@ -26,7 +26,7 @@ static void nvds_set_qp_state_rts(struct ibv_qp* qp, nvds_data_t* data);
 
 static void nvds_rdma_write(nvds_context_t* ctx, nvds_data_t* data, uint32_t len);
 //static void nvds_rdma_read(nvds_context_t* ctx, nvds_data_t* data);
-//static void nvds_poll_send(nvds_context_t* ctx);
+static void nvds_poll_send(nvds_context_t* ctx);
 //static void nvds_poll_recv(nvds_context_t* ctx);
 //static void nvds_post_send(nvds_context_t* ctx, nvds_data_t* data);
 //static void nvds_post_recv(nvds_context_t* ctx, nvds_data_t* data);
@@ -217,12 +217,15 @@ static void nvds_run_server(nvds_context_t* ctx, nvds_data_t* data) {
   while (true) {
     while (*ctx->buf == 0) {}
     *ctx->buf = 0;
-    printf("%d: received\n", ++i);
+    //printf("%d: received\n", ++i);
     nvds_rdma_write(ctx, data, 1);
+    //nvds_poll_send(ctx);
   }
 }
 
 static void nvds_rdma_write(nvds_context_t* ctx, nvds_data_t* data, uint32_t len) {
+  static int k = 0;
+
   ctx->sge.addr    = (uintptr_t)ctx->buf;
   ctx->sge.length  = len;
   ctx->sge.lkey    = ctx->mr->lkey;
@@ -234,12 +237,17 @@ static void nvds_rdma_write(nvds_context_t* ctx, nvds_data_t* data, uint32_t len
   ctx->wr.sg_list             = &ctx->sge;
   ctx->wr.num_sge             = 1;
   ctx->wr.opcode              = IBV_WR_RDMA_WRITE;
-  ctx->wr.send_flags          = 0; //IBV_SEND_SIGNALED;
+  ctx->wr.send_flags          = k == 99 ? IBV_SEND_SIGNALED : 0;
   ctx->wr.next                = NULL;
 
   struct ibv_send_wr* bad_wr;
   nvds_expect(ibv_post_send(ctx->qp, &ctx->wr, &bad_wr) == 0,
               "ibv_post_send() failed");
+  if (k == 99) {
+    nvds_poll_send(ctx);
+  }
+  ++k;
+  k %= 100;
 }
 
 /*
@@ -264,14 +272,12 @@ static void nvds_rdma_read(nvds_context_t* ctx, nvds_data_t* data) {
 }
 */
 
-/*
 static void nvds_poll_send(nvds_context_t* ctx) {
   struct ibv_wc wc;
   while (ibv_poll_cq(ctx->scq, 1, &wc) != 1) {}
   nvds_expect(wc.status == IBV_WC_SUCCESS, "rdma write failed");
   nvds_expect(wc.wr_id == ctx->wr.wr_id, "wr id not matched");
 }
-*/
 
 /*
 static void nvds_poll_recv(nvds_context_t* ctx) {
@@ -350,6 +356,7 @@ static void nvds_init_ctx(nvds_context_t* ctx, nvds_data_t* data) {
     .send_cq = ctx->scq,
     .recv_cq = ctx->rcq,
     .qp_type = QP_TYPE,
+    .sq_sig_all = 0,
     .cap = {
       .max_send_wr = ctx->tx_depth,
       .max_recv_wr = 1,
@@ -369,7 +376,7 @@ int main(int argc, const char* argv[]) {
     .port         = 5500,
     .ib_port      = 1,
     .size         = RDMA_MAX_LEN,
-    .tx_depth     = 1,
+    .tx_depth     = 100,
     .server_name  = NULL,
     .ib_dev       = NULL
   };
