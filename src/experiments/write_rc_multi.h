@@ -34,7 +34,7 @@
 }
 
 #ifndef NUM_QP
-#define NUM_QP  (4096)
+#define NUM_QP  (1024)
 #endif
 #define QP_TYPE IBV_QPT_RC
 
@@ -46,7 +46,7 @@ typedef struct nvds_context {
 	struct ibv_cq*            scq;
 	struct ibv_qp*            qp;
 	struct ibv_comp_channel*  ch;
-	void*                     buf;
+	char*                     buf;
 	unsigned            	    buf_size;
 	int                 	    tx_depth;
 	struct ibv_sge      	    sge;

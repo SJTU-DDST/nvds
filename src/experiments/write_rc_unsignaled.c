@@ -202,7 +202,7 @@ static void nvds_run_client(nvds_context_t* ctx, nvds_data_t* data) {
     assert(clock_gettime(CLOCK_REALTIME, &end) == 0);
     int64_t t = time_diff(&end, &begin);
 
-    printf("%d, %f\n", len, t / 1000000.0 / 1000);
+    printf("%d, %f\n", len, t / 1000000.0 / 1000 / 2);
   }
   exit(0);
 }

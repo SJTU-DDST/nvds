@@ -1,6 +1,7 @@
 #include "write_rc_multi.h"
 
 #include <assert.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <time.h>
 
@@ -168,15 +169,24 @@ static void nvds_run_server(nvds_context_t* ctx_arr, nvds_data_t* data_arr, uint
     nvds_context_t* ctx = &ctx_arr[i];
     nvds_data_t* data = &data_arr[i];
     nvds_server_exch_info(data);
-    nvds_set_qp_state_rtr(ctx->qp, data);
+    nvds_set_qp_state_rts(ctx->qp, data);
+    for (int i = 0; i < ctx->buf_size; ++i) {
+      ctx->buf[i] = 0;
+    }
   }
-  //printf("server side: \n");
-  //printf("local connection: \n");
-  //nvds_print_ib_connection(&data->local_conn);
-  //printf("remote connection: \n");  
-  //nvds_print_ib_connection(&data->remote_conn);
-  // TODO(wgtdkp): poll request from client or do nothing
-  while (1) {}
+  
+  int i = 0, j = 0;
+  while (true) {
+    nvds_context_t* ctx = &ctx_arr[j];
+    nvds_data_t* data = &data_arr[j];
+    while (*ctx->buf == 0) {}
+    *ctx->buf = 0;
+    //printf("%d: received\n", ++i);
+    nvds_rdma_write(ctx, data, 1);
+    //nvds_poll_send(ctx);
+    ++j;
+    j %= num;
+  }
 }
 
 static inline int64_t time_diff(struct timespec* lhs, struct timespec* rhs) {
@@ -190,6 +200,9 @@ static void nvds_run_client(nvds_context_t* ctx_arr, nvds_data_t* data_arr, uint
     nvds_data_t* data = &data_arr[i];
     nvds_client_exch_info(data);
     nvds_set_qp_state_rts(ctx->qp, data);
+    for (int i = 0; i < ctx->buf_size; ++i) {
+      ctx->buf[i] = 1;
+    }
     usleep(1000);
   }
   //printf("client side: \n");
@@ -198,29 +211,34 @@ static void nvds_run_client(nvds_context_t* ctx_arr, nvds_data_t* data_arr, uint
   //printf("remote connection: \n");  
   //nvds_print_ib_connection(&data->remote_conn);
   usleep(1000);
+  
 
   static const int n = 1000 * 1000;
+  int j = 0;
   for (int32_t len = 128; len <= 128; len <<= 1) {
     struct timespec begin, end;
     assert(clock_gettime(CLOCK_REALTIME, &begin) == 0);
-    int j = 0;
     for (int i = 0; i < n; ++i) {
       nvds_context_t* ctx = &ctx_arr[j];
       nvds_data_t* data = &data_arr[j];
       nvds_rdma_write(ctx, data, len);
-      nvds_poll_send(ctx);
+      //nvds_poll_send(ctx);
+      while (*ctx->buf == 1) {}
+      *ctx->buf = 1;
       ++j;
       j %= num;
     }
     assert(clock_gettime(CLOCK_REALTIME, &end) == 0);
     int64_t t = time_diff(&end, &begin);
 
-    printf("%d %d, %f\n", num, len, t / 1000000.0 / 1000);
+    printf("%d %d, %f\n", num, len, t / 1000000.0 / 1000 / 2);
   }
   exit(0);
 }
 
 static void nvds_rdma_write(nvds_context_t* ctx, nvds_data_t* data, uint32_t len) {
+  static int k = 0;
+
   ctx->sge.addr    = (uintptr_t)ctx->buf;
   ctx->sge.length  = len;
   ctx->sge.lkey    = ctx->mr->lkey;
@@ -232,12 +250,17 @@ static void nvds_rdma_write(nvds_context_t* ctx, nvds_data_t* data, uint32_t len
   ctx->wr.sg_list             = &ctx->sge;
   ctx->wr.num_sge             = 1;
   ctx->wr.opcode              = IBV_WR_RDMA_WRITE;
-  ctx->wr.send_flags          = IBV_SEND_SIGNALED;
+  ctx->wr.send_flags          = k / NUM_QP == 99 ? IBV_SEND_SIGNALED : 0;
   ctx->wr.next                = NULL;
 
   struct ibv_send_wr* bad_wr;
   nvds_expect(ibv_post_send(ctx->qp, &ctx->wr, &bad_wr) == 0,
               "ibv_post_send() failed");
+  if (k / NUM_QP == 99) {
+    nvds_poll_send(ctx);
+  }
+  ++k;
+  k %= NUM_QP * 100;
 }
 
 /*
