@@ -182,7 +182,7 @@ void Tablet::SettingupQPConnect(TabletId id, const IndexManager& index_manager) 
   }
 }
 
-int Tablet::Sync(ModificationList& modifications) {
+int Tablet::Sync(Infiniband::Buffer* b, ModificationList& modifications) {
   if (modifications.size() == 0) {
     return 0;
   }
@@ -191,56 +191,47 @@ int Tablet::Sync(ModificationList& modifications) {
   for (size_t k = 0; k < info_.backups.size(); ++k) {
     auto backup = index_manager_.GetTablet(info_.backups[k]);
     assert(backup.is_backup);
-    size_t i = 0;
-    for (const auto& m : modifications) {
-      sges[i] = {m.src, m.len, mr_->lkey};
-      
-      wrs[i].wr.rdma.remote_addr = backup.qpis[0].vaddr + m.des;
-      wrs[i].wr.rdma.rkey        = backup.qpis[0].rkey;
-      // TODO(wgtdkp): use unique id
-      wrs[i].wr_id               = 1;
-      wrs[i].sg_list             = &sges[i];
-      wrs[i].num_sge             = 1;
-      wrs[i].opcode              = IBV_WR_RDMA_WRITE;
-      // TODO(wgtdkp): do we really need to signal each send?
-      wrs[i].send_flags          = IBV_SEND_INLINE;
-      wrs[i].next                = &wrs[i+1];
-      ++i;
-      // DEBUG
-      break;
-    }
-    wrs[i-1].next = nullptr;
-    wrs[i-1].send_flags |= IBV_SEND_SIGNALED;
+    
+    auto log = reinterpret_cast<ModificationLog*>(b->buf);
+    MakeLog(log, modifications);
+  
+    auto num_sge = MakeSGEs(&sges_[0], b->mr, log, modifications);
+    auto len_log = std::accumulate(sges_.begin(), sges_.begin() + num_sge, 0,
+        [](size_t acc, struct ibv_sge& x) { return acc + x.length; });
+    // DEBUG
+    //std::cout << "len_log: " << len_log << std::endl;
+
+    auto& wr = wrs_[0];
+    wr.wr.rdma.remote_addr = backup.qpis[0].vaddr + offsetof(NVMTablet, log) + log_offsets_[k];
+    wr.wr.rdma.rkey        = backup.qpis[0].rkey;
+    wr.wr_id               = 1;
+    wr.sg_list             = &sges_[0];
+    wr.num_sge             = num_sge;
+    wr.opcode              = IBV_WR_RDMA_WRITE;
+    wr.send_flags          = IBV_SEND_INLINE | IBV_SEND_SIGNALED;
+    wr.next                = nullptr;
 
     struct ibv_send_wr* bad_wr;
-    int err = ibv_post_send(qps_[k]->qp, &wrs[0], &bad_wr);
+    int err = ibv_post_send(qps_[k]->qp, &wr, &bad_wr);
     if (err != 0) {
       throw TransportException(HERE, "ibv_post_send failed", err);
+    }
+
+    log_offsets_[k] += len_log;
+    if (log_offsets_[k] > kLogSize) {
+      log_offsets_[k] = 0;
     }
   }
 
   for (auto& qp : qps_) {
     ibv_wc wc;
-    int r;
-    while ((r = ibv_poll_cq(qp->scq, 1, &wc)) != 1) {}
+    while (ibv_poll_cq(qp->scq, 1, &wc) != 1) {}
     if (wc.status != IBV_WC_SUCCESS) {
       throw TransportException(HERE, wc.status);
-    } else {
-      // std::clog << "success" << std::endl << std::flush;
     }
   }
   return 0;
 }
-
-/*
-// DEBUG
-static void PrintModifications(const ModificationList& modifications) {
-  for (const auto& m : modifications) {
-    m.Print();
-  }
-  std::cout << std::endl << std::flush;
-}
-*/
 
 void Tablet::MergeModifications(ModificationList& modifications) {
   auto n = modifications.size();
@@ -278,6 +269,29 @@ void Tablet::MergeModifications(ModificationList& modifications) {
   modifications.resize(i);
 
   //PrintModifications(modifications);
+}
+
+void Tablet::MakeLog(ModificationLog* log, const ModificationList& modifications) {
+  log->cnt = modifications.size();
+  size_t i = 0;
+  for (const auto& m : modifications) {
+    log->positions[i] = {m.des, m.len};
+  }
+}
+
+size_t Tablet::MakeSGEs(struct ibv_sge* sges, struct ibv_mr* mr,
+                        const ModificationLog* log,
+                        const ModificationList& modifications) {
+  size_t i = 0;
+  sges[i++] = {
+    reinterpret_cast<uint64_t>(log),
+    static_cast<uint32_t>(sizeof(ModificationLog) + log->cnt * sizeof(Position)),
+    mr->lkey
+  };
+  for (const auto& m : modifications) {
+    sges[i++] = {m.src, m.len, mr_->lkey};
+  }
+  return i;
 }
 
 } // namespace nvds

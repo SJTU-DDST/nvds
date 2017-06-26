@@ -237,7 +237,7 @@ void Server::Worker::Serve() {
       #ifdef ENABLE_MEASUREMENT
         server_->sync_measurement.begin();
       #endif
-      tablet_->Sync(modifications);
+      tablet_->Sync(work, modifications);
       #ifdef ENABLE_MEASUREMENT
         server_->sync_measurement.end();
       #endif
