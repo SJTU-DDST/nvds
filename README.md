@@ -94,6 +94,15 @@ The whole code can be obtained in source file `src/test_client.cc`.
 
 ## TROUBLESHOOTING
 
-1. If `ibv_create_ah` failed with `"Cannot allocate memory"`, first, checkout the infiniband port status by typing command `ibstatus`; it should show that the port state is `INIT`; it's caused by disabling of `opensm`, start `opensm` by command: `/etc/init.d/opensmd start`; make sure the port state transformed to `ACTIVE`. It should be fixed then. This problem usually occurs after reboot, just enable _opensm_ once started.
+### enable UD
+ If `ibv_create_ah` failed with `"Cannot allocate memory"`, first, checkout the infiniband port status by typing command `ibstatus`; it should show that the port state is `INIT`; it's caused by disabling of `opensm`, start `opensm` by command: `/etc/init.d/opensmd start`; make sure the port state transformed to `ACTIVE`. It should be fixed then. This problem usually occurs after reboot, just enable _opensm_ once started.
+
+### setting up IPoIB
+Setting up IPoIB for testing of memcached latency.
+Do below steps on both client and server machine.
+1. `lsmod | grep ib_ipoib` check if ipoib module is listed. If not, `modprobe ib_ipoib`;
+2. `ifconfig ib0 10.0.0.7/24` setting route and address (the address is for    `ddst7`, you may specify an address as you like) of `ib0`;
+3. make sure `opensm` service is enabled, you can restart it by `service opensmd restart`;
+4. `ping 10.0.0.4` ping peer machine (this address must be 10.0.0.*) to make sure IPoIB works for you.
 
 Have fun then!
