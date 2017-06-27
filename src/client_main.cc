@@ -1,6 +1,7 @@
 #include "client.h"
 
-#include <chrono>
+#include "measurement.h"
+
 #include <iostream>
 #include <memory>
 #include <random>
@@ -35,20 +36,19 @@ static VecStr GenRandomStrings(size_t len, size_t n) {
   return ans;
 }
 
-static void Work(double* qps, const std::string& coord_addr, size_t n) {
+static void Work(Measurement* m, const std::string& coord_addr, size_t n) {
   using namespace std::chrono;
   try {
     Client c {coord_addr};
     client = &c;
     auto keys = GenRandomStrings(16, n);
     auto vals = VecStr(n, std::string(16, 'a'));
-    auto begin = high_resolution_clock::now();
     for (size_t i = 0; i < keys.size(); ++i) {
+      m->begin();
       c.Put(keys[i], vals[i]);
+      //std::cout << "PUT" << std::endl;
+      m->end();
     }
-    auto end = high_resolution_clock::now();
-    double t = duration_cast<duration<double>>(end - begin).count();
-    *qps = keys.size() / t;
   } catch (boost::system::system_error& e) {
     NVDS_ERR(e.what());
   } catch (TransportException& e) {
@@ -67,19 +67,18 @@ static int bench_main(int argc, const char* argv[]) {
   const size_t num_items = std::stoi(argv[2]);
   const size_t num_threads = std::stoi(argv[3]);
   
-  std::vector<double> qpss(num_threads);
+  std::vector<Measurement> measurements(num_threads);
   std::vector<std::thread> workers;
   for (size_t i = 0; i < num_threads; ++i) {
-    workers.emplace_back(std::bind(Work, &qpss[i], coord_addr, num_items));
+    workers.emplace_back(std::bind(Work, &measurements[i], coord_addr, num_items));
   }
   for (size_t i = 0; i < num_threads; ++i) {
     workers[i].join();
   }
 
-  for (auto& qps : qpss) {
-    NVDS_LOG("QPS: %.2f", qps);
+  for (auto& m : measurements) {
+    m.Print();
   }
-  NVDS_LOG("total QPS: %.2f", std::accumulate(qpss.begin(), qpss.end(), 0.0));
   return 0;
 }
 
