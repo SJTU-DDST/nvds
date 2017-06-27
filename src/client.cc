@@ -51,7 +51,7 @@ Client::Buffer* Client::RequestAndWait(const char* key, size_t key_len,
   assert(key_len + val_len <= kMaxItemSize);
   // 0. compute key hash
   auto hash = Hash(key, key_len);
-  
+
   // 1. get tablet and server info
   //auto& tablet = index_manager_.GetTablet(hash);
   auto& server = index_manager_.GetServer(hash);

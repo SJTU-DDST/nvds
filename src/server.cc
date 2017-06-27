@@ -147,9 +147,31 @@ void Server::Poll() {
     ib_.PostReceive(qp_, b);
   }
 
-  using namespace std::chrono;
-  //uint64_t cnt = 0;
-  high_resolution_clock::time_point begin;
+#if 0 //#ifdef ENABLE_MEASUREMENT
+  while (true) {
+    Infiniband::Buffer* b = nullptr;
+    //std::clog << "1" << std::endl;
+    while ((b = ib_.TryReceive(qp_)) == nullptr) {}
+    //std::clog << "2" << std::endl;    
+    static bool enable = false;
+    if (enable) {
+      recv_measurement.end();
+    }
+    enable = true;
+    Dispatch(b);
+    //std::clog << "3" << std::endl;
+
+    while ((b = ib_.TrySend(qp_)) == nullptr) {}
+    //std::clog << "4" << std::endl;
+    send_measurement.end();
+    recv_measurement.begin();
+    send_bufs_.Free(b);
+
+    b = recv_bufs_.Alloc();
+    assert(b != nullptr);
+    ib_.PostReceive(qp_, b);
+  }
+#else
   while (true) {
     auto b = ib_.TryReceive(qp_);
     if (b != nullptr) {
@@ -180,6 +202,7 @@ void Server::Poll() {
       ib_.PostReceive(qp_, b);
     }
   }
+#endif
 }
 
 void Server::Dispatch(Work* work) {
