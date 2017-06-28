@@ -12,7 +12,7 @@ for ((len = 16; len <= 1024; len = len * 2)); do
         
         sleep 0.2
         ssh root@${client} "cd ${dir}; nohup ${bin} ${coord} 10000 ${len} 1 >> client.txt < ${in} &" < /dev/null
-        sleep 0.3
+        sleep 0.6
         pkill -SIGINT server
         #cat server_5050.txt
         sleep 0.1
