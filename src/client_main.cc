@@ -46,7 +46,12 @@ static void Work(Measurement* m, const std::string& coord_addr, size_t n, size_t
     for (size_t i = 0; i < keys.size(); ++i) {
       m->begin();
       c.Put(keys[i], vals[i]);
-      //std::cout << "PUT" << std::endl;
+      m->end();
+    }
+    m->Reset();
+    for (size_t i = 0; i < keys.size(); ++i) {
+      m->begin();
+      c.Get(keys[i]);
       m->end();
     }
   } catch (boost::system::system_error& e) {
