@@ -28,6 +28,10 @@ class Measurement {
     auto now = high_resolution_clock::now();
     return duration_cast<duration<double, std::micro>>(now - begin_clock_).count();
   }
+  void Reset() {
+    total_time_ = 0;
+    num_repetitions_ = 0;
+  }
   // DEBUG
   void Print() const {
     std::cout << "total time: " << total_time() << std::endl;
