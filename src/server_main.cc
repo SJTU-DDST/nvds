@@ -4,11 +4,26 @@
 
 #include "server.h"
 
+#include <algorithm>
+
 using namespace nvds;
 
 static Server* server;
 
 static void SigInt(int signo) {
+#ifdef ENABLE_MEASUREMENT
+  double total = server->alloc_measurement.average_time() +
+                 server->sync_measurement.average_time() +
+                 server->thread_measurement.average_time() +
+                 server->send_measurement.average_time()/* +
+                 server->recv_measurement.average_time()*/;
+  printf("%f, %f, %f, %f, %f\n",
+         server->alloc_measurement.average_time(),
+         server->sync_measurement.average_time(),
+         server->thread_measurement.average_time(),
+         server->send_measurement.average_time(),
+         /*server->recv_measurement.average_time(),*/ total);
+#else
   std::cout << std::endl << "num_recv: " << server->num_recv() << std::endl;
   std::cout << "alloc measurement: " << std::endl;
   server->alloc_measurement.Print();
@@ -26,10 +41,17 @@ static void SigInt(int signo) {
   server->send_measurement.Print();
   std::cout << std::endl;
 
-  std::cout << "recv measurement: " << std::endl;
-  server->recv_measurement.Print();
-  std::cout << std::endl;
+  //std::cout << "recv measurement: " << std::endl;
+  //server->recv_measurement.Print();
+  //std::cout << std::endl;
 
+  double total = server->alloc_measurement.average_time() +
+                 server->sync_measurement.average_time() +
+                 server->thread_measurement.average_time() +
+                 server->send_measurement.average_time();
+                 //server->recv_measurement.average_time();
+  std::cout << "total time: " << total << std::endl;
+#endif
   std::cout << std::flush;
   exit(0);
 }
@@ -72,9 +94,11 @@ int main(int argc, const char* argv[]) {
     // Step 3: acknowledge the coordinator of complemention
 
     // Step 4: serving request
+  #ifndef ENABLE_MEASUREMENT
     NVDS_LOG("Server startup");
     NVDS_LOG("Listening at: %u", server_port);
     NVDS_LOG("......");
+  #endif
     
     s.Run();
   } catch (boost::system::system_error& e) {

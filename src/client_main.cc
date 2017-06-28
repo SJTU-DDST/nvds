@@ -20,7 +20,7 @@ static void SigInt(int signo) {
 
 static void Usage() {
   std::cout << "usage: " << std::endl;
-  std::cout << "client  <coordinator_addr> <item number per thread> <thread numer>" << std::endl;
+  std::cout << "client  <coordinator_addr> <item number per thread> <val_len> <thread numer>" << std::endl;
 }
 
 static VecStr GenRandomStrings(size_t len, size_t n) {
@@ -36,13 +36,13 @@ static VecStr GenRandomStrings(size_t len, size_t n) {
   return ans;
 }
 
-static void Work(Measurement* m, const std::string& coord_addr, size_t n) {
+static void Work(Measurement* m, const std::string& coord_addr, size_t n, size_t len_val) {
   using namespace std::chrono;
   try {
     Client c {coord_addr};
     client = &c;
     auto keys = GenRandomStrings(16, n);
-    auto vals = VecStr(n, std::string(16, 'a'));
+    auto vals = VecStr(n, std::string(len_val, 'a'));
     for (size_t i = 0; i < keys.size(); ++i) {
       m->begin();
       c.Put(keys[i], vals[i]);
@@ -58,27 +58,32 @@ static void Work(Measurement* m, const std::string& coord_addr, size_t n) {
 }
 
 static int bench_main(int argc, const char* argv[]) {
-  if (argc < 4) {
+  if (argc < 5) {
     Usage();
     return -1;
   }
 
   const std::string coord_addr = argv[1];
   const size_t num_items = std::stoi(argv[2]);
-  const size_t num_threads = std::stoi(argv[3]);
-  
+  const size_t len_val = std::stoi(argv[3]);
+  const size_t num_threads = std::stoi(argv[4]);
+  assert(num_threads == 1);
   std::vector<Measurement> measurements(num_threads);
   std::vector<std::thread> workers;
   for (size_t i = 0; i < num_threads; ++i) {
-    workers.emplace_back(std::bind(Work, &measurements[i], coord_addr, num_items));
+    workers.emplace_back(std::bind(Work, &measurements[i], coord_addr, num_items, len_val));
   }
   for (size_t i = 0; i < num_threads; ++i) {
     workers[i].join();
   }
 
+#ifdef ENABLE_MEASUREMENT
+  printf("%lu, %f\n", len_val, measurements[0].average_time());
+#else
   for (auto& m : measurements) {
     m.Print();
   }
+#endif
   return 0;
 }
 

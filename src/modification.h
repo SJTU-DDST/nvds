@@ -33,6 +33,7 @@ struct Position {
 
 struct ModificationLog {
   uint32_t cnt;
+  uint32_t len;
   Position positions[0];
   ModificationLog() = delete;
 };

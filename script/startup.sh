@@ -20,5 +20,5 @@ while read line; do
     out="./script/server_${server[1]}.txt"
     err="./script/err_server_${server[1]}.txt"
     in="/dev/null"
-    ssh root@${server[0]} "cd ${dir}; nohup ${bin} ${server[1]} ${coord_addr} > ${out} 2> ${err} < ${in} &" < /dev/null
+    ssh root@${server[0]} "cd ${dir}; nohup ${bin} ${server[1]} ${coord_addr} >> ${out} 2>> ${err} < ${in} &" < /dev/null
 done < servers.txt

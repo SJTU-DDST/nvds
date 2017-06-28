@@ -16,8 +16,6 @@
 #include <mutex>
 #include <thread>
 
-#define ENABLE_MEASUREMENT
-
 namespace nvds {
 
 /*
@@ -51,7 +49,7 @@ class Server : public BasicServer {
   Measurement sync_measurement;
   Measurement thread_measurement;
   Measurement send_measurement;
-  Measurement recv_measurement;
+  //Measurement recv_measurement;
 
  public:
   // Workers & tablets
@@ -120,7 +118,7 @@ class Server : public BasicServer {
       Measurement m;
       m.begin();
       auto ans = Dequeue();
-      while (ans == nullptr && m.cur_period() < 50) {
+      while (ans == nullptr && m.cur_period() < 200) {
         ans = Dequeue();
       }
       return const_cast<Work*>(ans);

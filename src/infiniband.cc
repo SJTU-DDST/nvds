@@ -213,7 +213,7 @@ Infiniband::RegisteredBuffers::RegisteredBuffers(ibv_pd* pd,
   const size_t bytes = buf_size * buf_num;
   ptr_ = memalign(sysconf(_SC_PAGESIZE), bytes);
   assert(ptr_ != nullptr);
-  int access = IBV_ACCESS_REMOTE_WRITE | IBV_ACCESS_LOCAL_WRITE;
+  int access = IBV_ACCESS_REMOTE_WRITE | IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ;
   auto mr = ibv_reg_mr(pd, ptr_, bytes, access);
   if (mr == nullptr) {
     throw TransportException(HERE, "failed to register buffers", errno);

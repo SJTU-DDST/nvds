@@ -178,7 +178,8 @@ void Server::Poll() {
       #ifdef ENABLE_MEASUREMENT
         static bool enable = false;
         if (enable) {
-          recv_measurement.end();
+          //recv_measurement.end();
+          send_measurement.end();
         }
         enable = true;
       #endif
@@ -189,8 +190,8 @@ void Server::Poll() {
     }
     if ((b = ib_.TrySend(qp_)) != nullptr) {
       #ifdef ENABLE_MEASUREMENT
-        send_measurement.end();
-        recv_measurement.begin();
+        //send_measurement.end();
+        //recv_measurement.begin();
       #endif
       send_bufs_.Free(b);
     }
@@ -260,15 +261,16 @@ void Server::Worker::Serve() {
       #ifdef ENABLE_MEASUREMENT
         server_->sync_measurement.begin();
       #endif
-      tablet_->Sync(work, modifications);
+      tablet_->Sync(modifications);
       #ifdef ENABLE_MEASUREMENT
         server_->sync_measurement.end();
       #endif
     } catch (TransportException& e) {
-      r->Print();
-      tablet_->info().Print();
-      server_->index_manager_.PrintTablets();
+      //r->Print();
+      //tablet_->info().Print();
+      //server_->index_manager_.PrintTablets();
       NVDS_ERR(e.ToString().c_str());
+      throw e;
     }
 
     #ifdef ENABLE_MEASUREMENT

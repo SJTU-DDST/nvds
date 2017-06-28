@@ -15,6 +15,8 @@
 #include <string>
 #include <vector>
 
+#define ENABLE_MEASUREMENT
+
 #define PACKED(s) s __attribute__((packed))
 
 #ifndef DISALLOW_COPY_AND_ASSIGN
@@ -44,10 +46,10 @@ using TabletId = uint32_t;
 // Configurable
 static const uint32_t kNumReplicas = 2;
 static const uint32_t kNumServers = 1;
-static const uint32_t kNumTabletsPerServer = 2;
+static const uint32_t kNumTabletsPerServer = 1;
 
 static const uint16_t kCoordPort = 9090;
-static const uint32_t kMaxItemSize = 1024;
+static const uint32_t kMaxItemSize = 1024 + 32;
 static const uint32_t kNumTabletAndBackupsPerServer = kNumTabletsPerServer * (1 + kNumReplicas);
 static const uint32_t kNumTablets = kNumTabletsPerServer * kNumServers;
 static const uint32_t kNumTabletAndBackups = kNumTabletAndBackupsPerServer * kNumServers;

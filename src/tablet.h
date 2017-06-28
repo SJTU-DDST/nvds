@@ -53,14 +53,13 @@ class Tablet {
   // Return: Status::ERROR, if there is already the same key; else, Status::OK;
   Status Add(const Request* r, ModificationList& modifications);
   void SettingupQPConnect(TabletId id, const IndexManager& index_manager);
-  int Sync(Infiniband::Buffer* b, ModificationList& modifications);
+  int Sync(ModificationList& modifications);
 
  private:
   static void MergeModifications(ModificationList& modifications);
   void MakeLog(ModificationLog* log, const ModificationList& modifications);
-  size_t MakeSGEs(struct ibv_sge* sges, struct ibv_mr* mr,
-                  const ModificationLog* log,
-                  const ModificationList& modifications);
+  inline size_t MakeSGEs(struct ibv_sge* sges, struct ibv_mr* mr,
+                         const ModificationLog* log);
   const IndexManager& index_manager_;  
   TabletInfo info_;
   NVMPtr<NVMTablet> nvm_tablet_;
@@ -73,7 +72,7 @@ class Tablet {
   ibv_mr* mr_;
   std::array<Infiniband::QueuePair*, kNumReplicas> qps_;
   // `kNumReplica` queue pairs share this `rcq_` and `scq_`
-
+  uint32_t local_log_offset_;
   std::array<uint32_t, kNumReplicas> log_offsets_;
   static const uint32_t kNumScatters = 16;
   std::array<struct ibv_sge, kNumScatters> sges_;
