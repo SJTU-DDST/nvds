@@ -15,7 +15,14 @@ Client::Client(const std::string& coord_addr)
   qp_ = new Infiniband::QueuePair(ib_, IBV_QPT_UD,
       kMaxIBQueueDepth, kMaxIBQueueDepth);
   qp_->Activate();
+  
   Join();
+
+  for (size_t i = 0; i < kMaxIBQueueDepth / 2; ++i) {
+    auto rb = recv_bufs_.Alloc();
+    assert(rb);
+    ib_.PostReceive(qp_, rb);
+  }
 }
 
 Client::~Client() {
@@ -59,14 +66,16 @@ Client::Buffer* Client::RequestAndWait(const char* key, size_t key_len,
   auto sb = send_bufs_.Alloc();
   assert(sb != nullptr);
   auto r = Request::New(sb, type, key, key_len, val, val_len, hash);
-  auto rb = recv_bufs_.Alloc();
-  assert(rb != nullptr);
-  ib_.PostReceive(qp_, rb);
+  
   ib_.PostSendAndWait(qp_, sb, r->Len(), &server.ib_addr);
   Request::Del(r);
   send_bufs_.Free(sb);
-  assert(rb == ib_.Receive(qp_));
-  return rb;
+
+  auto ans = ib_.Receive(qp_);
+  auto rb = recv_bufs_.Alloc();
+  assert(rb != nullptr);
+  ib_.PostReceive(qp_, rb);
+  return ans;
   //std::string ans(resp->val, resp->val_len);
   //recv_bufs_.Free(rb);
   //return ans;
