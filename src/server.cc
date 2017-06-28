@@ -177,6 +177,15 @@ void Server::Poll() {
     if (b != nullptr) {
       #ifdef ENABLE_MEASUREMENT
         static bool enable = false;
+        // For evaluating GET latency
+        if (alloc_measurement.num_repetitions() == 10000) {
+          alloc_measurement.Reset();
+          sync_measurement.Reset();
+          thread_measurement.Reset();
+          send_measurement.Reset();
+          enable = false;
+        }
+        // For evaluating GET latency        
         if (enable) {
           //recv_measurement.end();
           send_measurement.end();
